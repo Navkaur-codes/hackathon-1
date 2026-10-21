@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.1 Foundation — in progress (P0.1-a pushed, P0.1-b done)** (plan revision 3 + subjects)
+**Current version: v0.1 Foundation — code complete (P0.1-c awaiting push); next: v0.2 Engine** (plan revision 3 + subjects)
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -59,10 +59,16 @@
 **Done when:** `npm run build` + `npm test` pass, pushed to GitHub, Vercel URL shows the landing with both colleges.
 
 ### Built
-_(fill after v0.1)_
+- **P0.1-a** `12a8fc7` — Paper & Ink theme (light + Blackboard dark), restrained type scale, wheel mark + favicon, GSAP landing (headline reveal, rotating wheel, role cards), print base. A dark "Midnight & Saffron" variant was tried and rejected by the user.
+- **P0.1-b** `7485142` — `types.ts` (multi-college model, Subject per programme, Assignment = section × subject → teacher, BreakRule) and `lib/structure.ts` (`generateSections`, `syncAssignments`, `buildCollege`, `periodTimes`, `effectiveBreaks` / `breakSlots` / `sectionBreakSlots`). Staggered breaks + rule H14 added at the user's request.
+- **P0.1-c** — `demoData.ts`: DIET (Mon–Sat × 7 slots, CSE/ECE/ME, 7 sections, ECE lunch staggered, cross-dept Maths & Communication teachers, 2 shared computer labs + seminar hall, a visiting teacher off on Saturdays) and DCAS (Mon–Fri × 6 slots, 30-min lunch slot, extra Friday break, Commerce/English, cross-dept Business Communication). `summarizeCollege` + `CollegeCard` show both on the landing, every number computed.
+- Tests: 32 green (T0.1–T0.7).
 
 ### Open issues
-_(fill after v0.1)_
+- Vercel not connected yet (user step) — live URL pending.
+- Vite dev server's Tailwind output once went stale after a newly created component (missing classes); restarting the dev server fixed it. Production build was unaffected. If classes seem missing in dev, restart the preview before debugging CSS.
+- "Generate timetable" buttons are disabled placeholders until v0.2/v0.4 wire the solver.
+- Root `README.md` is still the Vite template — replaced at v1.0.
 
 ---
 <!-- Next: write "## v0.2 Engine — Design" here before starting v0.2 -->

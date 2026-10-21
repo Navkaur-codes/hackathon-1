@@ -4,6 +4,10 @@ import { SplitText } from 'gsap/SplitText'
 import { useGSAP } from '@gsap/react'
 import { ArrowRight, Building2, GraduationCap, Landmark, School, Users } from 'lucide-react'
 import { Wheel } from './components/Wheel'
+import { CollegeCard } from './components/CollegeCard'
+import { buildDemoColleges } from './demoData'
+
+const demoColleges = buildDemoColleges()
 
 gsap.registerPlugin(useGSAP, SplitText)
 
@@ -33,6 +37,7 @@ export default function App() {
         gsap.from('[data-wheel]', { autoAlpha: 0, scale: 0.85, rotate: -90, duration: 1.4, ease: 'expo.out' })
         gsap.to('[data-wheel-spokes]', { rotate: 360, transformOrigin: '50% 50%', duration: 60, ease: 'none', repeat: -1 })
         gsap.from('[data-role-card]', { autoAlpha: 0, y: 24, duration: 0.7, ease: 'power3.out', stagger: 0.08, delay: 0.6 })
+        gsap.from('[data-college-card]', { autoAlpha: 0, y: 24, duration: 0.7, ease: 'power3.out', stagger: 0.12, delay: 0.8 })
       })
     },
     { scope: root },
@@ -87,6 +92,26 @@ export default function App() {
             <div data-wheel className="w-[min(70vw,320px)]">
               <Wheel size={320} className="h-auto w-full" />
             </div>
+          </div>
+        </section>
+
+        <section id="colleges" className="border-t border-rule py-12">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Any college, any shape.</h2>
+              <p className="mt-2 max-w-2xl text-[15px] text-muted">
+                Two demo colleges, built from nothing but their structure — different days, periods, departments and
+                lunch breaks. Every number below is computed, not typed in.
+              </p>
+            </div>
+            <span className="font-mono text-[11px] tracking-[0.2em] text-muted uppercase">
+              {demoColleges.length} colleges on this platform
+            </span>
+          </div>
+          <div className="mt-7 grid gap-4 md:grid-cols-2">
+            {demoColleges.map((c) => (
+              <CollegeCard key={c.college.id} data={c} />
+            ))}
           </div>
         </section>
 

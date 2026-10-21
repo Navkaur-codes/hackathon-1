@@ -82,6 +82,26 @@ export function sectionBreakSlots(college: Pick<CollegeData, 'calendar' | 'depar
   return breakSlots(effectiveBreaks(college.calendar, dept, programme, section), college.calendar.days.length)
 }
 
+/** At-a-glance numbers for a college card — all derived from data, never typed in. */
+export function summarizeCollege(c: CollegeData) {
+  const times = periodTimes(c.calendar)
+  const breakSets = new Set(c.sections.map((s) => [...sectionBreakSlots(c, s)].sort().join(',')))
+  return {
+    days: c.calendar.days.length,
+    dayRange: c.calendar.days.length ? `${c.calendar.days[0]}–${c.calendar.days[c.calendar.days.length - 1]}` : '—',
+    slotsPerDay: c.calendar.periodsPerDay,
+    hours: times.length ? `${times[0].start}–${times[times.length - 1].end}` : '—',
+    departments: c.departments.map((d) => d.code),
+    sections: c.sections.length,
+    students: c.sections.reduce((sum, s) => sum + s.strength, 0),
+    subjects: c.subjects.length,
+    teachers: c.teachers.length,
+    rooms: c.rooms.length,
+    sharedRooms: c.rooms.filter((r) => r.owner === 'shared').length,
+    staggeredBreaks: breakSets.size > 1,
+  }
+}
+
 // ── Sections ──────────────────────────────────────────────────────────
 
 /**

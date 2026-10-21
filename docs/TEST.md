@@ -3,13 +3,13 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.1-b + staggered breaks) — `npm test` 17 passed / 0 failed · build ✅ · lint ✅
+**Last run:** 2026-10-21 (P0.1-c) — `npm test` 32 passed / 0 failed (2 files) · build ✅ · lint ✅ · landing checked in browser at ~400px: both college cards render, no overflow
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
 |---|---|---|---|---|---|---|---|
 | T0.1 | v0.1 | build | `npm run build` + `npm run lint` | succeeds, no TS/lint errors | unit/CI | ✅ | P0.1-a (Paper & Ink, new type scale); landing checked in browser at 463px: no horizontal overflow, h1 36px on 2 lines, Fraunces loaded, animations complete |
-| T0.2 | v0.1 | demoData | ids unique, all refs resolve, lab rooms exist for lab assignments, every entity has collegeId, refs stay within one college | true | unit | ⏳ | |
+| T0.2 | v0.1 | demoData | ids unique, all refs resolve, lab rooms exist for lab assignments, every entity has collegeId, refs stay within one college | true | unit | ✅ | `demoData.test.ts` (15 cases): two different shapes; platform-unique ids; refs resolve in-college; every subject has a usable room of its type with enough capacity; teacher loads ≤ weekly max and ≤ maxPerDay × workable days; section demand < non-break slots; ECE lunch staggered vs CSE/ME; a cross-dept teacher in each college; `summarizeCollege` numbers |
 | T0.3 | v0.1 | structure | programme with N sections × strength S | exactly N sections, each strength S; changing N regenerates, keeps edited survivors | unit | ✅ | `structure.test.ts`: N = 1, 3, 7, 30; names past Z (AA, AB); grow 2→4 & shrink →1 keep edits |
 | T0.4 | v0.1 | structure | sections × programme subjects | exactly one assignment per section × subject; add/remove subject or section syncs and keeps chosen teachers | unit | ✅ | also: other programmes' subjects ignored |
 | T0.5 | v0.1 | structure | `buildCollege(spec)` | all records derived from spec, every record has the college's id, round-robin teachers per section, unknown teacher key rejected, unavailability → slot keys | unit | ✅ | |

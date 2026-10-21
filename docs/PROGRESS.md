@@ -3,12 +3,12 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.1 in progress — P0.1-b done, awaiting push · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.1 code complete — P0.1-c done, awaiting push + Vercel · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
 
 ## Version checklist (ticked after the user confirms each push)
 - [ ] **v0.1 Foundation**
   - [x] P0.1-a Theme, fonts, landing shell — `12a8fc7`
-  - [ ] P0.1-b Multi-college types + `structure.ts`
+  - [x] P0.1-b Multi-college types + `structure.ts` + staggered breaks — `7485142`
   - [ ] P0.1-c Two demo colleges via config
   - [ ] (user) GitHub repo + first push + Vercel connected
 - [ ] **v0.2 Engine**
@@ -62,8 +62,9 @@
 | — | v0.1 | P0.1-a | Landing shell: GSAP headline reveal, rotating wheel, role cards, boilerplate removed (first draft in Paper & Ink) | pending | |
 | — | v0.1 | P0.1-a | Tried a "Midnight & Saffron" dark restyle — user preferred Paper & Ink | — | discarded |
 | — | v0.1 | P0.1-a | **Back to Paper & Ink with a tighter type scale**: hero 36→56px (was 48→72px), body 15px, h2 24→30px, buttons 14px, cards 13px | `12a8fc7` | h1 now 2 lines on mobile; no overflow at 463px |
-| — | v0.1 | P0.1-b | `types.ts` (multi-college model incl. Subject, Assignment = section × subject → teacher), `lib/structure.ts` (generateSections, syncAssignments, buildCollege from a spec, periodTimes) | pending | 13 tests green |
-| — | v0.1 | P0.1-b | **Staggered breaks** (user request): breaks are slots in the shared grid; section → programme → dept → college inheritance, per-day rules, per-slot lengths; new hard rule **H14** teacher lunch; H7/H8 reworded | pending | 17 tests green |
+| — | v0.1 | P0.1-b | `types.ts` (multi-college model incl. Subject, Assignment = section × subject → teacher), `lib/structure.ts` (generateSections, syncAssignments, buildCollege from a spec, periodTimes) | `7485142` | 13 tests green |
+| — | v0.1 | P0.1-b | **Staggered breaks** (user request): breaks are slots in the shared grid; section → programme → dept → college inheritance, per-day rules, per-slot lengths; new hard rule **H14** teacher lunch; H7/H8 reworded | `7485142` | 17 tests green |
+| — | v0.1 | P0.1-c | Two demo colleges as structure specs → `buildCollege`: **DIET** (Mon–Sat, 7 slots, CSE/ECE/ME, 7 sections, 385 students, 31 subjects, 12 teachers, ECE lunch staggered, shared Maths & Communication teachers, 2 shared computer labs + seminar hall) and **DCAS** (Mon–Fri, 6 slots, 30-min lunch, Friday assembly, Commerce/English, 4 sections). `summarizeCollege` + `CollegeCard` on the landing | pending | 32 tests green; fixed narrow-width card layout |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 
 ## Decisions
