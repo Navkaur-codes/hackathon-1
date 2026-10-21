@@ -35,7 +35,7 @@ export function ViewPicker({ view, entityId, groups, onView, onEntity }: Props) 
           </button>
         ))}
       </div>
-      <label className="flex min-w-0 flex-1 items-center gap-2 text-sm sm:flex-none">
+      <label className="flex min-w-0 basis-full items-center gap-2 text-sm sm:basis-auto">
         <span className="sr-only">Choose a {view}</span>
         <select
           value={entityId}

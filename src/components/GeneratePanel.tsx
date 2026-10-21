@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { AlertTriangle, ArrowRight, BadgeCheck, CalendarDays, RotateCcw } from 'lucide-react'
+import { ArrowRight, CalendarDays, RotateCcw } from 'lucide-react'
 import { runSolver } from '../solver/runSolver'
 import type { SolveResult } from '../solver/best'
 import type { CollegeData } from '../types'
+import { VerifiedStamp } from './VerifiedStamp'
 import { Wheel } from './Wheel'
 
 type State = { kind: 'idle' } | { kind: 'solving' } | { kind: 'done'; result: SolveResult } | { kind: 'error'; message: string }
@@ -64,7 +65,6 @@ export function GeneratePanel({ college, initial, onResult, onView }: Props) {
   )
 
   const r = state.kind === 'done' ? state.result : null
-  const clean = r && r.conflicts.length === 0
   const errors = r ? r.preflight.filter((w) => w.level === 'error') : []
 
   return (
@@ -81,14 +81,8 @@ export function GeneratePanel({ college, initial, onResult, onView }: Props) {
       {r && (
         <div className="space-y-3 rounded-lg border border-rule bg-paper/60 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span
-              data-result
-              className={`inline-flex items-center gap-1.5 rounded-md border-2 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wider uppercase ${
-                clean ? 'border-ink text-ink' : 'border-vermilion text-vermilion'
-              }`}
-            >
-              {clean ? <BadgeCheck size={14} aria-hidden /> : <AlertTriangle size={14} aria-hidden />}
-              {clean ? '0 clashes — verified' : `${r.conflicts.length} clashes found`}
+            <span data-result>
+              <VerifiedStamp conflicts={r.conflicts.length} />
             </span>
             <span data-result className="font-display text-2xl font-semibold tabular-nums">
               <span data-score>{r.score.total}</span>

@@ -3,7 +3,7 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.3 Timetable views in progress — P0.3-a done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.3 Timetable views in progress — P0.3-b done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
 
 ## Version checklist (ticked after the user confirms each push)
 - [x] **v0.1 Foundation**
@@ -17,8 +17,8 @@
   - [x] P0.2-c Repair, unplaced reasons, pre-flight check — `932f706`
   - [x] P0.2-d Quality score, restarts, Web Worker, landing result — `b276697`
 - [ ] **v0.3 Timetable views**
-  - [ ] P0.3-a Grid model + grids by section / teacher / room, opened from the card (done, awaiting push)
-  - [ ] P0.3-b Verified stamp, score, unplaced list + Clash Court popover
+  - [x] P0.3-a Grid model + grids by section / teacher / room, opened from the card — `73f2053`
+  - [ ] P0.3-b Verified stamp, score, unplaced list + Clash Court popover (done, awaiting push)
   - [ ] P0.3-c GSAP cell-drop + Flip, print (single + all sections)
 - [ ] **v0.35 Finder & filters**
   - [ ] P0.35-a `finder.ts`
@@ -71,7 +71,8 @@
 | — | v0.2 | P0.2-b | **Leave cover engine** (user request — *pulled forward from v0.7*): auto-allot best free teacher per class on the leave date, HOD can swap, `uncovered` if none, `validateDate` | `88bf6c0` | T7.1–T7.2 · 147 tests green |
 | — | v0.2 | P0.2-c | **Repair step** (lift one class sharing the teacher/section/room, re-place both, else restore exactly), **diagnosed unplaced reasons** (no room of type / too small / other dept's room → Room Exchange, teacher never available, weekly or daily limit, section full, no consecutive block, no common slot) and **pre-flight check** `solver/preflight.ts` (semester dates, unassigned teachers, unusable rooms, teacher week/day overload, section over capacity, lab block vs breaks, lab-room capacity) | `932f706` | 159 tests; repair helps rarely (2/300 random colleges) — most stuck classes are truly impossible, which pre-flight now reports up front |
 | — | v0.2 | P0.2-d | **Quality score** `solver/score.ts` (S1–S7, weighted 0–100), **restarts** `solver/best.ts` (20 seeds, fewest unplaced → best score, bundles validator, pre-flight and semester totals), **Web Worker** `solver/worker.ts` + `runSolver.ts` (inline fallback), **landing `GeneratePanel`**: spinning wheel while solving, "0 clashes — verified" stamp, score counter, periods/week, semester contact hours, "Generate another" | `b276697` | 167 tests; browser: DIET 96/100 in 432 ms, DCAS 89/100 in 144 ms |
-| — | v0.3 | P0.3-a | **Timetable page**: `lib/gridModel.ts` (grid + entity lists), `lib/colors.ts` (subject pastels), `TimetableGrid` (sticky time ruler, hatched own breaks, labs spanning with stripes), `ViewPicker` (Section/Teacher/Room + grouped picker), `TimetableView`; card gets **View timetable**; results kept while navigating; hero "Try a demo college" now jumps to the colleges | pending | 178 tests; fixed grid overflowing at desktop width (min-w-max → explicit min width) |
+| — | v0.3 | P0.3-a | **Timetable page**: `lib/gridModel.ts` (grid + entity lists), `lib/colors.ts` (subject pastels), `TimetableGrid` (sticky time ruler, hatched own breaks, labs spanning with stripes), `ViewPicker` (Section/Teacher/Room + grouped picker), `TimetableView`; card gets **View timetable**; results kept while navigating; hero "Try a demo college" now jumps to the colleges | `73f2053` | 178 tests; fixed grid overflowing at desktop width (min-w-max → explicit min width) |
+| — | v0.3 | P0.3-b | **Clash Court**: `lib/explain.ts` plain-language checklist of every hard rule for a class (independent of the solver, agrees with the validator), `ClashCourt` popover (beside the class; bottom sheet on phones; Esc/outside click; focus returns to the class); timetable page shows **verified stamp, score, periods, semester hours, unplaced + pre-flight** with fixes; shared `VerifiedStamp` | pending | fixed: picker squeezed to 86 px on phones; React-compiler lint on useCallback (ref pattern instead) |
 | — | v0.2 | — | Decision (user): **leave is date-specific** — HOD approval creates that date's adjusted timetable (substitute or moved class); weekly master unchanged. `LeaveRequest`/`Substitution` gain `date` | — | built in v0.7 |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 

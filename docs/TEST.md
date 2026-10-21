@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.3-a) — `npm test` 178 passed / 0 failed (9 files) · build ✅ · lint ✅ · browser: section/teacher/room grids, no page scroll at 349 px, grid fits at 1280 px
+**Last run:** 2026-10-21 (P0.3-b) — `npm test` 184 passed / 0 failed (10 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -45,7 +45,7 @@
 | T6d | v0.2 | worker | `runSolver` without Web Workers | falls back inline with identical result | unit | ✅ | in the browser it runs in a real worker (checked: `worker.ts?worker_file` loaded) |
 | T3.1 | v0.3 | gridModel | grid for a section / teacher / room on both demos | one cell per placement of that entity; labs span their length; section break rows = its own staggered breaks; teacher view includes cross-dept classes; rows × cols follow the calendar | unit | ✅ | `lib/gridModel.test.ts` (8 cases) incl. DCAS 30-min lunch slot & Friday-only assembly; every placement appears exactly once per view |
 | T3.2 | v0.3 | colors | subject colours | same code → same colour; readable contrast | unit | ✅ | every palette colour ≥ 4.5:1 with ink text; DIET curriculum uses ≥ 6 colours |
-| T3.3 | v0.3 | explain | Clash Court checklist | all ✓ for solver placements; a hand-made clash shows the failing check, agreeing with the validator | unit | ⏳ | |
+| T3.3 | v0.3 | explain | Clash Court checklist | all ✓ for solver placements; a hand-made clash shows the failing check, agreeing with the validator | unit | ✅ | `lib/explain.test.ts`: every placement of both demos all ✓; lunch-break move → H7, teacher double-booking → H1, unlent room → H11 — each also reported by the validator. Browser: popover beside the class (tablet), bottom sheet (phone), Esc returns focus to the class |
 | T35.1 | v0.35 | finder | free teachers at a demo slot | excludes busy/unavailable teachers | unit | ⏳ | |
 | T35.2 | v0.35 | finder | free rooms by type & capacity | only matching, unbooked rooms | unit | ⏳ | |
 | T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ⏳ | |

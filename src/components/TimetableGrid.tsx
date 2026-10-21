@@ -6,7 +6,7 @@ const LAB_STRIPES = 'repeating-linear-gradient(135deg, rgba(28,27,25,0.07) 0 2px
 
 type Props = {
   grid: Grid
-  /** Called when a class is activated (Clash Court arrives in P0.3-b). */
+  /** Called when a class is activated — opens Clash Court. */
   onSelect?: (cell: GridCell, el: HTMLElement) => void
 }
 
