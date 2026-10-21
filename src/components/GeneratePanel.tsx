@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { AlertTriangle, ArrowRight, BadgeCheck, RotateCcw } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BadgeCheck, CalendarDays, RotateCcw } from 'lucide-react'
 import { runSolver } from '../solver/runSolver'
 import type { SolveResult } from '../solver/best'
 import type { CollegeData } from '../types'
@@ -12,9 +12,17 @@ type State = { kind: 'idle' } | { kind: 'solving' } | { kind: 'done'; result: So
 const ATTEMPTS = 20
 
 /** "Generate timetable" for one college: runs the solver in a worker and shows the verified result. */
-export function GeneratePanel({ college }: { college: CollegeData }) {
-  const [state, setState] = useState<State>({ kind: 'idle' })
-  const [round, setRound] = useState(0)
+type Props = {
+  college: CollegeData
+  /** A result generated earlier (kept by the parent so it survives navigation). */
+  initial?: SolveResult
+  onResult?: (r: SolveResult) => void
+  onView?: (r: SolveResult) => void
+}
+
+export function GeneratePanel({ college, initial, onResult, onView }: Props) {
+  const [state, setState] = useState<State>(initial ? { kind: 'done', result: initial } : { kind: 'idle' })
+  const [round, setRound] = useState(initial ? 1 : 0)
   const root = useRef<HTMLDivElement>(null)
 
   const generate = async () => {
@@ -24,6 +32,7 @@ export function GeneratePanel({ college }: { college: CollegeData }) {
       const result = await runSolver(college, { attempts: ATTEMPTS, baseSeed: 1 + round * ATTEMPTS })
       setRound((r) => r + 1)
       setState({ kind: 'done', result })
+      onResult?.(result)
     } catch (e) {
       setState({ kind: 'error', message: e instanceof Error ? e.message : String(e) })
     }
@@ -121,21 +130,32 @@ export function GeneratePanel({ college }: { college: CollegeData }) {
       {state.kind === 'error' && <p className="text-[13px] text-vermilion">Could not generate: {state.message}</p>}
 
       {state.kind !== 'solving' && (
-        <button
-          type="button"
-          onClick={generate}
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper"
-        >
-          {r ? (
-            <>
-              Generate another <RotateCcw size={15} aria-hidden />
-            </>
-          ) : (
-            <>
-              Generate timetable <ArrowRight size={15} aria-hidden />
-            </>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {r && onView && (
+            <button
+              type="button"
+              onClick={() => onView(r)}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90"
+            >
+              View timetable <CalendarDays size={15} aria-hidden />
+            </button>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={generate}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper"
+          >
+            {r ? (
+              <>
+                Generate another <RotateCcw size={15} aria-hidden />
+              </>
+            ) : (
+              <>
+                Generate timetable <ArrowRight size={15} aria-hidden />
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   )

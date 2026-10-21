@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.2-d) — `npm test` 167 passed / 0 failed (8 files) · build ✅ (separate worker chunk) · lint ✅ · browser: both demo colleges generate with 0 clashes
+**Last run:** 2026-10-21 (P0.3-a) — `npm test` 178 passed / 0 failed (9 files) · build ✅ · lint ✅ · browser: section/teacher/room grids, no page scroll at 349 px, grid fits at 1280 px
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -43,6 +43,9 @@
 | T6b | v0.2 | preflight | demos clean; overloaded teacher; bad semester dates; each T3 case | demos: no errors; error with exact message + fix for each impossible input | unit | ✅ | |
 | T6c | v0.2 | restarts | `solveBest` (20 seeds) vs first attempt | never more unplaced, never lower score, 0 conflicts, reproducible from `bestSeed`, semester totals reported | unit | ✅ | |
 | T6d | v0.2 | worker | `runSolver` without Web Workers | falls back inline with identical result | unit | ✅ | in the browser it runs in a real worker (checked: `worker.ts?worker_file` loaded) |
+| T3.1 | v0.3 | gridModel | grid for a section / teacher / room on both demos | one cell per placement of that entity; labs span their length; section break rows = its own staggered breaks; teacher view includes cross-dept classes; rows × cols follow the calendar | unit | ✅ | `lib/gridModel.test.ts` (8 cases) incl. DCAS 30-min lunch slot & Friday-only assembly; every placement appears exactly once per view |
+| T3.2 | v0.3 | colors | subject colours | same code → same colour; readable contrast | unit | ✅ | every palette colour ≥ 4.5:1 with ink text; DIET curriculum uses ≥ 6 colours |
+| T3.3 | v0.3 | explain | Clash Court checklist | all ✓ for solver placements; a hand-made clash shows the failing check, agreeing with the validator | unit | ⏳ | |
 | T35.1 | v0.35 | finder | free teachers at a demo slot | excludes busy/unavailable teachers | unit | ⏳ | |
 | T35.2 | v0.35 | finder | free rooms by type & capacity | only matching, unbooked rooms | unit | ⏳ | |
 | T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ⏳ | |
@@ -93,7 +96,7 @@
 | M6 | Who's free? finder + Ctrl+K search jump to timetable | ⏳ |
 | M7 | Kaal Assistant answers 3 sample questions | ⏳ |
 | M8 | Print preview: one clean timetable per A4 | ⏳ |
-| M9 | Phone width (375px): student view readable, no horizontal scroll | ⏳ |
+| M9 | Phone width (375px): student view readable, no horizontal scroll | ⏳ — timetable page checked at 349 px: page never scrolls sideways, grid scrolls inside its box with sticky times (P0.3-a); student view in v0.6 |
 | M10 | Reduced motion: no GSAP animation; dark mode readable | ⏳ |
 | M11 | Refresh browser: data kept | ⏳ |
 | M12 | Login with each demo account (v0.9) | ⏳ |

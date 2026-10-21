@@ -1,13 +1,21 @@
 import { CalendarRange, Clock, Coffee, DoorOpen } from 'lucide-react'
 import { summarizeCollege } from '../lib/structure'
 import type { CollegeData } from '../types'
+import type { SolveResult } from '../solver/best'
 import { GeneratePanel } from './GeneratePanel'
 
 const shortDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 /** Landing-page card for one college. Every figure comes from `summarizeCollege` (rule G2). */
-export function CollegeCard({ data }: { data: CollegeData }) {
+type Props = {
+  data: CollegeData
+  result?: SolveResult
+  onResult?: (r: SolveResult) => void
+  onView?: (r: SolveResult) => void
+}
+
+export function CollegeCard({ data, result, onResult, onView }: Props) {
   const s = summarizeCollege(data)
   const stats = [
     { label: 'Departments', value: s.departments.length },
@@ -70,7 +78,7 @@ export function CollegeCard({ data }: { data: CollegeData }) {
         </li>
       </ul>
 
-      <GeneratePanel college={data} />
+      <GeneratePanel college={data} initial={result} onResult={onResult} onView={onView} />
     </article>
   )
 }

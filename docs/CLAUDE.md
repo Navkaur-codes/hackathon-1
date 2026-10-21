@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.2 Engine — code complete (P0.2-d awaiting push); next: v0.3 Timetable views** · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
+**Current version: v0.3 Timetable views — DESIGN (awaiting review)** · v0.2 done · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -122,7 +122,7 @@
 - **P0.2-a** `f142336` — independent validator `solver/validate.ts` (H1–H14, plain-language conflicts, `mustKeep`, date-specific `leave`).
 - **P0.2-b** `88bf6c0` — solver core `solver/solve.ts` (+ `rng.ts`): dynamic most-constrained-first, hard rules as filters, soft-penalty pick, fixed/locked placements, department subsets; **semester calendar** `lib/semester.ts` (user request); **leave cover engine** `solver/substitutes.ts` (user request, pulled forward from v0.7).
 - **P0.2-c** `932f706` — repair step, diagnosed unplaced reasons + fixes, pre-flight check `solver/preflight.ts`.
-- **P0.2-d** — quality score `solver/score.ts`, restarts `solver/best.ts`, Web Worker `solver/worker.ts` + `runSolver.ts`, landing `GeneratePanel` (verified stamp, score, periods/week, semester hours, "Generate another").
+- **P0.2-d** `b276697` — quality score `solver/score.ts`, restarts `solver/best.ts`, Web Worker `solver/worker.ts` + `runSolver.ts`, landing `GeneratePanel` (verified stamp, score, periods/week, semester hours, "Generate another").
 - Results: DIET 96/100 (111 periods/week, 1,617 contact hours, 105 teaching days), DCAS 89/100 (58 periods/week, 789 h, 74 days); 20 tries in ~0.4 s / ~0.15 s in the browser worker. 167 tests green.
 
 ### Open issues
@@ -132,4 +132,47 @@
 - Vercel still not connected (user step).
 
 ---
-<!-- Next: write "## v0.3 Timetable views — Design" here before starting v0.3 -->
+## v0.3 Timetable views
+
+### Design
+**Goal:** after "Generate timetable", anyone can open the actual weekly timetable of any section, teacher or room, trust it (verified stamp + "why here?" for every class), and print it. Readable at phone width. Everything driven by the college's calendar — any number of days, slots, breaks (rule G4).
+
+**Screens**
+- **Landing card** → after a result, a **"View timetable"** button opens the timetable page for that college and result.
+- **Timetable page** (`TimetableView`): header with college name, semester ("Odd Semester 2026 · weekly pattern · 20 Jul – 27 Nov"), verified stamp, quality score, and unplaced list (reason + fix) if any. Below: **view switch** `Section | Teacher | Room` + a picker grouped by department, a "Back" link, and **Print** / **Print all sections** buttons.
+- **Grid** (`TimetableGrid`): columns = working days, rows = slots with clock times on a sticky left ruler. Section view shows that section's own break rows hatched with their label ("Lunch"); teacher view lightly shades the lunch window; room view shows nothing extra. Labs span their periods (CSS grid row span) with a diagonal-stripe texture. Cell = subject code + name, then section view: teacher · room; teacher view: section · room; room view: section · teacher. Empty slots are blank paper. On narrow screens the grid scrolls horizontally *inside its own box* (the page never does), with the time column sticky.
+- **Clash Court popover**: click/Enter on a cell → popover listing every hard rule it satisfies as a checklist, e.g. "✓ Dr. Kaur has no other class at Mon P2", "✓ LT-101 seats 70 ≥ 60", "✓ Not CSE-Y2-A's break", "✓ Dr. Kaur: 3 of 4 periods that day", "✓ Lunch kept (P5 free)", "✓ Own department room". Esc / click outside closes. Keyboard reachable.
+- **Motion:** cells drop into the grid with a stagger on first show; on "Generate another" or view switch, **GSAP Flip** moves cells from old to new positions. Off under reduced motion.
+- **Print:** A4 landscape, one timetable per page with a header (college, entity, semester, generated at) and no UI chrome; "Print all sections" renders every section, each on its own page.
+
+**Files**
+| File | Purpose |
+|---|---|
+| `lib/gridModel.ts` | Pure: `buildGrid(college, timetable, view, entityId)` → rows (slot index, times, break label), cells (day, start, span, subject, people, room, placement). |
+| `lib/explain.ts` | Pure: `explainPlacement(college, timetable, placement)` → checklist `{ rule, ok, text }[]` for Clash Court (independent of the solver). |
+| `lib/colors.ts` | Deterministic muted pastel per subject code (hash → small Paper & Ink palette), readable ink text. |
+| `components/TimetableView.tsx`, `TimetableGrid.tsx`, `ClashCourt.tsx`, `ViewPicker.tsx` | UI. |
+| `App.tsx` | Simple view state: landing ↔ timetable page (no router yet; portals and routing come in v0.4). |
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.3-a | Grid model + `TimetableGrid` + `TimetableView` with Section/Teacher/Room picker, opened from the card | T3.1 grid model: one cell per placement of the entity, labs span `length` rows, section break rows come from its own (staggered) breaks, teacher view includes cross-department classes, rows/cols follow any calendar shape · T3.2 colours deterministic | `feat(ui): timetable grids by section, teacher and room` |
+| P0.3-b | Verified stamp, score, unplaced list on the page + Clash Court popover | T3.3 `explainPlacement`: every check ✓ for a solver placement; a hand-made clash shows the failing check (agrees with the validator) | `feat(ui): clash court — why every class is where it is` |
+| P0.3-c | GSAP cell-drop + Flip on regenerate/switch + print (single and all sections) | manual: M8 print preview, M9 phone width (no page scroll), M10 reduced motion | `feat(ui): grid motion and print-ready timetables` |
+
+**Decisions**
+- Shows the **weekly pattern** (it repeats all semester). A real-date view ("today", with substitutions) belongs to the Teacher/Student portals in **v0.6** — not built here.
+- No persistence yet: the timetable lives in memory until the store arrives in **v0.4**; a page refresh returns to the landing.
+- No router library: a tiny view state in `App` keeps v0.3 small; v0.4 adds portals.
+
+**Done when:** a user can generate DIET or DCAS, open any section/teacher/room grid, click any class to see why it is legal, print one or all sections, and the page never scrolls sideways at phone width.
+
+### Built
+_(fill after v0.3)_
+
+### Open issues
+_(fill after v0.3)_
+
+---
+<!-- Next: write "## v0.35 Finder & filters — Design" here before starting v0.35 -->
