@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.3 Timetable views — DESIGN (awaiting review)** · v0.2 done · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
+**Current version: v0.3 Timetable views — code complete (P0.3-c awaiting push); next: v0.35 Finder & filters** · v0.2 done · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -169,10 +169,16 @@
 **Done when:** a user can generate DIET or DCAS, open any section/teacher/room grid, click any class to see why it is legal, print one or all sections, and the page never scrolls sideways at phone width.
 
 ### Built
-_(fill after v0.3)_
+- **P0.3-a** `73f2053` — `lib/gridModel.ts`, `lib/colors.ts`, `TimetableGrid`, `ViewPicker`, `TimetableView`; card "View timetable"; results kept while navigating; hero CTA jumps to colleges.
+- **P0.3-b** `88a955c` — Clash Court: `lib/explain.ts` (independent checklist, agrees with the validator) + `ClashCourt` popover / phone bottom sheet; result strip (stamp, score, periods, hours, unplaced + pre-flight) on the page; shared `VerifiedStamp`.
+- **P0.3-c** — `components/gridMotion.ts` (drop-in + Flip), "Generate another" on the page, Print / Print all sections with A4-landscape print CSS.
+- 184 tests green; browser-checked at 349 / 375 / 768 / 1280 px.
 
 ### Open issues
-_(fill after v0.3)_
+- Real print dialog not exercised by automation (print CSS was simulated on screen) — confirm once by hand (M8).
+- Reduced-motion path is coded but not yet checked with the OS setting (M10).
+- Timetables still live in memory only — persistence arrives with the store in v0.4.
+- Tailwind dev server needs a restart after new component files (stale classes) — dev-only quirk.
 
 ---
 <!-- Next: write "## v0.35 Finder & filters — Design" here before starting v0.35 -->

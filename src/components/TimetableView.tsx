@@ -1,21 +1,53 @@
-import { useMemo, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
-import { buildGrid, listEntities, type GridCell, type GridView } from '../lib/gridModel'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, Printer, RotateCcw } from 'lucide-react'
+import { buildGrid, listEntities, type Grid, type GridCell, type GridView } from '../lib/gridModel'
 import { semesterSummary } from '../lib/semester'
 import type { SolveResult } from '../solver/best'
+import { runSolver } from '../solver/runSolver'
 import type { CollegeData, Id } from '../types'
 import { ClashCourt } from './ClashCourt'
+import { captureGrid } from './gridMotion'
 import { TimetableGrid } from './TimetableGrid'
 import { VerifiedStamp } from './VerifiedStamp'
 import { ViewPicker } from './ViewPicker'
+import { Wheel } from './Wheel'
 
 const shortDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
-type Props = { college: CollegeData; result: SolveResult; onBack: () => void }
+const ATTEMPTS = 20
+
+type Props = {
+  college: CollegeData
+  result: SolveResult
+  onBack: () => void
+  /** A regenerated result replaces the current one (kept by the parent). */
+  onResult: (r: SolveResult) => void
+}
+
+/** Header printed above every timetable page (screen: hidden). */
+function PrintHeader({ college, grid, result }: { college: CollegeData; grid: Grid; result: SolveResult }) {
+  const sem = semesterSummary(college)
+  return (
+    <div className="mb-3 hidden border-b border-ink pb-2 print:block">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="font-display text-lg font-semibold">
+          {grid.title} <span className="text-sm font-normal">— {grid.subtitle}</span>
+        </p>
+        <p className="font-mono text-[10px]">
+          {result.conflicts.length === 0 ? '0 clashes — verified' : `${result.conflicts.length} clashes`} · quality {result.score.total}/100
+        </p>
+      </div>
+      <p className="text-[11px]">
+        {college.college.name} · {sem.name} ({shortDate(sem.startDate)} – {shortDate(sem.endDate)}) · weekly pattern · printed{' '}
+        {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · Kaalchakra
+      </p>
+    </div>
+  )
+}
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack }: Props) {
+export function TimetableView({ college, result, onBack, onResult }: Props) {
   const [view, setView] = useState<GridView>('section')
   const groups = useMemo(() => listEntities(college, view), [college, view])
   const firstId = groups[0]?.items[0]?.id ?? ''
@@ -24,6 +56,9 @@ export function TimetableView({ college, result, onBack }: Props) {
   const grid = useMemo(() => buildGrid(college, result.timetable, view, entityId), [college, result, view, entityId])
   const sem = semesterSummary(college)
   const [selected, setSelected] = useState<{ cell: GridCell; anchor: HTMLElement } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [round, setRound] = useState(1)
+  const [printAll, setPrintAll] = useState(false)
   const errors = result.preflight.filter((w) => w.level === 'error')
   const unplacedName = (assignmentId: string) => {
     const a = college.assignments.find((x) => x.id === assignmentId)
@@ -32,85 +67,163 @@ export function TimetableView({ college, result, onBack }: Props) {
     return `${sub?.name ?? assignmentId} · ${s?.name ?? ''}`
   }
 
+  const changeView = (v: GridView) => {
+    captureGrid()
+    setView(v)
+  }
+  const changeEntity = (id: Id) => {
+    captureGrid()
+    setPicked((p) => ({ ...p, [view]: id }))
+  }
+  const regenerate = async () => {
+    setBusy(true)
+    setSelected(null)
+    try {
+      // a fresh block of seeds → a different, equally valid timetable
+      const next = await runSolver(college, { attempts: ATTEMPTS, baseSeed: 1 + round * ATTEMPTS })
+      captureGrid()
+      setRound((r) => r + 1)
+      onResult(next)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // "Print all sections": render every section's grid (print-only), print, then go back to normal.
+  useEffect(() => {
+    if (!printAll) return
+    const done = () => setPrintAll(false)
+    window.addEventListener('afterprint', done)
+    const frame = requestAnimationFrame(() => window.print())
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('afterprint', done)
+    }
+  }, [printAll])
+
   return (
-    <section className="py-8">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-ink"
-      >
-        <ArrowLeft size={15} aria-hidden /> All colleges
-      </button>
+    <section className="py-8 print:py-0">
+      <div className={printAll ? 'print:hidden' : ''}>
+        <button
+          type="button"
+          onClick={onBack}
+          className="no-print inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-ink"
+        >
+          <ArrowLeft size={15} aria-hidden /> All colleges
+        </button>
 
-      <header className="mt-4 flex flex-wrap items-end justify-between gap-3 border-b border-rule pb-5">
-        <div>
-          <span className="font-mono text-[11px] tracking-[0.2em] text-vermilion uppercase">{college.college.code}</span>
-          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">{college.college.name}</h1>
-          <p className="mt-1 text-[13px] text-muted">
-            {sem.name} · weekly pattern · {shortDate(sem.startDate)} – {shortDate(sem.endDate)} · {sem.teachingDays}{' '}
-            teaching days
-          </p>
+        <header className="no-print mt-4 flex flex-wrap items-end justify-between gap-3 border-b border-rule pb-5">
+          <div>
+            <span className="font-mono text-[11px] tracking-[0.2em] text-vermilion uppercase">{college.college.code}</span>
+            <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">{college.college.name}</h1>
+            <p className="mt-1 text-[13px] text-muted">
+              {sem.name} · weekly pattern · {shortDate(sem.startDate)} – {shortDate(sem.endDate)} · {sem.teachingDays}{' '}
+              teaching days
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={regenerate}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper disabled:opacity-60"
+            >
+              {busy ? (
+                <>
+                  <Wheel size={16} spokes={8} /> Solving…
+                </>
+              ) : (
+                <>
+                  Generate another <RotateCcw size={15} aria-hidden />
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper"
+            >
+              Print <Printer size={15} aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPrintAll(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90"
+            >
+              Print all sections <Printer size={15} aria-hidden />
+            </button>
+          </div>
+        </header>
+
+        <div className="no-print mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <VerifiedStamp conflicts={result.conflicts.length} />
+          <span className="font-display text-xl font-semibold tabular-nums">
+            {result.score.total}
+            <span className="text-sm font-normal text-muted"> / 100 quality</span>
+          </span>
+          <span className="text-[13px] text-muted">
+            <span className="text-ink">{result.placedPeriods}</span> periods a week ·{' '}
+            <span className="text-ink">{result.semesterHours.toLocaleString('en-IN')}</span> contact hours this semester
+          </span>
+          <span className="font-mono text-[11px] text-muted">seed {result.bestSeed}</span>
         </div>
-      </header>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <VerifiedStamp conflicts={result.conflicts.length} />
-        <span className="font-display text-xl font-semibold tabular-nums">
-          {result.score.total}
-          <span className="text-sm font-normal text-muted"> / 100 quality</span>
-        </span>
-        <span className="text-[13px] text-muted">
-          <span className="text-ink">{result.placedPeriods}</span> periods a week ·{' '}
-          <span className="text-ink">{result.semesterHours.toLocaleString('en-IN')}</span> contact hours this semester
-        </span>
-        <span className="font-mono text-[11px] text-muted">seed {result.bestSeed}</span>
+        {(result.timetable.unplaced.length > 0 || errors.length > 0) && (
+          <div className="no-print mt-4 rounded-lg border border-vermilion/40 bg-vermilion/5 p-4 text-[13px]">
+            <p className="font-semibold text-vermilion">
+              {result.unplacedPeriods} {result.unplacedPeriods === 1 ? 'period' : 'periods'} could not be placed
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {result.timetable.unplaced.map((u) => (
+                <li key={u.assignmentId}>
+                  <span className="text-ink">{unplacedName(u.assignmentId)}</span> — {u.reason}{' '}
+                  <span className="text-muted">Fix: {u.suggestion}</span>
+                </li>
+              ))}
+              {errors.map((w, i) => (
+                <li key={`pf${i}`}>
+                  <span className="text-ink">Pre-flight:</span> {w.message} <span className="text-muted">Fix: {w.suggestion}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="no-print mt-6">
+          <ViewPicker view={view} entityId={entityId} groups={groups} onView={changeView} onEntity={changeEntity} />
+        </div>
+
+        <div className="no-print mt-6 flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 className="font-display text-xl font-semibold">{grid.title}</h2>
+            <p className="text-[13px] text-muted">{grid.subtitle}</p>
+          </div>
+          <span className="font-mono text-[11px] tracking-wider text-muted uppercase">
+            {grid.periods} {grid.periods === 1 ? 'period' : 'periods'} a week
+          </span>
+        </div>
+
+        <div className="mt-3 print:mt-0">
+          <PrintHeader college={college} grid={grid} result={result} />
+          <TimetableGrid grid={grid} onSelect={(cell, anchor) => setSelected({ cell, anchor })} />
+          <p className="no-print mt-2 text-[12px] text-muted">Tap any class to see why it is allowed there.</p>
+        </div>
       </div>
 
-      {(result.timetable.unplaced.length > 0 || errors.length > 0) && (
-        <div className="mt-4 rounded-lg border border-vermilion/40 bg-vermilion/5 p-4 text-[13px]">
-          <p className="font-semibold text-vermilion">
-            {result.unplacedPeriods} {result.unplacedPeriods === 1 ? 'period' : 'periods'} could not be placed
-          </p>
-          <ul className="mt-2 space-y-1.5">
-            {result.timetable.unplaced.map((u) => (
-              <li key={u.assignmentId}>
-                <span className="text-ink">{unplacedName(u.assignmentId)}</span> — {u.reason}{' '}
-                <span className="text-muted">Fix: {u.suggestion}</span>
-              </li>
-            ))}
-            {errors.map((w, i) => (
-              <li key={`pf${i}`}>
-                <span className="text-ink">Pre-flight:</span> {w.message} <span className="text-muted">Fix: {w.suggestion}</span>
-              </li>
-            ))}
-          </ul>
+      {printAll && (
+        <div className="hidden print:block">
+          {college.sections.map((s) => {
+            const g = buildGrid(college, result.timetable, 'section', s.id)
+            return (
+              <div key={s.id} className="print-page">
+                <PrintHeader college={college} grid={g} result={result} />
+                <TimetableGrid grid={g} still />
+              </div>
+            )
+          })}
         </div>
       )}
 
-      <div className="mt-6">
-        <ViewPicker
-          view={view}
-          entityId={entityId}
-          groups={groups}
-          onView={setView}
-          onEntity={(id) => setPicked((p) => ({ ...p, [view]: id }))}
-        />
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h2 className="font-display text-xl font-semibold">{grid.title}</h2>
-          <p className="text-[13px] text-muted">{grid.subtitle}</p>
-        </div>
-        <span className="font-mono text-[11px] tracking-wider text-muted uppercase">
-          {grid.periods} {grid.periods === 1 ? 'period' : 'periods'} a week
-        </span>
-      </div>
-
-      <div className="mt-3">
-        <TimetableGrid grid={grid} onSelect={(cell, anchor) => setSelected({ cell, anchor })} />
-        <p className="mt-2 text-[12px] text-muted">Tap any class to see why it is allowed there.</p>
-      </div>
       {selected && (
         <ClashCourt
           college={college}

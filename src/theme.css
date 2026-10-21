@@ -106,16 +106,71 @@
   }
 }
 
-/* ── Print: clean ink on white ──────────────────────────────────────── */
+/* ── Print: clean ink on white, one timetable per A4 landscape page ─── */
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
 @media print {
-  :root {
+  /* same specificity as the dark-mode rules and later in the file, so print is always ink on white */
+  :root,
+  :root:not([data-theme="light"]),
+  :root[data-theme="dark"] {
     --paper: #fff;
     --card: #fff;
+    --ink: #1c1b19;
+    --muted: #6b665e;
+    --rule: #d9d2c5;
+    --vermilion: #d9481c;
+    --grid-row-h: 3.1rem;
+    color-scheme: light;
+  }
+  body {
+    font-size: 11px;
   }
   body::before {
     display: none;
   }
   .no-print {
     display: none !important;
+  }
+  /* keep subject colours and hatching when printing */
+  [data-grid],
+  [data-grid] * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  [data-grid] {
+    break-inside: avoid;
+  }
+  /* compact cells so a full week fits one A4 landscape page */
+  [data-grid] [data-cell] {
+    margin: 2px;
+    padding: 3px 6px;
+    gap: 0;
+    box-shadow: none;
+  }
+  [data-grid] [data-cell] > span:nth-child(1) {
+    font-size: 8px;
+  }
+  [data-grid] [data-cell] > span:nth-child(2) {
+    font-size: 10.5px;
+    line-height: 1.2;
+  }
+  [data-grid] [data-cell] > span:nth-child(3) {
+    font-size: 8.5px;
+    line-height: 1.2;
+  }
+  [data-grid] [role="columnheader"],
+  [data-grid] [role="rowheader"] {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 9px;
+  }
+  .print-page {
+    break-after: page;
+  }
+  .print-page:last-child {
+    break-after: auto;
   }
 }

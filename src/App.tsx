@@ -60,7 +60,7 @@ export default function App() {
 
   return (
     <div ref={root} className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
-      <header className="flex items-center justify-between border-b border-rule py-4">
+      <header className="no-print flex items-center justify-between border-b border-rule py-4">
         <div className="flex items-center gap-2.5">
           <Wheel size={28} spokes={8} />
           <span className="font-display text-xl font-semibold tracking-tight">Kaalchakra</span>
@@ -72,7 +72,12 @@ export default function App() {
 
       <main className="flex-1">
         {openCollege && results[openCollege.college.id] ? (
-          <TimetableView college={openCollege} result={results[openCollege.college.id]} onBack={back} />
+          <TimetableView
+            college={openCollege}
+            result={results[openCollege.college.id]}
+            onBack={back}
+            onResult={(r) => setResults((prev) => ({ ...prev, [openCollege.college.id]: r }))}
+          />
         ) : (
           <>
             <section className="grid items-center gap-10 py-12 md:grid-cols-[1.3fr_1fr] md:py-16">
@@ -162,7 +167,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
+      <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
         <span>Kaalchakra · v0.3</span>
         <span>Built at the Punjab Jobs AI Bootcamp</span>
       </footer>

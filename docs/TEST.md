@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.3-b) — `npm test` 184 passed / 0 failed (10 files) · build ✅ · lint ✅
+**Last run:** 2026-10-21 (P0.3-c) — `npm test` 184 passed / 0 failed (10 files) · build ✅ · lint ✅ · browser: motion + simulated print checked, no console errors
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -95,10 +95,11 @@
 | M5 | Teacher requests leave for a date → HOD approves → a free teacher is auto-allotted (HOD can swap) → student sees the substitute on that date only | ⏳ |
 | M6 | Who's free? finder + Ctrl+K search jump to timetable | ⏳ |
 | M7 | Kaal Assistant answers 3 sample questions | ⏳ |
-| M8 | Print preview: one clean timetable per A4 | ⏳ |
+| M8 | Print preview: one clean timetable per A4 | ✅ simulated (2026-10-21): print CSS applied on screen — only header + grid, colours kept, one week = 434 px of a 718 px A4-landscape page; "Print all sections" → 7 pages (one per DIET section), all classes visible, page breaks set. ⏳ confirm once in a real print dialog |
 | M9 | Phone width (375px): student view readable, no horizontal scroll | ⏳ — timetable page checked at 349 px: page never scrolls sideways, grid scrolls inside its box with sticky times (P0.3-a); student view in v0.6 |
-| M10 | Reduced motion: no GSAP animation; dark mode readable | ⏳ |
+| M10 | Reduced motion: no GSAP animation; dark mode readable | ⏳ — code skips all motion under `prefers-reduced-motion` (landing, card, grid drop-in, Flip); not yet checked with the OS setting. Print forces ink-on-white even in dark mode |
 | M11 | Refresh browser: data kept | ⏳ |
 | M12 | Login with each demo account (v0.9) | ⏳ |
+| M15 | Grid motion: classes drop in on first show; "Generate another" glides each class to its new slot | ✅ (2026-10-21) — drop-in: opacity 0 at 120 ms → all visible, inline styles cleared; Flip: same element moved Fri P1 → Mon P3, transform during, none after |
 | M13 | Super Admin creates a new college from scratch with a custom structure (own days, periods, depts, sections, strength) → timetable generates with 0 clashes | ⏳ |
 | M14 | Student requests a meeting → teacher accepts with room → student sees accepted status | ⏳ |
