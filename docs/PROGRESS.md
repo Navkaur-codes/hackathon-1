@@ -1,0 +1,87 @@
+# Kaalchakra — Build Progress
+
+> Updated after every feature. Source material for the final README.
+> Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
+
+**Status:** v0.1 in progress — P0.1-a done, awaiting push · **Live URL:** _tbd_ · **Repo:** _tbd_
+
+## Version checklist (ticked after the user confirms each push)
+- [ ] **v0.1 Foundation**
+  - [ ] P0.1-a Theme, fonts, landing shell
+  - [ ] P0.1-b Multi-college types + `structure.ts`
+  - [ ] P0.1-c Two demo colleges via config
+  - [ ] (user) GitHub repo + first push + Vercel connected
+- [ ] **v0.2 Engine**
+  - [ ] P0.2-a `solve.ts` core
+  - [ ] P0.2-b `validate.ts` (H1–H13)
+  - [ ] P0.2-c Labs, locks, grant filter, unplaced reasons
+  - [ ] P0.2-d Score, preflight, seeded restarts, worker
+- [ ] **v0.3 Timetable views**
+  - [ ] P0.3-a TimetableGrid (section/teacher/room)
+  - [ ] P0.3-b Clash seal + Clash Court popover
+  - [ ] P0.3-c GSAP cell-drop + wheel + print CSS
+- [ ] **v0.35 Finder & filters**
+  - [ ] P0.35-a `finder.ts`
+  - [ ] P0.35-b Filter bar (URL state)
+  - [ ] P0.35-c Who's-free panel + Ctrl+K
+- [ ] **v0.4 Super Admin + College Admin portals**
+  - [ ] P0.4-a Store + role/college switcher + `access.ts`
+  - [ ] P0.4-b Super Admin colleges list/create/clone
+  - [ ] P0.4-c Structure Builder
+  - [ ] P0.4-d College Admin setup + paste-from-Excel
+  - [ ] P0.4-e Generate all + Publish/version
+- [ ] **v0.5 HOD portal + Room Exchange**
+  - [ ] P0.5-a HOD dept CRUD + Draft→Ready
+  - [ ] P0.5-b Dept generate vs global ledger
+  - [ ] P0.5-c Room Exchange (offer/request/grant/revoke)
+- [ ] **v0.6 Teacher & Student portals + Meet-a-Teacher**
+  - [ ] P0.6-a Teacher portal
+  - [ ] P0.6-b Student portal
+  - [ ] P0.6-c Meet-a-Teacher
+- [ ] **v0.7 Ops & insights**
+  - [ ] P0.7-a Leave inbox + Absence Mode
+  - [ ] P0.7-b Lock & regenerate + Conflict Center
+  - [ ] P0.7-c Dashboard + Shared-Resource Ledger
+- [ ] **v0.8 Kaal Assistant**
+  - [ ] P0.8-a `assistant.ts` intents
+  - [ ] P0.8-b ChatDrawer UI
+- [ ] **v0.9 Authentication**
+  - [ ] P0.9-a `auth.ts` (users, salted hash)
+  - [ ] P0.9-b Login screen + route guards + demo accounts
+- [ ] **v1.0 Ship**
+  - [ ] P1.0-a Full test run + fixes
+  - [ ] P1.0-b README
+  - [ ] (user) Final push, check Vercel URL, submit
+
+## Log
+| Time | Version | Checkpoint | Feature | Commit (by user) | Notes |
+|---|---|---|---|---|---|
+| 14:15 | setup | — | Plan approved, Vite React-TS scaffold, libraries installed, docs created | — | not yet committed |
+| — | setup | — | Plan revision 2: multi-college platform, Super Admin + Structure Builder, Meet-a-Teacher, no hard-coded structure | — | docs + PDF updated |
+| — | setup | — | Plan revision 3: D/B/T/R phases per version, push checkpoint after every feature, user pushes to GitHub | — | docs updated |
+| — | v0.1 | P0.1-a | Landing shell: GSAP headline reveal, rotating wheel, role cards, boilerplate removed (first draft in Paper & Ink) | pending | |
+| — | v0.1 | P0.1-a | Tried a "Midnight & Saffron" dark restyle — user preferred Paper & Ink | — | discarded |
+| — | v0.1 | P0.1-a | **Back to Paper & Ink with a tighter type scale**: hero 36→56px (was 48→72px), body 15px, h2 24→30px, buttons 14px, cards 13px | pending | h1 now 2 lines on mobile; no overflow at 463px |
+| — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
+
+## Decisions
+- Fully client-side (localStorage) to remove deploy risk; auth is demo-grade, production path = Supabase/Firebase + row-level security.
+- Solver: greedy most-constrained-first + repair + seeded restarts; independent validator guarantees zero clashes.
+- Chatbot is rule-based (no API key, deterministic, testable); LLM upgrade is future work.
+- Design: "Paper & Ink" editorial theme with GSAP motion and a restrained type scale (a dark "Midnight & Saffron" alternative was tried and rejected by the user).
+- Multi-college: every entity carries `collegeId`; Super Admin defines each college's structure (calendar, departments, programmes, sections, strength). Nothing about a college's shape is hard-coded — two differently shaped demo colleges prove it.
+- Meet-a-Teacher: students request meetings in common free slots; meetings never block teaching.
+- Git: Claude prepares each commit (message + files) at a push checkpoint; the user commits and pushes.
+
+## Screenshots to capture (for README)
+- [ ] Landing (hero + wheel)
+- [ ] Super Admin: colleges list + Structure Builder
+- [ ] Meet-a-Teacher: student request → teacher inbox
+- [ ] College Admin: generated timetable with "0 clashes — verified" seal
+- [ ] HOD: Room Exchange (offer/request/grant)
+- [ ] Who's free? finder
+- [ ] Conflict Center / dashboard (load bars, room heatmap)
+- [ ] Teacher: My Week + Today
+- [ ] Student on mobile: Now/Next + substitute notice
+- [ ] Kaal Assistant answering a question
+- [ ] Print preview

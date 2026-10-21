@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* ── Paper & Ink tokens (single source of colour truth) ─────────────── */
+:root {
+  --paper: #f4efe6;
+  --card: #fbf8f2;
+  --ink: #1c1b19;
+  --muted: #6b665e;
+  --rule: #d9d2c5;
+  --vermilion: #d9481c;
+  --marigold: #e8a33d;
+  --plum: #5b3a5e;
+  --terracotta: #8a4b2a;
+  --gold: #b8892b;
+  color-scheme: light;
+}
+
+/* Dark "Blackboard" — follows the OS unless the page forces light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #151412;
+    --card: #1e1c19;
+    --ink: #ede8de;
+    --muted: #a39d92;
+    --rule: #3a3631;
+    --vermilion: #f0673b;
+    --marigold: #f2b75a;
+    --plum: #b98bbd;
+    --terracotta: #c98a63;
+    --gold: #d6aa4c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #151412;
+  --card: #1e1c19;
+  --ink: #ede8de;
+  --muted: #a39d92;
+  --rule: #3a3631;
+  --vermilion: #f0673b;
+  --marigold: #f2b75a;
+  --plum: #b98bbd;
+  --terracotta: #c98a63;
+  --gold: #d6aa4c;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-vermilion: var(--vermilion);
+  --color-marigold: var(--marigold);
+  --color-plum: var(--plum);
+  --color-terracotta: var(--terracotta);
+  --color-gold: var(--gold);
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    overflow-x: clip;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* faint register lines on the page, like a ruled attendance book */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 31px,
+      color-mix(in srgb, var(--rule) 45%, transparent) 31px 32px
+    );
+    opacity: 0.5;
+    z-index: 0;
+  }
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+  :focus-visible {
+    outline: 2px solid var(--vermilion);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--marigold);
+    color: #1c1b19;
+  }
+}
+
+/* ── Print: clean ink on white ──────────────────────────────────────── */
+@media print {
+  :root {
+    --paper: #fff;
+    --card: #fff;
+  }
+  body::before {
+    display: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
