@@ -1,6 +1,9 @@
-import { ArrowRight, Clock, Coffee, DoorOpen } from 'lucide-react'
+import { ArrowRight, CalendarRange, Clock, Coffee, DoorOpen } from 'lucide-react'
 import { summarizeCollege } from '../lib/structure'
 import type { CollegeData } from '../types'
+
+const shortDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 /** Landing-page card for one college. Every figure comes from `summarizeCollege` (rule G2). */
 export function CollegeCard({ data }: { data: CollegeData }) {
@@ -40,6 +43,14 @@ export function CollegeCard({ data }: { data: CollegeData }) {
       </dl>
 
       <ul className="mt-4 space-y-1.5 text-[13px] text-muted">
+        <li className="flex items-start gap-2">
+          <CalendarRange size={14} className="mt-[3px] shrink-0" aria-hidden />
+          <span>
+            <span className="text-ink">{s.semester.name}</span> · {shortDate(s.semester.startDate)} –{' '}
+            {shortDate(s.semester.endDate)} · {s.semester.teachingDays} teaching days ({s.semester.holidaysOnWorkingDays}{' '}
+            holidays off)
+          </span>
+        </li>
         <li className="flex items-start gap-2">
           <Clock size={14} className="mt-[3px] shrink-0" aria-hidden />
           <span>

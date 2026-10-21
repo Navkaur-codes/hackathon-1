@@ -3,7 +3,7 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.2 Engine in progress — P0.2-a done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.2 Engine in progress — P0.2-b done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
 
 ## Version checklist (ticked after the user confirms each push)
 - [x] **v0.1 Foundation**
@@ -12,7 +12,7 @@
   - [x] P0.1-c Two demo colleges via config — `6f4dd13`
   - [ ] (user) GitHub repo + first push + Vercel connected
 - [ ] **v0.2 Engine**
-  - [ ] P0.2-a Independent validator (H1–H14)
+  - [x] P0.2-a Independent validator (H1–H14) — `f142336`
   - [ ] P0.2-b Solver core (sessions, labs, hard rules, soft pick, fixed placements)
   - [ ] P0.2-c Repair, unplaced reasons, pre-flight check
   - [ ] P0.2-d Quality score, restarts, Web Worker, landing result
@@ -39,7 +39,7 @@
   - [ ] P0.6-b Student portal
   - [ ] P0.6-c Meet-a-Teacher
 - [ ] **v0.7 Ops & insights**
-  - [ ] P0.7-a Leave inbox + Absence Mode
+  - [ ] P0.7-a Leave inbox + Absence Mode screens (engine already built in P0.2-b)
   - [ ] P0.7-b Lock & regenerate + Conflict Center
   - [ ] P0.7-c Dashboard + Shared-Resource Ledger
 - [ ] **v0.8 Kaal Assistant**
@@ -65,7 +65,10 @@
 | — | v0.1 | P0.1-b | `types.ts` (multi-college model incl. Subject, Assignment = section × subject → teacher), `lib/structure.ts` (generateSections, syncAssignments, buildCollege from a spec, periodTimes) | `7485142` | 13 tests green |
 | — | v0.1 | P0.1-b | **Staggered breaks** (user request): breaks are slots in the shared grid; section → programme → dept → college inheritance, per-day rules, per-slot lengths; new hard rule **H14** teacher lunch; H7/H8 reworded | `7485142` | 17 tests green |
 | — | v0.1 | P0.1-c | Two demo colleges as structure specs → `buildCollege`: **DIET** (Mon–Sat, 7 slots, CSE/ECE/ME, 7 sections, 385 students, 31 subjects, 12 teachers, ECE lunch staggered, shared Maths & Communication teachers, 2 shared computer labs + seminar hall) and **DCAS** (Mon–Fri, 6 slots, 30-min lunch, Friday assembly, Commerce/English, 4 sections). `summarizeCollege` + `CollegeCard` on the landing | `6f4dd13` | 32 tests green; fixed narrow-width card layout |
-| — | v0.2 | P0.2-a | Independent validator `solver/validate.ts`: H1–H14 with plain-language messages naming the clashing classes; options `mustKeep` (H10) and `leave` (H6) | pending | 24 tests: clean timetable + one violation per rule, staggered-break edge case, grants, leave |
+| — | v0.2 | P0.2-a | Independent validator `solver/validate.ts`: H1–H14 with plain-language messages naming the clashing classes; options `mustKeep` (H10) and `leave` (H6) | `f142336` | 24 tests: clean timetable + one violation per rule, staggered-break edge case, grants, leave |
+| — | v0.2 | P0.2-b | Solver core `solver/solve.ts` + `rng.ts`: sessions (labs as blocks), all hard rules as filters (incl. staggered breaks, H14 lunch, room ownership/grants, leave), soft-penalty pick, fixed/locked placements, department subsets. **Dynamic most-constrained-first** ordering fixed a DCAS dead-end; cached re-scoring made it 9× faster | pending | 131 tests green; DIET: 0 same-subject repeats, 5 section idle periods |
+| — | v0.2 | P0.2-b | **Semester timetable** (user request): `Calendar.weekdays`, `Semester` (dates, holidays, no-class days), `lib/semester.ts` rolls the weekly pattern over real dates, hours delivered per subject, classes on a date; demo semesters added; landing card shows semester | pending | T0.8–T0.10 |
+| — | v0.2 | P0.2-b | **Leave cover engine** (user request — *pulled forward from v0.7*): auto-allot best free teacher per class on the leave date, HOD can swap, `uncovered` if none, `validateDate` | pending | T7.1–T7.2 · 147 tests green |
 | — | v0.2 | — | Decision (user): **leave is date-specific** — HOD approval creates that date's adjusted timetable (substitute or moved class); weekly master unchanged. `LeaveRequest`/`Substitution` gain `date` | — | built in v0.7 |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 

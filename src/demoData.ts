@@ -11,6 +11,7 @@ export const engineeringSpec: CollegeSpec = {
   name: 'Demo Institute of Engineering & Technology',
   calendar: {
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    weekdays: [1, 2, 3, 4, 5, 6],
     periodsPerDay: 7,
     startTime: '09:00',
     periodMinutes: 50,
@@ -21,6 +22,20 @@ export const engineeringSpec: CollegeSpec = {
     blockedSlots: [],
     labBlockLength: 2,
     maxMeetingRequestsPerStudent: 3,
+  },
+  semester: {
+    name: 'Odd Semester 2026',
+    startDate: '2026-07-20',
+    endDate: '2026-11-27',
+    holidays: [
+      { date: '2026-08-15', label: 'Independence Day' },
+      { date: '2026-10-02', label: 'Gandhi Jayanti' },
+      { date: '2026-10-20', label: 'Dussehra' },
+      { date: '2026-11-09', label: 'Diwali break' },
+      { date: '2026-11-10', label: 'Diwali break' },
+      { date: '2026-11-24', label: 'Guru Nanak Jayanti' },
+    ],
+    noClassDates: [{ date: '2026-09-21', label: 'Mid-semester exams' }, { date: '2026-09-22', label: 'Mid-semester exams' }],
   },
   sharedRooms: [
     { name: 'CL-1 Computer Lab', type: 'lab', capacity: 60 },
@@ -178,6 +193,7 @@ export const artsScienceSpec: CollegeSpec = {
   name: 'Demo College of Arts & Science',
   calendar: {
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    weekdays: [1, 2, 3, 4, 5],
     periodsPerDay: 6,
     startTime: '09:30',
     periodMinutes: 55,
@@ -191,6 +207,20 @@ export const artsScienceSpec: CollegeSpec = {
     blockedSlots: [],
     labBlockLength: 2,
     maxMeetingRequestsPerStudent: 2,
+  },
+  semester: {
+    name: 'Semester I 2026–27',
+    startDate: '2026-08-03',
+    endDate: '2026-11-20',
+    holidays: [
+      { date: '2026-08-15', label: 'Independence Day' },
+      { date: '2026-08-28', label: 'Raksha Bandhan' },
+      { date: '2026-10-02', label: 'Gandhi Jayanti' },
+      { date: '2026-10-20', label: 'Dussehra' },
+      { date: '2026-11-09', label: 'Diwali break' },
+      { date: '2026-11-10', label: 'Diwali break' },
+    ],
+    noClassDates: [{ date: '2026-10-08', label: 'Annual cultural fest' }],
   },
   sharedRooms: [
     { name: 'Language & Computer Lab', type: 'lab', capacity: 60 },

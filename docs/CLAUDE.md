@@ -22,6 +22,7 @@
 - `index.html`: title "Kaalchakra — College Timetables", Google Fonts (Fraunces, Inter, JetBrains Mono), wheel favicon.
 - `src/types.ts`:
   - `Platform { colleges: College[] }`, `College { id, name, code, status: 'active'|'archived', collegeAdminIds }`
+  - `Semester { collegeId, name, startDate, endDate, holidays, noClassDates }` and `Calendar.weekdays` *(added in v0.2)*
   - `BreakRule { period, days?, label? }` — a break is a slot in the shared grid, optionally only on some days
   - `Calendar { collegeId, days: string[] /* any subset/order */, periodsPerDay, startTime, periodMinutes, periodLengths?, breaks: BreakRule[], lunchWindow: number[], teacherMinFreeInLunchWindow, blockedSlots: SlotKey[], labBlockLength, maxMeetingRequestsPerStudent }`
   - `Department { id, collegeId, code, name, status, breaks? }`, `Programme { id, collegeId, deptId, name, shortName, sectionsCount, defaultStrength, breaks? }`, `Section { id, collegeId, deptId, programmeId, name, strength, breaks? }`
@@ -101,15 +102,18 @@
 | ID | Feature | Files | Tests | Commit message |
 |---|---|---|---|---|
 | P0.2-a | Independent validator (H1–H14) | `solver/validate.ts`, `validate.test.ts` | T2.* detection: hand-made violating timetables for each rule are caught; a clean one passes | `feat(solver): independent validator for H1–H14` |
-| P0.2-b | Solver core (sessions, labs, hard rules incl. H14 & room ownership, soft-penalty pick, fixed/locked placements) | `solver/rng.ts`, `solver/solve.ts`, `solve.test.ts` | T1 both demos → 0 conflicts, 0 unplaced · T2 "never produced" (many seeds × fixtures → validator clean) · T4 determinism · T5 | `feat(solver): greedy most-constrained-first scheduler` |
+| P0.2-b | Solver core (sessions, labs, hard rules incl. H14 & room ownership, soft-penalty pick, fixed/locked placements) **+ semester calendar + leave cover engine** (user request) | `solver/rng.ts`, `solver/solve.ts`, `lib/semester.ts`, `solver/substitutes.ts` + tests | T1 both demos → 0 conflicts, 0 unplaced · T2 "never produced" (many seeds × fixtures → validator clean) · T4 determinism · T5 | `feat(solver): greedy most-constrained-first scheduler` |
 | P0.2-c | Repair step, unplaced reasons & suggestions, pre-flight check | `solve.ts`, `solver/preflight.ts`, tests | T3 impossible input → reason + suggestion, still 0 conflicts · T6b preflight | `feat(solver): repair, unplaced reasons and pre-flight check` |
 | P0.2-d | Quality score, seeded restarts, Web Worker; landing "Generate timetable" shows result summary (0 clashes · score · unplaced) | `solver/score.ts`, `best.ts`, `worker.ts`, `runSolver.ts`, `CollegeCard.tsx` | T6a score 0–100 · restarts never worse than single run | `feat(solver): quality score, restarts and web worker` |
 
 **Decisions**
 - Validator built first (P0.2-a) so every solver test can use it as the judge.
 - Meetings are ignored by the solver (they never block teaching).
-- **Leave is date-specific (user decision during P0.2-a).** Teacher requests leave for a date → HOD approves → Kaalchakra builds that date's **adjusted timetable**: each affected class gets a free same-dept substitute in the same slot, or moves to a free slot that week (other classes stay locked). The weekly master timetable never changes. The validator takes `leave` only when checking a date's adjusted timetable; `LeaveRequest` and `Substitution` carry an ISO `date`. Teachers and students see "today" with the changes highlighted. Built in v0.7; the engine already supports it (`fixed`/locked placements + `leave` option).
-- Performance target: both demos solve 20 restarts in < 1 s in the worker.
+- **Semester timetable (user decision during P0.2-b).** One weekly pattern rolled out over the semester's real dates: `Calendar.weekdays` + `CollegeData.semester` (start/end, holidays, no-class dates); `lib/semester.ts` → `semesterDates`, `semesterSummary`, `teachingDayCounts`, `semesterDelivery` (periods & contact hours per assignment, holidays reduce them), `classesOn(date)` (pattern + that date's substitutions). Demo semesters: DIET 20 Jul–27 Nov 2026 (105 teaching days), DCAS 3 Aug–20 Nov 2026 (74).
+- **Leave cover engine pulled forward from v0.7 (user request during P0.2-b).** `solver/substitutes.ts`: `planLeaveCover` auto-allots the best free teacher per affected class (`suggested`, HOD may swap → `confirmed`; `uncovered` if nobody is free), `substituteCandidates` ranks them, `validateDate` checks a date's adjusted timetable with the independent validator. v0.7 keeps only the HOD screens (leave inbox, swap substitute, notices).
+- **Leave is date-specific (user decision during P0.2-a).** Teacher requests leave for a date → HOD approves → Kaalchakra builds that date's **adjusted timetable**: each affected class gets a free same-dept substitute in the same slot, or moves to a free slot that week (other classes stay locked). The weekly master timetable never changes. The validator takes `leave` only when checking a date's adjusted timetable; `LeaveRequest` and `Substitution` carry an ISO `date`. Teachers and students see "today" with the changes highlighted. Engine built in P0.2-b (see above); screens in v0.7.
+- Performance target: both demos solve 20 restarts in < 1 s in the worker. **Measured after P0.2-b:** DIET 825 ms, DCAS 257 ms for 20 solves (Node).
+- **Ordering is dynamic (learned in P0.2-b):** a fixed most-constrained order dead-ended on DCAS (1 period unplaced). The solver now always places the session with the fewest legal slots *right now*; scores are cached and only sessions sharing the booked teacher, section or room are re-scored. Static legality per slot is precomputed per session.
 
 **Done when:** all T1–T6 green, both demo colleges generate with 0 conflicts and 0 unplaced, and the landing shows the verified result.
 

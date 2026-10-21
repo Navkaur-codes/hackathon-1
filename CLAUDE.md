@@ -16,6 +16,7 @@
 | G2 | **Never hard-code** counts or names of departments, programmes/years, sections, students per section, **subjects**, rooms, teachers, working days, periods per day, timings, lunch slot or lab block length. Always read them from the college's config. No "CSE/ECE/ME", no "8 periods", no "Mon–Sat" in logic. |
 | G3 | Demo data is only a **seed** that goes through the same config/structure path as user data (`lib/structure.ts`). Two demo colleges of different shapes must both work. |
 | G4 | UI grids, loops, pickers and charts are driven by the calendar/structure config (any number of days and periods). |
+| G6 | **Semester, not a single week.** Each college has a `semester` (start/end dates, holidays, no-class dates) and `calendar.weekdays` mapping pattern days to real weekdays. The solver builds **one clash-free weekly pattern**; `lib/semester.ts` rolls it out over every real teaching date, skips holidays/no-class dates and reports hours delivered per subject. Date-specific changes (leave cover) never alter the pattern. *(added at the user's request during v0.2)* |
 | G5 | **Subjects** are defined per programme (the curriculum). Every section of a programme inherits its subjects; an **Assignment** only links *section × subject → teacher*. Periods/week, theory/lab and room type live on the Subject, never in the solver. *(added at the user's request during v0.1)* |
 
 ## 2. Roles & access (all filtering goes through `src/lib/access.ts` — never inline role checks in components)
@@ -39,7 +40,7 @@
 | H3 | A **room** hosts at most one class per (day, period) — across **all departments** (global booking ledger). |
 | H4 | Room **type** matches the session (theory→lecture/seminar as specified, lab→lab). |
 | H5 | Room **capacity** ≥ section strength. |
-| H6 | No class in a teacher's **unavailable** slots or on an **approved leave** day. |
+| H6 | No class in a teacher's **unavailable** slots, or with a teacher on **approved leave** that date (checked on that date's adjusted timetable). |
 | H7 | No class in a section's **break slots** or any college **blocked slot**. Breaks may differ by group and day: a section's breaks = its own rules → else its programme's → else its department's → else the college default (`effectiveBreaks` / `sectionBreakSlots` in `lib/structure.ts`). *(staggered breaks added at the user's request in v0.1)* |
 | H8 | A **lab** occupies `blockLength` (default from calendar) **consecutive** periods on the same day, same room, never crossing that section's break slot or the day end. |
 | H9 | Teacher **max periods/day** and **max periods/week** are respected. |
@@ -50,6 +51,12 @@
 | H14 | **Teacher break:** on every day a teacher teaches, at least `teacherMinFreeInLunchWindow` (default 1) of the college's `lunchWindow` slots stay free for them — so staggered breaks across departments never leave a shared teacher without lunch. |
 
 **Break model:** breaks are **slots in one shared period grid** (not gaps between periods), so every section shares one clock and cross-department clashes stay checkable. A break slot may be shorter via `calendar.periodLengths`. Never hard-code a lunch period (rule G2).
+
+### Leave cover rules *(user request during v0.2)*
+- Leave is for **one date**. When the HOD approves it, `solver/substitutes.ts` auto-allots the best **free** teacher to each affected class in the same slot (status `suggested`); the HOD may swap it (`confirmed`).
+- A substitute must be free in that slot that date, available, within their daily limit and keep their lunch (H14). Ranking: same department → teaches the same subject → already teaches that section → lightest load that day.
+- If nobody is free the class is marked `uncovered` with a reason — never double-booked. The weekly pattern and every other date stay unchanged.
+- A date's adjusted timetable is checked by the independent validator (`validateDate`).
 
 ### Meeting rules (Meet-a-Teacher)
 - Bookable slots = teacher free ∩ student's section free, from the **published** timetable (reuse `finder.commonFree`); office hours are highlighted, not required.
@@ -91,7 +98,7 @@
 CLAUDE.md (this, global)   README.md   docs/{CLAUDE.md, PLAN.md, PROGRESS.md, TEST.md}
 src/ types.ts store.ts demoData.ts theme.css main.tsx App.tsx
      solver/  solve validate score preflight replan substitutes conflicts worker (+ *.test.ts)
-     lib/     access structure meetings finder assistant auth csv share colors
+     lib/     access structure semester meetings finder assistant auth csv share colors
      portals/ super/ college/ department/ teacher/ student/
      components/ shared UI (TimetableGrid, Wheel, RoleSwitcher, CollegeSwitcher, StructureBuilder, ClashCourt, MeetingInbox, ChatDrawer, ...)
 ```

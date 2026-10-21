@@ -37,6 +37,8 @@ export type Calendar = {
   collegeId: Id
   /** Working day labels in order, e.g. ['Mon','Tue','Wed','Thu','Fri']. Any subset, any order. */
   days: string[]
+  /** Real weekday of each working day (0 = Sunday … 6 = Saturday), same order as `days`. Maps semester dates to the pattern. */
+  weekdays: number[]
   /** Number of slots per day in the shared grid (teaching periods + break slots). */
   periodsPerDay: number
   /** 'HH:MM' start of the first slot. */
@@ -55,6 +57,21 @@ export type Calendar = {
   /** Default length of a lab block in periods (a subject may override it). */
   labBlockLength: number
   maxMeetingRequestsPerStudent: number
+}
+
+/**
+ * The semester the timetable runs for. The solver builds one clash-free weekly pattern; it is rolled out
+ * over every working date between `startDate` and `endDate`, skipping holidays and no-class dates.
+ */
+export type Semester = {
+  collegeId: Id
+  name: string
+  /** ISO dates, inclusive. */
+  startDate: string
+  endDate: string
+  holidays: { date: string; label: string }[]
+  /** Working dates without regular classes (exams, fest, orientation…). */
+  noClassDates: { date: string; label: string }[]
 }
 
 // ── Structure (defined by the Super Admin) ─────────────────────────────
@@ -201,18 +218,28 @@ export type LeaveRequest = {
   status: 'pending' | 'approved' | 'rejected'
 }
 
-/** A change for one date only, created when the HOD approves a leave. */
+/**
+ * A change for one date only, created when the HOD approves a leave. The weekly pattern never changes.
+ * Kaalchakra auto-allots the best free teacher ('suggested'); the HOD may swap it, then it is 'confirmed'.
+ */
 export type Substitution = {
   id: Id
   collegeId: Id
   /** ISO date the change applies to. */
   date: string
+  /** The leave that caused it. */
+  leaveId?: Id
   assignmentId: Id
   day: number
   period: number
-  /** Same slot, different teacher… */
-  substituteTeacherId?: Id
-  /** …or the class moves to another free slot that week (and maybe another room). */
+  /** Teacher normally teaching this class (the one on leave). */
+  originalTeacherId: Id
+  /** Free teacher allotted to the same slot, or null when nobody is free (class uncovered). */
+  substituteTeacherId: Id | null
+  status: 'suggested' | 'confirmed' | 'uncovered'
+  /** Why this teacher was picked, e.g. "Same department · teaches DS · 2 periods that day". */
+  note: string
+  /** Optional alternative when no one is free: move the class to another free slot that week. */
   movedTo?: { day: number; period: number; roomId: Id }
 }
 
@@ -250,6 +277,7 @@ export type Session = {
 export type CollegeData = {
   college: College
   calendar: Calendar
+  semester: Semester
   departments: Department[]
   programmes: Programme[]
   sections: Section[]
@@ -262,7 +290,9 @@ export type CollegeData = {
   substitutions: Substitution[]
   officeHours: OfficeHours[]
   meetings: MeetingRequest[]
+  /** Draft weekly pattern being worked on. */
   draft?: Timetable
+  /** The weekly pattern everyone follows for the semester (with date-specific substitutions on top). */
   published?: Published
 }
 

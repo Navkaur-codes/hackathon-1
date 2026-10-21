@@ -15,8 +15,10 @@ import type {
   SlotKey,
   Subject,
   SubjectKind,
+  Semester,
   Teacher,
 } from '../types'
+import { semesterSummary } from './semester'
 
 // ── Small helpers ─────────────────────────────────────────────────────
 
@@ -99,6 +101,7 @@ export function summarizeCollege(c: CollegeData) {
     rooms: c.rooms.length,
     sharedRooms: c.rooms.filter((r) => r.owner === 'shared').length,
     staggeredBreaks: breakSets.size > 1,
+    semester: semesterSummary(c),
   }
 }
 
@@ -197,6 +200,7 @@ export type CollegeSpec = {
   code: string
   name: string
   calendar: Omit<Calendar, 'collegeId'>
+  semester: Omit<Semester, 'collegeId'>
   sharedRooms: RoomSpec[]
   departments: DepartmentSpec[]
 }
@@ -205,6 +209,7 @@ export function buildCollege(spec: CollegeSpec): CollegeData {
   const cid = slug(spec.code)
   const college = { id: cid, code: spec.code, name: spec.name, status: 'active' as const, collegeAdminIds: [] }
   const calendar: Calendar = { ...spec.calendar, collegeId: cid }
+  const semester: Semester = { ...spec.semester, collegeId: cid }
 
   const departments: Department[] = []
   const programmes: Programme[] = []
@@ -288,6 +293,7 @@ export function buildCollege(spec: CollegeSpec): CollegeData {
   return {
     college,
     calendar,
+    semester,
     departments,
     programmes,
     sections,

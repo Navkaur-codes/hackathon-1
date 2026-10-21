@@ -10,6 +10,7 @@ const spec: CollegeSpec = {
   name: 'Fixture College',
   calendar: {
     days: ['Mon', 'Tue'],
+    weekdays: [1, 2],
     periodsPerDay: 6,
     startTime: '09:00',
     periodMinutes: 50,
@@ -20,6 +21,7 @@ const spec: CollegeSpec = {
     labBlockLength: 2,
     maxMeetingRequestsPerStudent: 3,
   },
+  semester: { name: 'Test semester', startDate: '2026-07-20', endDate: '2026-08-16', holidays: [], noClassDates: [] },
   sharedRooms: [{ name: 'Hall', type: 'lecture', capacity: 100 }],
   departments: [
     {

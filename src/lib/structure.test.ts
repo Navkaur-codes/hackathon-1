@@ -98,6 +98,7 @@ describe('buildCollege', () => {
     name: 'Test College',
     calendar: {
       days: ['Mon', 'Tue', 'Wed', 'Thu'],
+      weekdays: [1, 2, 3, 4],
       periodsPerDay: 5,
       startTime: '09:00',
       periodMinutes: 50,
@@ -108,6 +109,7 @@ describe('buildCollege', () => {
       labBlockLength: 2,
       maxMeetingRequestsPerStudent: 3,
     },
+    semester: { name: 'Test semester', startDate: '2026-07-20', endDate: '2026-08-16', holidays: [], noClassDates: [] },
     sharedRooms: [{ name: 'Seminar Hall', type: 'seminar', capacity: 150 }],
     departments: [
       {
@@ -196,6 +198,7 @@ describe('T0.7 staggered breaks', () => {
       name: 'Staggered',
       calendar: {
         days: ['Mon', 'Tue'],
+        weekdays: [1, 2],
         periodsPerDay: 6,
         startTime: '09:00',
         periodMinutes: 50,
@@ -206,6 +209,7 @@ describe('T0.7 staggered breaks', () => {
         labBlockLength: 2,
         maxMeetingRequestsPerStudent: 3,
       },
+      semester: { name: 'Test semester', startDate: '2026-07-20', endDate: '2026-08-16', holidays: [], noClassDates: [] },
       sharedRooms: [],
       departments: [
         { code: 'A', name: 'A', rooms: [], teachers: [], programmes: [{ name: 'Y1', shortName: 'Y1', sectionsCount: 1, defaultStrength: 30, subjects: [] }] },
