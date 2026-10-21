@@ -14,6 +14,8 @@ export type SolveOptions = {
   assignmentIds?: Id[]
   /** Teachers on leave for the date being planned (date-specific adjusted timetables). */
   leave?: { teacherId: Id; day: number }[]
+  /** Try moving one already-placed class to make room when a class is stuck (default true). */
+  repair?: boolean
 }
 
 type Session = {
@@ -111,6 +113,20 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
     const sd = `${section.id}|${a.subjectId}|${p.day}`
     subjectDay.set(sd, (subjectDay.get(sd) ?? 0) + 1)
     periodsDone.set(a.id, (periodsDone.get(a.id) ?? 0) + p.length)
+  }
+
+  const unbook = (a: Assignment, section: Section, teacherId: Id, p: Placement) => {
+    const tb = setOf(teacherBusy, `${teacherId}|${p.day}`)
+    const sb = setOf(sectionBusy, `${section.id}|${p.day}`)
+    for (let i = 0; i < p.length; i++) {
+      tb.delete(p.period + i)
+      sb.delete(p.period + i)
+      if (roomIndex.has(p.roomId)) roomBusy[rb(p.roomId, p.day, p.period + i)] = 0
+    }
+    teacherWeek.set(teacherId, (teacherWeek.get(teacherId) ?? 0) - p.length)
+    const sd = `${section.id}|${a.subjectId}|${p.day}`
+    subjectDay.set(sd, (subjectDay.get(sd) ?? 0) - 1)
+    periodsDone.set(a.id, (periodsDone.get(a.id) ?? 0) - p.length)
   }
 
   // Fixed placements are booked first and returned unchanged.
@@ -276,6 +292,132 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
     return { count, best }
   }
 
+  // ── Booking helpers shared by the main loop and repair ───────────────
+  /** Movable placements (not fixed) and the session each came from. */
+  const placedBy = new Map<Placement, Session>()
+
+  const toPlacement = (s: Session, c: Choice): Placement => ({
+    assignmentId: s.assignment.id,
+    collegeId: cid,
+    deptId: s.section.deptId,
+    day: c.day,
+    period: c.period,
+    length: s.length,
+    roomId: c.room.id,
+    locked: false,
+  })
+
+  const commit = (s: Session, c: Choice) => {
+    const placement = toPlacement(s, c)
+    book(s.assignment, s.section, s.teacher.id, placement)
+    placements.push(placement)
+    placedBy.set(placement, s)
+    // Only sessions sharing this teacher, section or room can have changed options.
+    for (const x of remaining) {
+      if (x.teacher.id === s.teacher.id || x.section.id === s.section.id || x.rooms.includes(c.room)) cache.delete(x)
+    }
+    return placement
+  }
+
+  const remove = (placement: Placement) => {
+    const s = placedBy.get(placement)!
+    unbook(s.assignment, s.section, s.teacher.id, placement)
+    placements.splice(placements.indexOf(placement), 1)
+    placedBy.delete(placement)
+    return s
+  }
+
+  /**
+   * Repair (1 level): lift one already-placed class that shares the stuck class's teacher, section or a
+   * usable room; if the stuck class now fits AND the lifted class finds another legal slot, keep both.
+   * Otherwise put everything back exactly as it was. Never weakens a hard rule.
+   */
+  const MAX_REPAIR_TRIES = 80
+  const tryRepair = (stuck: Session) => {
+    const blockers = [...placedBy.entries()]
+      .filter(([, x]) => x.teacher.id === stuck.teacher.id || x.section.id === stuck.section.id || stuck.rooms.some((r) => x.rooms.includes(r)))
+      .slice(0, MAX_REPAIR_TRIES)
+    for (const [placement] of blockers) {
+      const lifted = remove(placement)
+      const forStuck = evaluate(stuck).best
+      if (forStuck) {
+        const placedStuck = commit(stuck, forStuck)
+        const forLifted = evaluate(lifted).best
+        if (forLifted) {
+          commit(lifted, forLifted)
+          cache.clear()
+          return true
+        }
+        remove(placedStuck)
+      }
+      // restore the lifted class where it was
+      book(lifted.assignment, lifted.section, lifted.teacher.id, placement)
+      placements.push(placement)
+      placedBy.set(placement, lifted)
+    }
+    cache.clear()
+    return false
+  }
+
+  /** Plain-language reason + concrete fix for a class that cannot be placed. */
+  const diagnose = (s: Session): { reason: string; suggestion: string } => {
+    const { section, subject, teacher, length } = s
+    const what = `${subject.name} (${section.name})`
+    if (s.rooms.length === 0) {
+      const ofType = college.rooms.filter((r) => r.type === subject.roomType)
+      const bigEnough = ofType.filter((r) => r.capacity >= section.strength)
+      if (ofType.length === 0)
+        return { reason: `${what}: the college has no ${subject.roomType} room.`, suggestion: `Add a ${subject.roomType} room.` }
+      if (bigEnough.length === 0)
+        return {
+          reason: `${what}: no ${subject.roomType} room seats ${section.strength} students (largest has ${Math.max(...ofType.map((r) => r.capacity))}).`,
+          suggestion: `Add a bigger ${subject.roomType} room or split ${section.name}.`,
+        }
+      return {
+        reason: `${what}: every ${subject.roomType} room big enough belongs to another department.`,
+        suggestion: `Request one through Room Exchange (e.g. ${bigEnough[0].name}) or mark it shared.`,
+      }
+    }
+    if (s.options === 0)
+      return {
+        reason: `${what}: ${teacher.name} is never available when ${section.name} can have a ${length > 1 ? `${length}-period block` : 'class'}.`,
+        suggestion: `Reduce ${teacher.name}'s unavailable slots${length > 1 ? ', move a break,' : ''} or assign another teacher.`,
+      }
+    if ((teacherWeek.get(teacher.id) ?? 0) + length > teacher.maxPerWeek)
+      return {
+        reason: `${what}: ${teacher.name} already teaches ${teacherWeek.get(teacher.id)} of a maximum ${teacher.maxPerWeek} periods a week.`,
+        suggestion: `Raise ${teacher.name}'s weekly limit or assign another teacher.`,
+      }
+    let dayRoom = false
+    for (let d = 0; d < D; d++) if ((teacherBusy.get(`${teacher.id}|${d}`)?.size ?? 0) + length <= teacher.maxPerDay) dayRoom = true
+    if (!dayRoom)
+      return {
+        reason: `${what}: ${teacher.name} is at the daily limit of ${teacher.maxPerDay} periods on every day.`,
+        suggestion: `Raise ${teacher.name}'s daily limit or assign another teacher.`,
+      }
+    let sectionRun = false
+    for (let d = 0; d < D && !sectionRun; d++) {
+      const busy = sectionBusy.get(`${section.id}|${d}`)
+      for (let st = 0; st + length <= P && !sectionRun; st++) {
+        let free = true
+        for (let i = 0; i < length; i++) if (busy?.has(st + i) || closed.get(section.id)!.has(slotKey(d, st + i))) free = false
+        if (free) sectionRun = true
+      }
+    }
+    if (!sectionRun)
+      return {
+        reason:
+          length > 1
+            ? `${what}: ${section.name} has no ${length} consecutive free periods left in the week.`
+            : `${what}: ${section.name}'s week is full.`,
+        suggestion: `Add a period to the day, a working day, or reduce ${section.name}'s periods.`,
+      }
+    return {
+      reason: `${what}: no slot where ${section.name}, ${teacher.name} and a ${subject.roomType} room are free together.`,
+      suggestion: `Free up ${teacher.name}, add a ${subject.roomType} room, or let another teacher take this class.`,
+    }
+  }
+
   // ── Place sessions, always taking the one with the fewest legal slots right now ──
   const remaining = sessions.slice().sort(priority)
   const cache = new Map<Session, ReturnType<typeof evaluate>>()
@@ -296,34 +438,12 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
     }
     const s = remaining.splice(pickIndex, 1)[0]
     cache.delete(s)
-    const { assignment: a, section, subject, teacher, length } = s
-    const best = pick.best
 
-    if (!best) {
-      markUnplaced(
-        a,
-        length,
-        `No free slot where ${section.name}, ${teacher.name} and a ${subject.roomType} room are all available.`,
-        `Free up ${teacher.name}, add a ${subject.roomType} room, or add a period to the week.`,
-      )
-      continue
-    }
-
-    const placement: Placement = {
-      assignmentId: a.id,
-      collegeId: cid,
-      deptId: section.deptId,
-      day: best.day,
-      period: best.period,
-      length,
-      roomId: best.room.id,
-      locked: false,
-    }
-    book(a, section, teacher.id, placement)
-    placements.push(placement)
-    // Only sessions sharing this teacher, section or room can have changed options.
-    for (const x of remaining) {
-      if (x.teacher.id === teacher.id || x.section.id === section.id || x.rooms.includes(best.room)) cache.delete(x)
+    if (pick.best) {
+      commit(s, pick.best)
+    } else if (!(opts.repair !== false && tryRepair(s))) {
+      const why = diagnose(s)
+      markUnplaced(s.assignment, s.length, why.reason, why.suggestion)
     }
   }
 

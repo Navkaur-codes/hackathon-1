@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.2-b + semester + leave cover) — `npm test` 147 passed / 0 failed (6 files) · build ✅ · lint ✅
+**Last run:** 2026-10-21 (P0.2-c) — `npm test` 159 passed / 0 failed (7 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -36,10 +36,11 @@
 | T1b | v0.2 | solver | breaks, availability and labs on the demos | labs are whole blocks; staggered lunch respected (ECE never in its lunch slot); unavailable teachers never scheduled | unit | ✅ | `solve.test.ts` T5 block: visiting teacher never on Saturday |
 | T5.0 | v0.2 | solver | department-by-department solving (CSE → ECE → ME, each against the others booked) | 0 global conflicts, everything placed | unit | ✅ | preview of v0.5 |
 | T5.1a | v0.2 | solver | adjusted timetable for a date with a teacher on leave | 0 conflicts with `leave` | unit | ✅ | |
-| T3 | v0.2 | solver | impossible input (lab demand > lab slots) | item unplaced with reason + suggestion, 0 conflicts | unit | ⏳ | |
+| T3 | v0.2 | solver | impossible input: lab demand > lab rooms, no room big enough, room only in another dept, teacher weekly limit, teacher never available, section week full, break blocks a lab, no teacher | unplaced with a specific plain reason + fix; 0 conflicts; placed + unplaced = curriculum | unit | ✅ | `solver/unplaced.test.ts` (8 cases) |
+| T3r | v0.2 | solver | repair step | never more unplaced than without repair, never a clash (60 random colleges) | unit | ✅ | measured on 300 random colleges: rescued placements in 2 — most stuck classes are genuinely impossible (pre-flight catches those) |
 | T4 | v0.2 | solver | same seed twice | identical output | unit | ✅ | different seeds give different timetables |
 | T6a | v0.2 | score | score on demo | 0 ≤ score ≤ 100 | unit | ⏳ | |
-| T6b | v0.2 | preflight | teacher assigned > maxPerWeek | warning returned | unit | ⏳ | |
+| T6b | v0.2 | preflight | demos clean; overloaded teacher; bad semester dates; each T3 case | demos: no errors; error with exact message + fix for each impossible input | unit | ✅ | |
 | T35.1 | v0.35 | finder | free teachers at a demo slot | excludes busy/unavailable teachers | unit | ⏳ | |
 | T35.2 | v0.35 | finder | free rooms by type & capacity | only matching, unbooked rooms | unit | ⏳ | |
 | T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ⏳ | |

@@ -108,6 +108,7 @@
 
 **Decisions**
 - Validator built first (P0.2-a) so every solver test can use it as the judge.
+- **Repair is a safety net, not the main tool (measured in P0.2-c):** on 300 random colleges it rescued placements in only 2 — dynamic ordering already avoids most dead ends, and the rest are genuinely impossible input. That is why `preflight` matters: it names the impossible input before solving. Option `repair: false` exists for comparison tests.
 - Meetings are ignored by the solver (they never block teaching).
 - **Semester timetable (user decision during P0.2-b).** One weekly pattern rolled out over the semester's real dates: `Calendar.weekdays` + `CollegeData.semester` (start/end, holidays, no-class dates); `lib/semester.ts` → `semesterDates`, `semesterSummary`, `teachingDayCounts`, `semesterDelivery` (periods & contact hours per assignment, holidays reduce them), `classesOn(date)` (pattern + that date's substitutions). Demo semesters: DIET 20 Jul–27 Nov 2026 (105 teaching days), DCAS 3 Aug–20 Nov 2026 (74).
 - **Leave cover engine pulled forward from v0.7 (user request during P0.2-b).** `solver/substitutes.ts`: `planLeaveCover` auto-allots the best free teacher per affected class (`suggested`, HOD may swap → `confirmed`; `uncovered` if nobody is free), `substituteCandidates` ranks them, `validateDate` checks a date's adjusted timetable with the independent validator. v0.7 keeps only the HOD screens (leave inbox, swap substitute, notices).
