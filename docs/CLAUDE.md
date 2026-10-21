@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.1 Foundation — code complete (P0.1-c awaiting push); next: v0.2 Engine** (plan revision 3 + subjects)
+**Current version: v0.2 Engine — DESIGN (awaiting review)** · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -61,7 +61,7 @@
 ### Built
 - **P0.1-a** `12a8fc7` — Paper & Ink theme (light + Blackboard dark), restrained type scale, wheel mark + favicon, GSAP landing (headline reveal, rotating wheel, role cards), print base. A dark "Midnight & Saffron" variant was tried and rejected by the user.
 - **P0.1-b** `7485142` — `types.ts` (multi-college model, Subject per programme, Assignment = section × subject → teacher, BreakRule) and `lib/structure.ts` (`generateSections`, `syncAssignments`, `buildCollege`, `periodTimes`, `effectiveBreaks` / `breakSlots` / `sectionBreakSlots`). Staggered breaks + rule H14 added at the user's request.
-- **P0.1-c** — `demoData.ts`: DIET (Mon–Sat × 7 slots, CSE/ECE/ME, 7 sections, ECE lunch staggered, cross-dept Maths & Communication teachers, 2 shared computer labs + seminar hall, a visiting teacher off on Saturdays) and DCAS (Mon–Fri × 6 slots, 30-min lunch slot, extra Friday break, Commerce/English, cross-dept Business Communication). `summarizeCollege` + `CollegeCard` show both on the landing, every number computed.
+- **P0.1-c** `6f4dd13` — `demoData.ts`: DIET (Mon–Sat × 7 slots, CSE/ECE/ME, 7 sections, ECE lunch staggered, cross-dept Maths & Communication teachers, 2 shared computer labs + seminar hall, a visiting teacher off on Saturdays) and DCAS (Mon–Fri × 6 slots, 30-min lunch slot, extra Friday break, Commerce/English, cross-dept Business Communication). `summarizeCollege` + `CollegeCard` show both on the landing, every number computed.
 - Tests: 32 green (T0.1–T0.7).
 
 ### Open issues
@@ -71,4 +71,53 @@
 - Root `README.md` is still the Vite template — replaced at v1.0.
 
 ---
-<!-- Next: write "## v0.2 Engine — Design" here before starting v0.2 -->
+
+## v0.2 Engine
+
+### Design
+**Goal:** a pure, seeded scheduling engine that never emits a clash, plus an independent validator that proves it. Works on any college shape (both demos) with no UI dependency. Hard rules H1–H14 and soft rules S1–S7 are defined in root `CLAUDE.md` §3–§4.
+
+**Files (all pure TS under `src/solver/`, no React)**
+| File | Responsibility |
+|---|---|
+| `rng.ts` | `mulberry32(seed)` seeded RNG + `shuffle`. No `Math.random` anywhere in the solver. |
+| `validate.ts` | **Independent** checker. `validate(college, timetable) → Conflict[]` where `Conflict { rule: 'H1'…'H14', message, assignmentIds }`. Builds its own indexes; imports only `types` and the break helpers from `lib/structure`. Never imports `solve.ts`. |
+| `solve.ts` | `solve(college, opts) → Timetable`. Options: `seed`, `fixed?: Placement[]` (locked slots / other departments' committed placements — treated as already booked), `assignmentIds?` (subset to schedule, e.g. one department), `leaveDays?`. |
+| `score.ts` | `score(college, timetable) → { total: 0–100, parts: { spread, sameDay, teacherGaps, sectionGaps, balance, ownRooms, lateLabs } }` from S1–S7. |
+| `preflight.ts` | `preflight(college) → Warning[]` capacity math before solving: unassigned teacher, no usable room (type/owner/capacity), teacher load > max/week or > max/day × workable days, section demand > free slots, lab demand vs usable lab-room slots per department. |
+| `best.ts` | `solveBest(college, { attempts = 20, baseSeed })` runs seeded restarts, keeps fewest unplaced periods → then highest score. |
+| `worker.ts` + `runSolver.ts` | Web Worker running `solveBest`; promise wrapper `runSolver(college)` for the UI. |
+
+**Solver algorithm (`solve.ts`)**
+1. **Sessions:** each assignment with a teacher → theory: `periodsPerWeek` single sessions; lab: blocks of `blockLength ?? calendar.labBlockLength` (+ one shorter block for any remainder). Assignments without a teacher → unplaced ("No teacher assigned").
+2. **Indexes:** busy sets for teacher / section / room per `day-period`, teacher load per day & week, subject-per-section-per-day counts; pre-filled from `fixed`.
+3. **Order (most constrained first):** labs before theory → fewer feasible (day, start) options → higher teacher load → seeded tie-break.
+4. **Candidates:** every (day, start, room) where the whole block is legal — section not in break/blocked slot, teacher free/available/not on leave, within max/day & max/week, **H14** (teacher keeps ≥ min free slots in the lunch window that day), room type + capacity + ownership (own dept / shared / approved grant covering the slots), all slots free.
+5. **Pick:** lowest soft penalty — same subject already that day (S2, heavy), spread (S1), new teacher/section gaps (S3/S4), teacher daily balance (S5), shared/borrowed room (S6), lab in last slots (S7), room best-fit (smallest room that fits), plus tiny seeded jitter for diversity.
+6. **Repair (1 level):** if no candidate, try moving one non-locked placement that blocks a slot to another legal slot, then place. Bounded attempts.
+7. **Unplaced with reason + suggestion** if still impossible — classified as: no teacher · no usable room · teacher at limit/unavailable · section has no free slots · no common free slot (names the section, teacher and room type).
+
+**Checkpoints**
+| ID | Feature | Files | Tests | Commit message |
+|---|---|---|---|---|
+| P0.2-a | Independent validator (H1–H14) | `solver/validate.ts`, `validate.test.ts` | T2.* detection: hand-made violating timetables for each rule are caught; a clean one passes | `feat(solver): independent validator for H1–H14` |
+| P0.2-b | Solver core (sessions, labs, hard rules incl. H14 & room ownership, soft-penalty pick, fixed/locked placements) | `solver/rng.ts`, `solver/solve.ts`, `solve.test.ts` | T1 both demos → 0 conflicts, 0 unplaced · T2 "never produced" (many seeds × fixtures → validator clean) · T4 determinism · T5 | `feat(solver): greedy most-constrained-first scheduler` |
+| P0.2-c | Repair step, unplaced reasons & suggestions, pre-flight check | `solve.ts`, `solver/preflight.ts`, tests | T3 impossible input → reason + suggestion, still 0 conflicts · T6b preflight | `feat(solver): repair, unplaced reasons and pre-flight check` |
+| P0.2-d | Quality score, seeded restarts, Web Worker; landing "Generate timetable" shows result summary (0 clashes · score · unplaced) | `solver/score.ts`, `best.ts`, `worker.ts`, `runSolver.ts`, `CollegeCard.tsx` | T6a score 0–100 · restarts never worse than single run | `feat(solver): quality score, restarts and web worker` |
+
+**Decisions**
+- Validator built first (P0.2-a) so every solver test can use it as the judge.
+- Meetings are ignored by the solver (they never block teaching).
+- **Leave is date-specific (user decision during P0.2-a).** Teacher requests leave for a date → HOD approves → Kaalchakra builds that date's **adjusted timetable**: each affected class gets a free same-dept substitute in the same slot, or moves to a free slot that week (other classes stay locked). The weekly master timetable never changes. The validator takes `leave` only when checking a date's adjusted timetable; `LeaveRequest` and `Substitution` carry an ISO `date`. Teachers and students see "today" with the changes highlighted. Built in v0.7; the engine already supports it (`fixed`/locked placements + `leave` option).
+- Performance target: both demos solve 20 restarts in < 1 s in the worker.
+
+**Done when:** all T1–T6 green, both demo colleges generate with 0 conflicts and 0 unplaced, and the landing shows the verified result.
+
+### Built
+_(fill after v0.2)_
+
+### Open issues
+_(fill after v0.2)_
+
+---
+<!-- Next: write "## v0.3 Timetable views — Design" here before starting v0.3 -->

@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.1-c) — `npm test` 32 passed / 0 failed (2 files) · build ✅ · lint ✅ · landing checked in browser at ~400px: both college cards render, no overflow
+**Last run:** 2026-10-21 (P0.2-a) — `npm test` 56 passed / 0 failed (3 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -16,19 +16,20 @@
 | T0.6 | v0.1 | calendar | `periodTimes` | times follow startTime/periodMinutes, honouring per-slot lengths (short lunch slot) | unit | ✅ | |
 | T0.7 | v0.1 | breaks | staggered breaks | section → programme → dept → college inheritance; day-specific rules; non-working days ignored; two depts in one college get different break slots | unit | ✅ | |
 | T1 | v0.2 | solver | solve **both** demo colleges (different days/periods/depts, staggered breaks) | validator 0 conflicts, 0 unplaced — proves nothing hard-coded | unit | ⏳ | |
-| T2.H1 | v0.2 | solver/validate | teacher double-booked (incl. across depts) | never produced; validator detects hand-made violation | unit | ⏳ | |
-| T2.H2 | v0.2 | solver/validate | section double-booked | never produced; detected | unit | ⏳ | |
-| T2.H3 | v0.2 | solver/validate | room double-booked across depts | never produced; detected | unit | ⏳ | |
-| T2.H4 | v0.2 | solver/validate | lab in lecture room / wrong type | never produced; detected | unit | ⏳ | |
-| T2.H5 | v0.2 | solver/validate | room capacity < strength | never produced; detected | unit | ⏳ | |
-| T2.H6 | v0.2 | solver/validate | class in teacher unavailable slot / leave day | never produced; detected | unit | ⏳ | |
-| T2.H7 | v0.2 | solver/validate | class in a section's own break slot (incl. staggered dept/section breaks) or blocked slot | never produced; detected | unit | ⏳ | |
-| T2.H8 | v0.2 | solver/validate | lab not contiguous / crosses the section's break or day end | never produced; detected | unit | ⏳ | |
-| T2.H9 | v0.2 | solver/validate | teacher exceeds max/day or max/week | never produced; detected | unit | ⏳ | |
-| T2.H10 | v0.2 | solver | locked placement after re-solve | unchanged | unit | ⏳ | |
-| T2.H11 | v0.2 | solver/validate | other dept's room used without grant | never produced; detected | unit | ⏳ | |
-| T2.H13 | v0.2 | solver/validate | teacher/room of college B used in college A | never produced; detected | unit | ⏳ | |
-| T2.H14 | v0.2 | solver/validate | shared teacher teaching two depts with different lunch slots | keeps ≥ 1 free slot in the lunch window each teaching day; violation detected | unit | ⏳ | |
+| T2.H1 | v0.2 | solver/validate | teacher double-booked (incl. across depts) | never produced; validator detects hand-made violation | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H2 | v0.2 | solver/validate | section double-booked | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H3 | v0.2 | solver/validate | room double-booked across depts | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H4 | v0.2 | solver/validate | lab in lecture room / wrong type | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H5 | v0.2 | solver/validate | room capacity < strength | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H6 | v0.2 | solver/validate | class in teacher unavailable slot / leave day | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H7 | v0.2 | solver/validate | class in a section's own break slot (incl. staggered dept/section breaks) or blocked slot | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H8 | v0.2 | solver/validate | lab not contiguous / crosses the section's break or day end | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H9 | v0.2 | solver/validate | teacher exceeds max/day or max/week | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H10 | v0.2 | solver/validate | locked placement after re-solve | unchanged; validator flags a moved locked class (`mustKeep`) | unit | ✅ (detection) | validate.test.ts; solver half in P0.2-b |
+| T2.H11 | v0.2 | solver/validate | other dept's room used without grant | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H12 | v0.2 | solver/validate | unknown assignment/room, outside the week, unassigned teacher, more periods than the curriculum | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H13 | v0.2 | solver/validate | teacher/room of college B used in college A | never produced; detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
+| T2.H14 | v0.2 | solver/validate | shared teacher teaching two depts with different lunch slots | keeps ≥ 1 free slot in the lunch window each teaching day; violation detected | unit | ✅ (detection) | validate.test.ts; 'never produced' half lands with the solver in P0.2-b |
 | T3 | v0.2 | solver | impossible input (lab demand > lab slots) | item unplaced with reason + suggestion, 0 conflicts | unit | ⏳ | |
 | T4 | v0.2 | solver | same seed twice | identical output | unit | ⏳ | |
 | T6a | v0.2 | score | score on demo | 0 ≤ score ≤ 100 | unit | ⏳ | |
@@ -57,7 +58,7 @@
 | T6.6 | v0.6 | meetings | student exceeds max pending requests | request rejected with message | unit | ⏳ | |
 | T6.7 | v0.6 | meetings | teacher inbox | only own requests; HOD sees counts only | unit | ⏳ | |
 | T6.8 | v0.6 | meetings | re-plan puts class into accepted meeting slot | meeting → needsReschedule | unit | ⏳ | |
-| T7.1 | v0.7 | replan | teacher absent on a day | no placements for them that day, unaffected placements unchanged, 0 conflicts | unit | ⏳ | |
+| T7.1 | v0.7 | replan | HOD approves a leave for a date | that date's adjusted timetable: absent teacher has no classes, each affected class has a substitute or moved slot, unaffected classes unchanged, 0 conflicts with `leave`; weekly master untouched | unit | ⏳ | |
 | T7.2 | v0.7 | substitutes | suggestions | free, same dept, under max/day | unit | ⏳ | |
 | T7.3 | v0.7 | lock | lock slot, regenerate | slot unchanged | unit | ⏳ | |
 | T7.4 | v0.7 | conflicts | inject cross-dept room clash | detected with both depts; publish blocked | unit | ⏳ | |

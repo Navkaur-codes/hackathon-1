@@ -106,6 +106,8 @@ All results respect the viewer's role scope (`access.ts`).
 - **Common free slot** — select several teachers (or a teacher + a room) → slots where all are free (for meetings, extra/makeup classes, practical exams).
 - Visibility by role: College Admin & HOD → full finder (HOD: own dept teachers + rooms usable by dept); Teacher → free rooms + own dept colleagues' free status (for swaps); Student → search own section only, free-room finder hidden.
 
+**Leave is date-specific (user decision in v0.2):** teacher requests leave for a date → HOD approves → that date's *adjusted timetable* is generated (free same-dept substitute in the same slot, or the class moves to a free slot that week; everything else stays locked). The weekly master timetable never changes; teachers and students see today's changes highlighted.
+
 **Department workflow (the "relevance" story):** HODs fill own dept data in parallel → mark Ready → College Admin runs one generate across all depts (shared rooms & teachers fairly allocated) → Publish → teachers & students see it instantly. Leave flow: Teacher → HOD (substitute / re-plan) → students see substitute notice.
 **Publishing model:** portals for Teacher & Student read only the **published** version; drafts never leak. Republish after re-plan bumps a version number shown on all views ("v3 · published 21 Oct 10:42").
 
@@ -240,7 +242,7 @@ Then Claude waits for the user's "pushed / continue" before starting the next fe
 | Version | Features (one push checkpoint each) |
 |---|---|
 | **v0.1 Foundation** | P0.1-a theme + fonts + landing shell · P0.1-b types + `structure.ts` (+T0.3) · P0.1-c two demo colleges (+T0.2) · *user: create GitHub repo, first push, connect Vercel* |
-| **v0.2 Engine** | P0.2-a `solve.ts` core (H1–H9, H12, H13) + T1 · P0.2-b `validate.ts` + T2.* · P0.2-c labs/locks/grant filter (H8, H10, H11) + unplaced reasons + T3 · P0.2-d `score.ts`, `preflight.ts`, seeded restarts, worker + T4/T6 |
+| **v0.2 Engine** | P0.2-a `validate.ts` (H1–H14) + T2 detection · P0.2-b `solve.ts` core (labs, hard rules, soft pick, fixed placements) + T1/T2/T4/T5 · P0.2-c repair + unplaced reasons + `preflight.ts` + T3/T6b · P0.2-d `score.ts`, restarts, worker, landing result + T6a |
 | **v0.3 Views** | P0.3-a TimetableGrid (section/teacher/room, config-driven size) · P0.3-b clash seal + Clash Court popover · P0.3-c GSAP cell-drop + wheel + print CSS |
 | **v0.35 Finder** | P0.35-a `finder.ts` + T35.* · P0.35-b filter bar (URL state) · P0.35-c Who's-free panel + Ctrl+K |
 | **v0.4 Super & College Admin** | P0.4-a store (zustand persist, multi-college) + role/college switcher + `access.ts` + T4.2–T4.6 · P0.4-b Super Admin colleges list/create/clone · P0.4-c Structure Builder · P0.4-d College Admin setup (rooms, teachers, assignments, availability grid, paste-from-Excel + T4.1) · P0.4-e Generate all + Publish/version |

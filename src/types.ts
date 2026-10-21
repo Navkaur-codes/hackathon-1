@@ -188,22 +188,32 @@ export type Grant = {
   status: 'offered' | 'requested' | 'approved' | 'rejected' | 'revoked'
 }
 
+/** Leave is for one calendar date; it never changes the weekly master timetable (see docs/CLAUDE.md). */
 export type LeaveRequest = {
   id: Id
   collegeId: Id
   teacherId: Id
+  /** ISO date, e.g. '2026-10-26'. */
+  date: string
+  /** Working-day index of that date in the college calendar. */
   day: number
   reason: string
   status: 'pending' | 'approved' | 'rejected'
 }
 
+/** A change for one date only, created when the HOD approves a leave. */
 export type Substitution = {
   id: Id
   collegeId: Id
+  /** ISO date the change applies to. */
+  date: string
   assignmentId: Id
   day: number
   period: number
-  substituteTeacherId: Id
+  /** Same slot, different teacher… */
+  substituteTeacherId?: Id
+  /** …or the class moves to another free slot that week (and maybe another room). */
+  movedTo?: { day: number; period: number; roomId: Id }
 }
 
 export type OfficeHours = {
