@@ -3,28 +3,32 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.1-a) — build ✅ · lint ✅ · no unit tests yet
+**Last run:** 2026-10-21 (P0.1-b + staggered breaks) — `npm test` 17 passed / 0 failed · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
 |---|---|---|---|---|---|---|---|
 | T0.1 | v0.1 | build | `npm run build` + `npm run lint` | succeeds, no TS/lint errors | unit/CI | ✅ | P0.1-a (Paper & Ink, new type scale); landing checked in browser at 463px: no horizontal overflow, h1 36px on 2 lines, Fraunces loaded, animations complete |
 | T0.2 | v0.1 | demoData | ids unique, all refs resolve, lab rooms exist for lab assignments, every entity has collegeId, refs stay within one college | true | unit | ⏳ | |
-| T0.3 | v0.1 | structure | programme with N sections × strength S | exactly N sections, each strength S; changing N regenerates, keeps edited survivors | unit | ⏳ | |
-| T0.4 | v0.1 | structure | sections × programme subjects | exactly one assignment per section × subject; add/remove subject or section syncs and keeps chosen teachers | unit | ⏳ | |
-| T1 | v0.2 | solver | solve **both** demo colleges (different days/periods/depts) | validator 0 conflicts, 0 unplaced — proves nothing hard-coded | unit | ⏳ | |
+| T0.3 | v0.1 | structure | programme with N sections × strength S | exactly N sections, each strength S; changing N regenerates, keeps edited survivors | unit | ✅ | `structure.test.ts`: N = 1, 3, 7, 30; names past Z (AA, AB); grow 2→4 & shrink →1 keep edits |
+| T0.4 | v0.1 | structure | sections × programme subjects | exactly one assignment per section × subject; add/remove subject or section syncs and keeps chosen teachers | unit | ✅ | also: other programmes' subjects ignored |
+| T0.5 | v0.1 | structure | `buildCollege(spec)` | all records derived from spec, every record has the college's id, round-robin teachers per section, unknown teacher key rejected, unavailability → slot keys | unit | ✅ | |
+| T0.6 | v0.1 | calendar | `periodTimes` | times follow startTime/periodMinutes, honouring per-slot lengths (short lunch slot) | unit | ✅ | |
+| T0.7 | v0.1 | breaks | staggered breaks | section → programme → dept → college inheritance; day-specific rules; non-working days ignored; two depts in one college get different break slots | unit | ✅ | |
+| T1 | v0.2 | solver | solve **both** demo colleges (different days/periods/depts, staggered breaks) | validator 0 conflicts, 0 unplaced — proves nothing hard-coded | unit | ⏳ | |
 | T2.H1 | v0.2 | solver/validate | teacher double-booked (incl. across depts) | never produced; validator detects hand-made violation | unit | ⏳ | |
 | T2.H2 | v0.2 | solver/validate | section double-booked | never produced; detected | unit | ⏳ | |
 | T2.H3 | v0.2 | solver/validate | room double-booked across depts | never produced; detected | unit | ⏳ | |
 | T2.H4 | v0.2 | solver/validate | lab in lecture room / wrong type | never produced; detected | unit | ⏳ | |
 | T2.H5 | v0.2 | solver/validate | room capacity < strength | never produced; detected | unit | ⏳ | |
 | T2.H6 | v0.2 | solver/validate | class in teacher unavailable slot / leave day | never produced; detected | unit | ⏳ | |
-| T2.H7 | v0.2 | solver/validate | class in lunch period | never produced; detected | unit | ⏳ | |
-| T2.H8 | v0.2 | solver/validate | lab not contiguous / straddles lunch or day end | never produced; detected | unit | ⏳ | |
+| T2.H7 | v0.2 | solver/validate | class in a section's own break slot (incl. staggered dept/section breaks) or blocked slot | never produced; detected | unit | ⏳ | |
+| T2.H8 | v0.2 | solver/validate | lab not contiguous / crosses the section's break or day end | never produced; detected | unit | ⏳ | |
 | T2.H9 | v0.2 | solver/validate | teacher exceeds max/day or max/week | never produced; detected | unit | ⏳ | |
 | T2.H10 | v0.2 | solver | locked placement after re-solve | unchanged | unit | ⏳ | |
 | T2.H11 | v0.2 | solver/validate | other dept's room used without grant | never produced; detected | unit | ⏳ | |
 | T2.H13 | v0.2 | solver/validate | teacher/room of college B used in college A | never produced; detected | unit | ⏳ | |
+| T2.H14 | v0.2 | solver/validate | shared teacher teaching two depts with different lunch slots | keeps ≥ 1 free slot in the lunch window each teaching day; violation detected | unit | ⏳ | |
 | T3 | v0.2 | solver | impossible input (lab demand > lab slots) | item unplaced with reason + suggestion, 0 conflicts | unit | ⏳ | |
 | T4 | v0.2 | solver | same seed twice | identical output | unit | ⏳ | |
 | T6a | v0.2 | score | score on demo | 0 ≤ score ≤ 100 | unit | ⏳ | |

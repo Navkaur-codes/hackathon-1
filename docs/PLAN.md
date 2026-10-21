@@ -19,6 +19,8 @@ Decisions: **React + Vite + TypeScript, fully client-side** (solver in Web Worke
 Kaalchakra hosts **many colleges** on one platform. Every entity carries `collegeId`; data, views, solver runs and the global booking ledger are **per college** (no cross-college sharing).
 **No hard-coded structure:** number/names of departments, programmes/years, sections per year, students per section, rooms, teachers, working days, periods per day, period timings, lunch slot and lab block length all come from the college's configuration. Code must never assume "CSE/ECE/ME", "8 periods", "Mon–Sat" or a fixed count — loops and grids are always driven by config. Demo data is only a **seed** loaded through the same config path (two demo colleges of different shapes prove it: an engineering college with 3 depts × 6 periods/day Mon–Sat, and a small arts & science college with 2 depts × 5 periods Mon–Fri).
 
+**Staggered breaks:** breaks are slots in one shared period grid and may differ per department, year/programme, section and day (section → programme → department → college default). Hard rule H14 guarantees every teacher a free slot inside the college lunch window on teaching days, so a teacher shared by departments with different lunch slots still gets lunch.
+
 ## Users & roles (5 roles, college- & department-scoped)
 Until v0.9: role switcher → pick role → pick college → pick yourself (dept / teacher / section). Real login comes **last** (v0.9). Every screen filters data by the chosen role + scope; the scope rule lives in one helper (`lib/access.ts`) so it is testable.
 
@@ -224,12 +226,12 @@ Scope change: multi-college platform, Super Admin role, Meet-a-Teacher requests,
 
 **Checkpoint block format (printed by Claude when a feature is finished and its tests pass):**
 ```
-🚀 PUSH CHECKPOINT  P0.2-b  — Validator (H1–H13)
+🚀 PUSH CHECKPOINT  P0.2-b  — Validator (H1–H14)
 Tests: 18 passed · Build: ok
 Files changed: src/solver/validate.ts, src/solver/validate.test.ts, docs/TEST.md
 Run:
   git add -A
-  git commit -m "feat(solver): independent validator for H1–H13"
+  git commit -m "feat(solver): independent validator for H1–H14"
   git push
 ```
 Then Claude waits for the user's "pushed / continue" before starting the next feature. (Vercel auto-deploys on each push once connected.)

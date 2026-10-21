@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.1 Foundation — in progress (P0.1-a done)** (plan revision 3 + subjects)
+**Current version: v0.1 Foundation — in progress (P0.1-a pushed, P0.1-b done)** (plan revision 3 + subjects)
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -22,8 +22,9 @@
 - `index.html`: title "Kaalchakra — College Timetables", Google Fonts (Fraunces, Inter, JetBrains Mono), wheel favicon.
 - `src/types.ts`:
   - `Platform { colleges: College[] }`, `College { id, name, code, status: 'active'|'archived', collegeAdminIds }`
-  - `Calendar { collegeId, days: string[] /* any subset/order */, periodsPerDay, startTime, periodMinutes, lunchAfterPeriods: number[], blockedSlots: SlotKey[], labBlockLength, maxMeetingRequestsPerStudent }`
-  - `Department { id, collegeId, code, name, status }`, `Programme { id, collegeId, deptId, name, sectionsCount, defaultStrength }`, `Section { id, collegeId, deptId, programmeId, name, strength }`
+  - `BreakRule { period, days?, label? }` — a break is a slot in the shared grid, optionally only on some days
+  - `Calendar { collegeId, days: string[] /* any subset/order */, periodsPerDay, startTime, periodMinutes, periodLengths?, breaks: BreakRule[], lunchWindow: number[], teacherMinFreeInLunchWindow, blockedSlots: SlotKey[], labBlockLength, maxMeetingRequestsPerStudent }`
+  - `Department { id, collegeId, code, name, status, breaks? }`, `Programme { id, collegeId, deptId, name, shortName, sectionsCount, defaultStrength, breaks? }`, `Section { id, collegeId, deptId, programmeId, name, strength, breaks? }`
   - `Room { id, collegeId, name, type: 'lecture'|'lab'|'seminar', capacity, ownerDeptId | 'shared' }`, `Teacher { id, collegeId, deptId, name, maxPerDay, maxPerWeek, unavailable: SlotKey[] }`
   - `Subject { id, collegeId, deptId, programmeId, code, name, kind: 'theory'|'lab', periodsPerWeek, blockLength? /* labs, defaults to calendar.labBlockLength */, roomType }` — the curriculum, defined per programme
   - `Assignment { id, collegeId, sectionId, subjectId, teacherId }` — who teaches which subject to which section (teacherId may be empty until the HOD assigns one; unassigned subjects show in pre-flight, never reach the solver)
@@ -32,12 +33,14 @@
   - `Session { role: 'superAdmin'|'collegeAdmin'|'deptAdmin'|'teacher'|'student', collegeId?, deptId?, teacherId?, sectionId? }`
 - `src/lib/structure.ts`: `generateSections(programme, existing?)` → exactly `sectionsCount` sections named `${deptCode}-${programmeShort}-${A,B,C…}` with `defaultStrength`; keeps edited names/strength of surviving sections when counts change. `syncAssignments(sections, subjects, existing)` → exactly one Assignment per section × subject of its programme (keeps chosen teachers, adds new pairs, drops removed ones). `buildCollege(spec)` turns a structure spec (calendar + depts + programmes with their subjects + rooms + teachers + teacher-per-subject choices) into a full college — the **only** way data is created, demo included.
 - `src/demoData.ts`: two specs passed through `buildCollege`:
-  1. **Demo Institute of Engineering** — Mon–Sat, 6 periods (09:00, 55 min), lunch after P3; depts CSE/ECE/ME, 2 programmes each (Year 2, Year 3) × 1–2 sections, strength 45–60; dept lecture rooms + 1 dept lab each; **shared** 2 computer labs + seminar hall; one Maths teacher teaching across depts.
-  2. **Demo College of Arts & Science** — Mon–Fri, 5 periods (09:30, 60 min), lunch after P2; depts Commerce/English, 1–2 programmes, 1 shared seminar hall, no labs except 1 language lab.
+  1. **Demo Institute of Engineering** — Mon–Sat, 7 slots (09:00, 50 min) with **staggered lunch**: CSE & ME break in slot 4, ECE in slot 5 (lunch window 4–5); depts CSE/ECE/ME, 2 programmes each (Year 2, Year 3) × 1–2 sections, strength 45–60; dept lecture rooms + 1 dept lab each; **shared** 2 computer labs + seminar hall; one Maths teacher teaching across depts.
+  2. **Demo College of Arts & Science** — Mon–Fri, 6 slots (09:30, 55 min) with one common 30-min lunch slot (slot 3) and a longer Friday break; depts Commerce/English, 1–2 programmes, 1 shared seminar hall, no labs except 1 language lab.
   Both sized to be solvable with slack.
 - Remove Vite boilerplate (`App.css`, counter, assets).
 
 **Decisions**
+- **Breaks are slots in one shared grid**, and can be **staggered**: section → programme → department → college default (`effectiveBreaks`, `breakSlots`, `sectionBreakSlots`), optionally per day (e.g. longer Friday break). One shared clock keeps cross-department teacher/room clashes checkable. A shorter lunch slot uses `periodLengths`. New hard rule **H14**: every teacher keeps ≥ `teacherMinFreeInLunchWindow` free slot(s) inside `lunchWindow` on teaching days. *(user request during P0.1-b; replaced the earlier "lunch between periods" model)* `periodTimes(calendar)` derives clock times.
+- Section ids are positional (`<programmeId>-a`, `-b`…) so edited names/strengths survive count changes; assignment id = `<sectionId>--<subjectId>`.
 - Days/periods are 0-based indexes into the calendar; `SlotKey = \`${day}-${period}\``. Day labels come from `calendar.days`.
 - IDs are readable strings prefixed by college code (`eng-t-kaur`, `eng-sec-cse-y2-a`) — unique across colleges.
 - No constant anywhere encodes a count of days, periods, departments, sections or subjects.

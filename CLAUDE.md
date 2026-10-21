@@ -40,13 +40,16 @@
 | H4 | Room **type** matches the session (theory→lecture/seminar as specified, lab→lab). |
 | H5 | Room **capacity** ≥ section strength. |
 | H6 | No class in a teacher's **unavailable** slots or on an **approved leave** day. |
-| H7 | No class in the **lunch** period (or any blocked college slot). |
-| H8 | A **lab** occupies `blockLength` (default 2) **consecutive** periods on the same day, same room, never straddling lunch or the day end. |
+| H7 | No class in a section's **break slots** or any college **blocked slot**. Breaks may differ by group and day: a section's breaks = its own rules → else its programme's → else its department's → else the college default (`effectiveBreaks` / `sectionBreakSlots` in `lib/structure.ts`). *(staggered breaks added at the user's request in v0.1)* |
+| H8 | A **lab** occupies `blockLength` (default from calendar) **consecutive** periods on the same day, same room, never crossing that section's break slot or the day end. |
 | H9 | Teacher **max periods/day** and **max periods/week** are respected. |
 | H10 | **Locked** placements never move or disappear. |
 | H11 | A section may use a room only if the room is owned by its dept, is `shared`, or an **approved grant** covers that slot. |
 | H12 | Every placement references existing entities and lies inside the configured days/periods. |
 | H13 | Nothing crosses colleges: a placement's section, teacher and room all belong to the same college as the timetable. |
+| H14 | **Teacher break:** on every day a teacher teaches, at least `teacherMinFreeInLunchWindow` (default 1) of the college's `lunchWindow` slots stay free for them — so staggered breaks across departments never leave a shared teacher without lunch. |
+
+**Break model:** breaks are **slots in one shared period grid** (not gaps between periods), so every section shares one clock and cross-department clashes stay checkable. A break slot may be shorter via `calendar.periodLengths`. Never hard-code a lunch period (rule G2).
 
 ### Meeting rules (Meet-a-Teacher)
 - Bookable slots = teacher free ∩ student's section free, from the **published** timetable (reuse `finder.commonFree`); office hours are highlighted, not required.
@@ -66,7 +69,7 @@
 
 ## 5. Solver invariants
 - **Never emit a clash.** If a session cannot be placed legally, put it in `unplaced` with a human-readable `reason` and a `suggestion`. Unplaced-with-reason is always better than a clash.
-- `validate.ts` is **independent** of `solve.ts` and re-checks H1–H13; every generate, re-plan, edit and publish runs it. **Publish is blocked** if it reports any conflict.
+- `validate.ts` is **independent** of `solve.ts` and re-checks H1–H14; every generate, re-plan, edit and publish runs it. **Publish is blocked** if it reports any conflict.
 - Solver is **pure and deterministic per seed** (seeded RNG, no `Math.random`, no Date inside). Restarts = different seeds; keep best (fewest unplaced, then highest score).
 - Dept-scoped generate, re-plan and lock all reuse `solve.ts` by passing existing placements as fixed bookings — no second algorithm.
 - Heavy solving runs in a Web Worker; UI stays responsive.
