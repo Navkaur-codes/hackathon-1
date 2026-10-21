@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.3-c) — `npm test` 184 passed / 0 failed (10 files) · build ✅ · lint ✅ · browser: motion + simulated print checked, no console errors
+**Last run:** 2026-10-21 (P0.35-a) — `npm test` 200 passed / 0 failed (12 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -46,11 +46,11 @@
 | T3.1 | v0.3 | gridModel | grid for a section / teacher / room on both demos | one cell per placement of that entity; labs span their length; section break rows = its own staggered breaks; teacher view includes cross-dept classes; rows × cols follow the calendar | unit | ✅ | `lib/gridModel.test.ts` (8 cases) incl. DCAS 30-min lunch slot & Friday-only assembly; every placement appears exactly once per view |
 | T3.2 | v0.3 | colors | subject colours | same code → same colour; readable contrast | unit | ✅ | every palette colour ≥ 4.5:1 with ink text; DIET curriculum uses ≥ 6 colours |
 | T3.3 | v0.3 | explain | Clash Court checklist | all ✓ for solver placements; a hand-made clash shows the failing check, agreeing with the validator | unit | ✅ | `lib/explain.test.ts`: every placement of both demos all ✓; lunch-break move → H7, teacher double-booking → H1, unlent room → H11 — each also reported by the validator. Browser: popover beside the class (tablet), bottom sheet (phone), Esc returns focus to the class |
-| T35.1 | v0.35 | finder | free teachers at a demo slot | excludes busy/unavailable teachers | unit | ⏳ | |
-| T35.2 | v0.35 | finder | free rooms by type & capacity | only matching, unbooked rooms | unit | ⏳ | |
-| T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ⏳ | |
-| T35.4 | v0.35 | finder | nextFree(teacher) | earliest free slot after given time | unit | ⏳ | |
-| T35.5 | v0.35 | filters | filter by dept/teacher/room type/day | only matching placements | unit | ⏳ | |
+| T35.1 | v0.35 | finder | free teachers at a demo slot | excludes busy, unavailable and over-daily-limit teachers; load that day + teaches-subject flag; free ∪ busy = all teachers | unit | ✅ | `lib/finder.test.ts`: checked at every slot of the DIET week — membership exactly equals not-busy ∧ available ∧ under the daily limit; visiting teacher never free on Saturday; ranking order; 2-period windows |
+| T35.2 | v0.35 | finder | free rooms by type & capacity | only matching, unbooked rooms; usable badge own / shared / needs-grant | unit | ✅ | type/size filters at every slot; LT-101 own, CL-1 shared, LT-201 needs-grant → granted after an approved grant |
+| T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ✅ | equals the intersection of week strips (2 teachers + seminar hall); never offers a section break or an unavailable slot |
+| T35.4 | v0.35 | finder | nextFree / weekStrip / nowSlot | earliest free slot after a time; strip marks busy · free · break; real clock time → pattern slot | unit | ✅ | ECE lunch column = break; Sharma's Saturday = unavailable; wrap-around; Mon 10:00 → P2, Sunday / 08:00 → none, DCAS 11:30 → lunch slot |
+| T35.5 | v0.35 | filters | filter by dept / subject / theory-lab / room type / day; URL round-trip | only matching cells; `fromSearch(toSearch(f))` equals `f` | unit | ✅ | `lib/filters.test.ts`: each filter, AND-combination, URL round-trip, malformed values ignored |
 | T4.1 | v0.4 | csv | parse pasted TSV/CSV teachers & assignments | correct rows, bad rows reported | unit | ⏳ | |
 | T4.2 | v0.4 | store | persist → reload | identical state | unit | ⏳ | |
 | T4.3 | v0.4 | store | export JSON → import JSON | identical data | unit | ⏳ | |

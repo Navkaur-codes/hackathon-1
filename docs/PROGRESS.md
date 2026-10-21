@@ -3,7 +3,13 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.3 Timetable views code complete — P0.3-c awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.35 Finder & filters in progress — P0.35-a done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+
+## Resume here (for a new chat)
+- **Done:** v0.1, v0.2, v0.3 · v0.35: P0.35-a (finder + filters logic).
+- **Next:** P0.35-b filter bar → P0.35-c Who's free tab + Ctrl/⌘+K → v0.4 design (Super Admin + College Admin).
+- **Still open:** Vercel not connected (no live URL); real print dialog (M8) and OS reduced-motion (M10) not hand-checked.
+- **Numbers:** 200 tests · DIET 96/100, DCAS 89/100 · 0 clashes · 20 tries ≈ 0.4 s in the browser.
 
 ## Version checklist (ticked after the user confirms each push)
 - [x] **v0.1 Foundation**
@@ -16,14 +22,14 @@
   - [x] P0.2-b Solver core + semester calendar + leave cover engine — `88bf6c0`
   - [x] P0.2-c Repair, unplaced reasons, pre-flight check — `932f706`
   - [x] P0.2-d Quality score, restarts, Web Worker, landing result — `b276697`
-- [ ] **v0.3 Timetable views**
+- [x] **v0.3 Timetable views**
   - [x] P0.3-a Grid model + grids by section / teacher / room, opened from the card — `73f2053`
   - [x] P0.3-b Verified stamp, score, unplaced list + Clash Court popover — `88a955c`
-  - [ ] P0.3-c GSAP cell-drop + Flip, print (single + all sections) (done, awaiting push)
+  - [x] P0.3-c GSAP cell-drop + Flip, print (single + all sections) — `d8d5440`
 - [ ] **v0.35 Finder & filters**
-  - [ ] P0.35-a `finder.ts`
-  - [ ] P0.35-b Filter bar (URL state)
-  - [ ] P0.35-c Who's-free panel + Ctrl+K
+  - [ ] P0.35-a `lib/finder.ts` + `lib/filters.ts` (done, awaiting push)
+  - [ ] P0.35-b Filter bar on the grid (URL state)
+  - [ ] P0.35-c "Who's free?" tab + Ctrl/⌘+K palette
 - [ ] **v0.4 Super Admin + College Admin portals**
   - [ ] P0.4-a Store + role/college switcher + `access.ts`
   - [ ] P0.4-b Super Admin colleges list/create/clone
@@ -73,8 +79,9 @@
 | — | v0.2 | P0.2-d | **Quality score** `solver/score.ts` (S1–S7, weighted 0–100), **restarts** `solver/best.ts` (20 seeds, fewest unplaced → best score, bundles validator, pre-flight and semester totals), **Web Worker** `solver/worker.ts` + `runSolver.ts` (inline fallback), **landing `GeneratePanel`**: spinning wheel while solving, "0 clashes — verified" stamp, score counter, periods/week, semester contact hours, "Generate another" | `b276697` | 167 tests; browser: DIET 96/100 in 432 ms, DCAS 89/100 in 144 ms |
 | — | v0.3 | P0.3-a | **Timetable page**: `lib/gridModel.ts` (grid + entity lists), `lib/colors.ts` (subject pastels), `TimetableGrid` (sticky time ruler, hatched own breaks, labs spanning with stripes), `ViewPicker` (Section/Teacher/Room + grouped picker), `TimetableView`; card gets **View timetable**; results kept while navigating; hero "Try a demo college" now jumps to the colleges | `73f2053` | 178 tests; fixed grid overflowing at desktop width (min-w-max → explicit min width) |
 | — | v0.3 | P0.3-b | **Clash Court**: `lib/explain.ts` plain-language checklist of every hard rule for a class (independent of the solver, agrees with the validator), `ClashCourt` popover (beside the class; bottom sheet on phones; Esc/outside click; focus returns to the class); timetable page shows **verified stamp, score, periods, semester hours, unplaced + pre-flight** with fixes; shared `VerifiedStamp` | `88a955c` | fixed: picker squeezed to 86 px on phones; React-compiler lint on useCallback (ref pattern instead) |
-| — | v0.3 | — | One-page progress report `docs/Kaalchakra-Progress.pdf` (user request): what works today + roadmap | with P0.3-c | |
-| — | v0.3 | P0.3-c | **Grid motion** `components/gridMotion.ts`: staggered drop-in on first show; **GSAP Flip** on "Generate another" / view switch (stable per-class ids, snapshot taken right before the state change); all off under reduced motion. **Generate another** on the timetable page. **Print** (one timetable per A4 landscape, print header with college, semester, verified stamp, date) and **Print all sections** (one page per section); print always ink-on-white, colours kept | pending | fixed: print would have been white-on-white in dark mode; a week overflowed A4 (745 px > 718) → compact print cells (434 px); hover translate removed from cells (fights GSAP) |
+| — | v0.3 | — | One-page progress report `docs/Kaalchakra-Progress.pdf` (user request): what works today + roadmap | `d8d5440` | |
+| — | v0.3 | P0.3-c | **Grid motion** `components/gridMotion.ts`: staggered drop-in on first show; **GSAP Flip** on "Generate another" / view switch (stable per-class ids, snapshot taken right before the state change); all off under reduced motion. **Generate another** on the timetable page. **Print** (one timetable per A4 landscape, print header with college, semester, verified stamp, date) and **Print all sections** (one page per section); print always ink-on-white, colours kept | `d8d5440` | fixed: print would have been white-on-white in dark mode; a week overflowed A4 (745 px > 718) → compact print cells (434 px); hover translate removed from cells (fights GSAP) |
+| — | v0.35 | P0.35-a | **Finder** `lib/finder.ts` (`occupancy`, `freeTeachers` with load + teaches-subject ranking, `freeRooms` with own / granted / shared / needs-grant, `weekStrip`, `nextFree`, `commonFree`, `nowSlot`) and **filters** `lib/filters.ts` (dept, subject, theory/lab, room type, day; URL round-trip) | pending | 16 tests; logic only — screens come in P0.35-b/c |
 | — | v0.2 | — | Decision (user): **leave is date-specific** — HOD approval creates that date's adjusted timetable (substitute or moved class); weekly master unchanged. `LeaveRequest`/`Substitution` gain `date` | — | built in v0.7 |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 

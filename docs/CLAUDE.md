@@ -3,7 +3,9 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.3 Timetable views — code complete (P0.3-c awaiting push); next: v0.35 Finder & filters** · v0.2 done · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
+**Current version: v0.35 Finder & filters — P0.35-a done (logic + 16 tests), P0.35-b next** · v0.3 done · v0.2 done · v0.1 done
+
+> **▶ RESUME HERE (new chat):** the v0.35 design below is approved. P0.35-a (`lib/finder.ts`, `lib/filters.ts`, 200 tests green) is built — the user commits & pushes it. Next: **P0.35-b** (filter bar on the timetable grid, URL state), then **P0.35-c** ("Who's free?" tab + Ctrl/⌘+K palette), then write the v0.4 design. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -171,7 +173,7 @@
 ### Built
 - **P0.3-a** `73f2053` — `lib/gridModel.ts`, `lib/colors.ts`, `TimetableGrid`, `ViewPicker`, `TimetableView`; card "View timetable"; results kept while navigating; hero CTA jumps to colleges.
 - **P0.3-b** `88a955c` — Clash Court: `lib/explain.ts` (independent checklist, agrees with the validator) + `ClashCourt` popover / phone bottom sheet; result strip (stamp, score, periods, hours, unplaced + pre-flight) on the page; shared `VerifiedStamp`.
-- **P0.3-c** — `components/gridMotion.ts` (drop-in + Flip), "Generate another" on the page, Print / Print all sections with A4-landscape print CSS.
+- **P0.3-c** `d8d5440` — `components/gridMotion.ts` (drop-in + Flip), "Generate another" on the page, Print / Print all sections with A4-landscape print CSS.
 - 184 tests green; browser-checked at 349 / 375 / 768 / 1280 px.
 
 ### Open issues
@@ -181,4 +183,44 @@
 - Tailwind dev server needs a restart after new component files (stale classes) — dev-only quirk.
 
 ---
-<!-- Next: write "## v0.35 Finder & filters — Design" here before starting v0.35 -->
+## v0.35 Finder & filters
+
+### Design
+**Goal:** answer the questions people actually ask about a timetable in seconds — *who is free now? which lab is empty Friday after lunch? when can these three teachers meet? show me only the labs* — without reading every grid. Pure logic in `lib/`, used later by the HOD substitute picker (v0.7), Room Exchange (v0.5), Meet-a-Teacher (v0.6) and the chatbot (v0.8).
+
+**Logic (pure, tested)**
+| File | Functions |
+|---|---|
+| `lib/finder.ts` | `occupancy(college, timetable)` → busy index for teachers / sections / rooms per slot · `freeTeachers(day, periods, { deptId?, subjectCode? })` → free & available teachers with their load that day and whether they teach that subject, best first · `freeRooms(day, periods, { type?, minCapacity?, forDeptId? })` → free rooms with `usable: 'own' \| 'shared' \| 'needs-grant'` · `weekStrip(kind, id)` → busy / free / break for every slot · `nextFree(kind, id, from)` · `commonFree(entities[])` → slots where *all* chosen teachers / rooms / sections are free · `nowSlot(calendar, date)` → which pattern day + period "now" is (or null outside hours). |
+| `lib/filters.ts` | `Filters { deptId?, subjectCode?, kind?: 'theory'\|'lab', roomType?, day? }` · `matches(cell, filters)` · `toSearch` / `fromSearch` (filters ↔ URL query, so a filtered view can be bookmarked or shared). |
+
+**Screens**
+- **Filter bar** above the grid: chips for *Theory / Lab*, a subject picker (subjects of the current college), day picker, room type, department. Non-matching classes fade back (not removed, so the week's shape stays readable); a count shows "6 of 17 classes match". "Clear" resets. View, entity and filters live in the URL query.
+- **"Who's free?" tab** next to "Timetable" on the page:
+  - pick a **day + period(s)** or press **Now** → two lists: **Free teachers** (filter by department / subject; each shows "2 periods that day · teaches DS") and **Free rooms** (filter by type & minimum seats; badge *own dept / shared / needs a grant*);
+  - **Is X free?** — choose any teacher / room / section → a compact week strip (busy · free · break) with "Next free: Tue P3";
+  - **Common free slot** — tick several teachers / rooms / sections → every slot where all are free (for meetings, extra classes, practicals).
+- **Ctrl / ⌘ + K palette** on the timetable page: type any section, teacher, room or subject (fuzzy match) → Enter jumps to that grid (a subject applies the subject filter). Keyboard only, Esc closes.
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.35-a | `lib/finder.ts` + `lib/filters.ts` | T35.1 free teachers exclude busy, unavailable and over-limit teachers · T35.2 free rooms by type & capacity with correct usable badge · T35.3 `commonFree` = intersection · T35.4 `nextFree` / `weekStrip` · T35.5 filters match + URL round-trip · `nowSlot` maps real times | `feat(core): finder and filters` |
+| P0.35-b | Filter bar on the grid (fade non-matching, match count, URL state) | manual: filter → count, shareable URL restores the view | `feat(ui): timetable filter bar` |
+| P0.35-c | "Who's free?" tab (free teachers / rooms, Now, Is X free, common free slot) + Ctrl/⌘+K palette | manual: Now, common slot, palette jump | `feat(ui): who's free finder and quick search` |
+
+**Decisions**
+- Everything is visible to everyone for now; **role scoping** (HOD sees own dept, students only their section, students never see free-room finder) arrives with `access.ts` in **v0.4** — the finder takes an optional scope so no rewrite is needed.
+- Works on the **weekly pattern**. A date-aware "who's free on 26 Oct" (holidays, substitutions) belongs to v0.6/v0.7, where real dates are shown.
+- Fuzzy search is a small built-in subsequence matcher — no new library.
+
+**Done when:** on the demo timetable a user can filter to labs only, find a free lab on Friday after lunch, find the common free slots of three teachers, and jump to any teacher with Ctrl+K — all from the keyboard as well as the mouse.
+
+### Built
+_(fill after v0.35)_
+
+### Open issues
+_(fill after v0.35)_
+
+---
+<!-- Next: write "## v0.4 Super Admin + College Admin — Design" here before starting v0.4 -->
