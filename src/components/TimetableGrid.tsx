@@ -12,10 +12,12 @@ type Props = {
   onSelect?: (cell: GridCell, el: HTMLElement) => void
   /** No motion (grids rendered only for printing must never start invisible). */
   still?: boolean
+  /** Classes that don't match the active filters fade back (they stay in place and clickable). */
+  dimmed?: (cell: GridCell) => boolean
 }
 
 /** One weekly timetable: days across, slots down, sticky time ruler. Shape comes from the calendar (rule G4). */
-export function TimetableGrid({ grid, onSelect, still = false }: Props) {
+export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) {
   const D = grid.days.length
   const P = grid.rows.length
   const box = useRef<HTMLDivElement>(null)
@@ -111,15 +113,17 @@ export function TimetableGrid({ grid, onSelect, still = false }: Props) {
         {/* classes */}
         {grid.cells.map((c) => {
           const id = flipId(c)
+          const dim = dimmed?.(c) ?? false
           return (
             <button
               key={id}
               data-flip-id={id}
               type="button"
               data-cell={c.key}
-              aria-label={label(c)}
+              data-dim={dim || undefined}
+              aria-label={dim ? `${label(c)} (does not match the filters)` : label(c)}
               onClick={(e) => onSelect?.(c, e.currentTarget)}
-              className="relative m-1 flex flex-col items-start gap-0.5 overflow-hidden rounded-lg px-2.5 py-2 text-left shadow-[0_1px_0_rgba(28,27,25,0.12)] transition-shadow hover:shadow-md focus-visible:outline-2"
+              className="relative m-1 flex flex-col items-start gap-0.5 overflow-hidden rounded-lg px-2.5 py-2 text-left shadow-[0_1px_0_rgba(28,27,25,0.12)] hover:shadow-md focus-visible:outline-2"
               style={{
                 gridColumn: c.day + 2,
                 gridRow: `${c.start + 2} / span ${c.span}`,

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Printer, RotateCcw } from 'lucide-react'
+import { matches, type Filters } from '../lib/filters'
 import { buildGrid, listEntities, type Grid, type GridCell, type GridView } from '../lib/gridModel'
 import { semesterSummary } from '../lib/semester'
+import { viewToSearch } from '../lib/viewUrl'
 import type { SolveResult } from '../solver/best'
 import { runSolver } from '../solver/runSolver'
 import type { CollegeData, Id } from '../types'
 import { ClashCourt } from './ClashCourt'
+import { FilterBar } from './FilterBar'
 import { captureGrid } from './gridMotion'
 import { TimetableGrid } from './TimetableGrid'
 import { VerifiedStamp } from './VerifiedStamp'
@@ -23,6 +26,8 @@ type Props = {
   onBack: () => void
   /** A regenerated result replaces the current one (kept by the parent). */
   onResult: (r: SolveResult) => void
+  /** View, entity and filters to open with (from a shared link). */
+  initial?: { view: GridView; entityId: Id; filters: Filters }
 }
 
 /** Header printed above every timetable page (screen: hidden). */
@@ -47,13 +52,27 @@ function PrintHeader({ college, grid, result }: { college: CollegeData; grid: Gr
 }
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack, onResult }: Props) {
-  const [view, setView] = useState<GridView>('section')
+export function TimetableView({ college, result, onBack, onResult, initial }: Props) {
+  const [view, setView] = useState<GridView>(initial?.view ?? 'section')
   const groups = useMemo(() => listEntities(college, view), [college, view])
   const firstId = groups[0]?.items[0]?.id ?? ''
-  const [picked, setPicked] = useState<Record<GridView, Id>>({ section: '', teacher: '', room: '' })
-  const entityId = picked[view] || firstId
+  const [picked, setPicked] = useState<Record<GridView, Id>>(() => ({
+    section: '',
+    teacher: '',
+    room: '',
+    ...(initial?.entityId ? { [initial.view]: initial.entityId } : {}),
+  }))
+  // an unknown id (stale shared link) falls back to the first entity
+  const entityId = groups.some((g) => g.items.some((i) => i.id === picked[view])) ? picked[view] : firstId
+  const [filters, setFilters] = useState<Filters>(initial?.filters ?? {})
   const grid = useMemo(() => buildGrid(college, result.timetable, view, entityId), [college, result, view, entityId])
+  const matching = grid.cells.filter((c) => matches(c, filters)).length
+
+  // view, entity, filters and seed live in the URL, so this exact view can be bookmarked or shared
+  useEffect(() => {
+    const search = viewToSearch({ collegeId: college.college.id, seed: result.bestSeed, view, entityId, filters })
+    window.history.replaceState(null, '', `${window.location.pathname}?${search}`)
+  }, [college, result.bestSeed, view, entityId, filters])
   const sem = semesterSummary(college)
   const [selected, setSelected] = useState<{ cell: GridCell; anchor: HTMLElement } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -205,7 +224,14 @@ export function TimetableView({ college, result, onBack, onResult }: Props) {
 
         <div className="mt-3 print:mt-0">
           <PrintHeader college={college} grid={grid} result={result} />
-          <TimetableGrid grid={grid} onSelect={(cell, anchor) => setSelected({ cell, anchor })} />
+          <div className="no-print mb-3">
+            <FilterBar college={college} filters={filters} onChange={setFilters} matching={matching} total={grid.cells.length} />
+          </div>
+          <TimetableGrid
+            grid={grid}
+            onSelect={(cell, anchor) => setSelected({ cell, anchor })}
+            dimmed={(c) => !matches(c, filters)}
+          />
           <p className="no-print mt-2 text-[12px] text-muted">Tap any class to see why it is allowed there.</p>
         </div>
       </div>

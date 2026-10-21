@@ -3,9 +3,9 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.35 Finder & filters — P0.35-a done (logic + 16 tests), P0.35-b next** · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.35 Finder & filters — P0.35-a pushed, P0.35-b done (filter bar + shareable URL), P0.35-c next** · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** the v0.35 design below is approved. P0.35-a (`lib/finder.ts`, `lib/filters.ts`, 200 tests green) is built — the user commits & pushes it. Next: **P0.35-b** (filter bar on the timetable grid, URL state), then **P0.35-c** ("Who's free?" tab + Ctrl/⌘+K palette), then write the v0.4 design. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
+> **▶ RESUME HERE (new chat):** the v0.35 design below is approved. P0.35-a is pushed (`5e991cc`). P0.35-b (`components/FilterBar.tsx`, `lib/viewUrl.ts`, 203 tests green) is built — the user commits & pushes it. Next: **P0.35-c** ("Who's free?" tab + Ctrl/⌘+K palette), then write the v0.4 design. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -206,13 +206,14 @@
 | ID | Feature | Tests | Commit message |
 |---|---|---|---|
 | P0.35-a | `lib/finder.ts` + `lib/filters.ts` | T35.1 free teachers exclude busy, unavailable and over-limit teachers · T35.2 free rooms by type & capacity with correct usable badge · T35.3 `commonFree` = intersection · T35.4 `nextFree` / `weekStrip` · T35.5 filters match + URL round-trip · `nowSlot` maps real times | `feat(core): finder and filters` |
-| P0.35-b | Filter bar on the grid (fade non-matching, match count, URL state) | manual: filter → count, shareable URL restores the view | `feat(ui): timetable filter bar` |
+| P0.35-b | Filter bar on the grid (fade non-matching, match count, URL state) | T35.6 URL round-trip + seed reproduces the timetable · manual M16: filter → count, shareable URL restores the view | `feat(ui): timetable filter bar` |
 | P0.35-c | "Who's free?" tab (free teachers / rooms, Now, Is X free, common free slot) + Ctrl/⌘+K palette | manual: Now, common slot, palette jump | `feat(ui): who's free finder and quick search` |
 
 **Decisions**
 - Everything is visible to everyone for now; **role scoping** (HOD sees own dept, students only their section, students never see free-room finder) arrives with `access.ts` in **v0.4** — the finder takes an optional scope so no rewrite is needed.
 - Works on the **weekly pattern**. A date-aware "who's free on 26 Oct" (holidays, substitutions) belongs to v0.6/v0.7, where real dates are shown.
 - Fuzzy search is a small built-in subsequence matcher — no new library.
+- **Shareable URL carries the seed (decided in P0.35-b).** Timetables are not stored until v0.4, so the link holds `college` + `seed` (+ view, entity, filters); opening it re-runs one solver attempt at that seed, which rebuilds the identical timetable (solver is deterministic). From v0.4 the link can point at the stored/published version instead.
 
 **Done when:** on the demo timetable a user can filter to labs only, find a free lab on Friday after lunch, find the common free slots of three teachers, and jump to any teacher with Ctrl+K — all from the keyboard as well as the mouse.
 

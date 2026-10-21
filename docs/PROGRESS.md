@@ -3,13 +3,13 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.35 Finder & filters in progress — P0.35-a done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.35 Finder & filters in progress — P0.35-b done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
 
 ## Resume here (for a new chat)
-- **Done:** v0.1, v0.2, v0.3 · v0.35: P0.35-a (finder + filters logic).
-- **Next:** P0.35-b filter bar → P0.35-c Who's free tab + Ctrl/⌘+K → v0.4 design (Super Admin + College Admin).
+- **Done:** v0.1, v0.2, v0.3 · v0.35: P0.35-a (finder + filters logic), P0.35-b (filter bar + shareable URL).
+- **Next:** P0.35-c Who's free tab + Ctrl/⌘+K → v0.4 design (Super Admin + College Admin).
 - **Still open:** Vercel not connected (no live URL); real print dialog (M8) and OS reduced-motion (M10) not hand-checked.
-- **Numbers:** 200 tests · DIET 96/100, DCAS 89/100 · 0 clashes · 20 tries ≈ 0.4 s in the browser.
+- **Numbers:** 203 tests · DIET 96/100, DCAS 89/100 · 0 clashes · 20 tries ≈ 0.4 s in the browser.
 
 ## Version checklist (ticked after the user confirms each push)
 - [x] **v0.1 Foundation**
@@ -27,8 +27,8 @@
   - [x] P0.3-b Verified stamp, score, unplaced list + Clash Court popover — `88a955c`
   - [x] P0.3-c GSAP cell-drop + Flip, print (single + all sections) — `d8d5440`
 - [ ] **v0.35 Finder & filters**
-  - [ ] P0.35-a `lib/finder.ts` + `lib/filters.ts` (done, awaiting push)
-  - [ ] P0.35-b Filter bar on the grid (URL state)
+  - [x] P0.35-a `lib/finder.ts` + `lib/filters.ts` — `5e991cc`
+  - [ ] P0.35-b Filter bar on the grid (URL state) (done, awaiting push)
   - [ ] P0.35-c "Who's free?" tab + Ctrl/⌘+K palette
 - [ ] **v0.4 Super Admin + College Admin portals**
   - [ ] P0.4-a Store + role/college switcher + `access.ts`
@@ -81,7 +81,8 @@
 | — | v0.3 | P0.3-b | **Clash Court**: `lib/explain.ts` plain-language checklist of every hard rule for a class (independent of the solver, agrees with the validator), `ClashCourt` popover (beside the class; bottom sheet on phones; Esc/outside click; focus returns to the class); timetable page shows **verified stamp, score, periods, semester hours, unplaced + pre-flight** with fixes; shared `VerifiedStamp` | `88a955c` | fixed: picker squeezed to 86 px on phones; React-compiler lint on useCallback (ref pattern instead) |
 | — | v0.3 | — | One-page progress report `docs/Kaalchakra-Progress.pdf` (user request): what works today + roadmap | `d8d5440` | |
 | — | v0.3 | P0.3-c | **Grid motion** `components/gridMotion.ts`: staggered drop-in on first show; **GSAP Flip** on "Generate another" / view switch (stable per-class ids, snapshot taken right before the state change); all off under reduced motion. **Generate another** on the timetable page. **Print** (one timetable per A4 landscape, print header with college, semester, verified stamp, date) and **Print all sections** (one page per section); print always ink-on-white, colours kept | `d8d5440` | fixed: print would have been white-on-white in dark mode; a week overflowed A4 (745 px > 718) → compact print cells (434 px); hover translate removed from cells (fights GSAP) |
-| — | v0.35 | P0.35-a | **Finder** `lib/finder.ts` (`occupancy`, `freeTeachers` with load + teaches-subject ranking, `freeRooms` with own / granted / shared / needs-grant, `weekStrip`, `nextFree`, `commonFree`, `nowSlot`) and **filters** `lib/filters.ts` (dept, subject, theory/lab, room type, day; URL round-trip) | pending | 16 tests; logic only — screens come in P0.35-b/c |
+| — | v0.35 | P0.35-a | **Finder** `lib/finder.ts` (`occupancy`, `freeTeachers` with load + teaches-subject ranking, `freeRooms` with own / granted / shared / needs-grant, `weekStrip`, `nextFree`, `commonFree`, `nowSlot`) and **filters** `lib/filters.ts` (dept, subject, theory/lab, room type, day; URL round-trip) | `5e991cc` | 16 tests; logic only — screens come in P0.35-b/c |
+| — | v0.35 | P0.35-b | **Filter bar** `components/FilterBar.tsx` above the grid: All / Theory / Lab chips, subject, day, room type and department pickers (options read from the college), "6 of 17 classes match" count, Clear. Non-matching classes **fade back** (CSS `filter`, so it never fights GSAP's opacity tweens) and stay clickable. **Shareable URL** `lib/viewUrl.ts`: college, seed, view, entity and filters live in the query; opening the link re-solves the same seed (deterministic) and restores the exact view; Back clears it | pending | 203 tests (T35.6); browser-checked desktop + 375 px |
 | — | v0.2 | — | Decision (user): **leave is date-specific** — HOD approval creates that date's adjusted timetable (substitute or moved class); weekly master unchanged. `LeaveRequest`/`Substitution` gain `date` | — | built in v0.7 |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 

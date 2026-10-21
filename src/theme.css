@@ -106,6 +106,21 @@
   }
 }
 
+/* ── Timetable filters: non-matching classes fade back ──────────────── */
+/* `filter`, not `opacity`, so it never fights GSAP's opacity tweens on the same cells */
+[data-grid] [data-cell] {
+  transition:
+    filter 0.25s ease,
+    box-shadow 0.15s ease;
+}
+[data-grid] [data-cell][data-dim] {
+  filter: opacity(0.28) saturate(0.4);
+}
+[data-grid] [data-cell][data-dim]:hover,
+[data-grid] [data-cell][data-dim]:focus-visible {
+  filter: opacity(0.7) saturate(0.7);
+}
+
 /* ── Print: clean ink on white, one timetable per A4 landscape page ─── */
 @page {
   size: A4 landscape;

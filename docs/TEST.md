@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.35-a) — `npm test` 200 passed / 0 failed (12 files) · build ✅ · lint ✅
+**Last run:** 2026-10-21 (P0.35-b) — `npm test` 203 passed / 0 failed (13 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -51,6 +51,7 @@
 | T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ✅ | equals the intersection of week strips (2 teachers + seminar hall); never offers a section break or an unavailable slot |
 | T35.4 | v0.35 | finder | nextFree / weekStrip / nowSlot | earliest free slot after a time; strip marks busy · free · break; real clock time → pattern slot | unit | ✅ | ECE lunch column = break; Sharma's Saturday = unavailable; wrap-around; Mon 10:00 → P2, Sunday / 08:00 → none, DCAS 11:30 → lunch slot |
 | T35.5 | v0.35 | filters | filter by dept / subject / theory-lab / room type / day; URL round-trip | only matching cells; `fromSearch(toSearch(f))` equals `f` | unit | ✅ | `lib/filters.test.ts`: each filter, AND-combination, URL round-trip, malformed values ignored |
+| T35.6 | v0.35 | viewUrl | timetable page state ↔ URL (college, seed, view, entity, filters) | round-trip equal; no college/seed → null; bad view → section; the URL's seed rebuilds the identical timetable | unit | ✅ | `lib/viewUrl.test.ts` (3 cases) |
 | T4.1 | v0.4 | csv | parse pasted TSV/CSV teachers & assignments | correct rows, bad rows reported | unit | ⏳ | |
 | T4.2 | v0.4 | store | persist → reload | identical state | unit | ⏳ | |
 | T4.3 | v0.4 | store | export JSON → import JSON | identical data | unit | ⏳ | |
@@ -100,6 +101,7 @@
 | M10 | Reduced motion: no GSAP animation; dark mode readable | ⏳ — code skips all motion under `prefers-reduced-motion` (landing, card, grid drop-in, Flip); not yet checked with the OS setting. Print forces ink-on-white even in dark mode |
 | M11 | Refresh browser: data kept | ⏳ |
 | M12 | Login with each demo account (v0.9) | ⏳ |
+| M16 | Filter bar: filter → faded classes + count; shared URL restores the view | ✅ (2026-10-21) — DIET CSE-Y2-A + *Lab* → "2 of 15 classes match", 13 faded, URL gains `&kind=lab`; reload of `?college=diet&seed=9&view=teacher&id=diet-t-gill&day=4` reopens Dr. Manjit Gill's week with Fri selected (2 of 12 match, only Friday classes bright); Clear drops the filter params; All colleges clears the query; 375 px: bar wraps, page never scrolls sideways; no console errors |
 | M15 | Grid motion: classes drop in on first show; "Generate another" glides each class to its new slot | ✅ (2026-10-21) — drop-in: opacity 0 at 120 ms → all visible, inline styles cleared; Flip: same element moved Fri P1 → Mon P3, transform during, none after |
 | M13 | Super Admin creates a new college from scratch with a custom structure (own days, periods, depts, sections, strength) → timetable generates with 0 clashes | ⏳ |
 | M14 | Student requests a meeting → teacher accepts with room → student sees accepted status | ⏳ |

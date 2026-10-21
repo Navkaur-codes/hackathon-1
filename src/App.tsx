@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 import { useGSAP } from '@gsap/react'
@@ -7,9 +7,17 @@ import { Wheel } from './components/Wheel'
 import { CollegeCard } from './components/CollegeCard'
 import { TimetableView } from './components/TimetableView'
 import type { SolveResult } from './solver/best'
+import { runSolver } from './solver/runSolver'
+import { viewFromSearch } from './lib/viewUrl'
 import { buildDemoColleges } from './demoData'
 
 const demoColleges = buildDemoColleges()
+
+// A shared link (?college=…&seed=…) reopens that exact timetable, view and filters.
+const shared = (() => {
+  const s = typeof window === 'undefined' ? null : viewFromSearch(window.location.search)
+  return s && demoColleges.some((c) => c.college.id === s.collegeId) ? s : null
+})()
 
 gsap.registerPlugin(useGSAP, SplitText)
 
@@ -25,8 +33,19 @@ export default function App() {
   const root = useRef<HTMLDivElement>(null)
   // Generated results per college (kept while navigating) and the timetable currently open.
   const [results, setResults] = useState<Record<string, SolveResult>>({})
-  const [open, setOpen] = useState<string | null>(null)
+  const [open, setOpen] = useState<string | null>(shared?.collegeId ?? null)
   const openCollege = open ? demoColleges.find((c) => c.college.id === open) : undefined
+  // the shared view applies only to the first opening
+  const [initial, setInitial] = useState(shared)
+
+  useEffect(() => {
+    if (!shared) return
+    const college = demoColleges.find((c) => c.college.id === shared.collegeId)!
+    // the solver is deterministic per seed, so one attempt at the shared seed rebuilds the same timetable
+    runSolver(college, { attempts: 1, baseSeed: shared.seed }).then((r) =>
+      setResults((prev) => ({ ...prev, [shared.collegeId]: r })),
+    )
+  }, [])
 
   const view = (collegeId: string) => {
     setOpen(collegeId)
@@ -34,6 +53,8 @@ export default function App() {
   }
   const back = () => {
     setOpen(null)
+    setInitial(null)
+    window.history.replaceState(null, '', window.location.pathname)
     requestAnimationFrame(() => document.getElementById('colleges')?.scrollIntoView())
   }
 
@@ -77,7 +98,12 @@ export default function App() {
             result={results[openCollege.college.id]}
             onBack={back}
             onResult={(r) => setResults((prev) => ({ ...prev, [openCollege.college.id]: r }))}
+            initial={initial?.collegeId === openCollege.college.id ? initial : undefined}
           />
+        ) : openCollege ? (
+          <div className="flex items-center gap-3 py-24 text-muted" role="status">
+            <Wheel size={22} spokes={8} /> Opening the shared timetable…
+          </div>
         ) : (
           <>
             <section className="grid items-center gap-10 py-12 md:grid-cols-[1.3fr_1fr] md:py-16">
