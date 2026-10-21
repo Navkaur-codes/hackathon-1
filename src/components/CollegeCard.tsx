@@ -1,6 +1,7 @@
-import { ArrowRight, CalendarRange, Clock, Coffee, DoorOpen } from 'lucide-react'
+import { CalendarRange, Clock, Coffee, DoorOpen } from 'lucide-react'
 import { summarizeCollege } from '../lib/structure'
 import type { CollegeData } from '../types'
+import { GeneratePanel } from './GeneratePanel'
 
 const shortDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -69,14 +70,7 @@ export function CollegeCard({ data }: { data: CollegeData }) {
         </li>
       </ul>
 
-      <button
-        type="button"
-        disabled
-        title="Timetable generation arrives in v0.2"
-        className="mt-5 inline-flex items-center justify-center gap-2 self-start rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink"
-      >
-        Generate timetable <ArrowRight size={15} aria-hidden />
-      </button>
+      <GeneratePanel college={data} />
     </article>
   )
 }

@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.2-c) — `npm test` 159 passed / 0 failed (7 files) · build ✅ · lint ✅
+**Last run:** 2026-10-21 (P0.2-d) — `npm test` 167 passed / 0 failed (8 files) · build ✅ (separate worker chunk) · lint ✅ · browser: both demo colleges generate with 0 clashes
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -39,8 +39,10 @@
 | T3 | v0.2 | solver | impossible input: lab demand > lab rooms, no room big enough, room only in another dept, teacher weekly limit, teacher never available, section week full, break blocks a lab, no teacher | unplaced with a specific plain reason + fix; 0 conflicts; placed + unplaced = curriculum | unit | ✅ | `solver/unplaced.test.ts` (8 cases) |
 | T3r | v0.2 | solver | repair step | never more unplaced than without repair, never a clash (60 random colleges) | unit | ✅ | measured on 300 random colleges: rescued placements in 2 — most stuck classes are genuinely impossible (pre-flight catches those) |
 | T4 | v0.2 | solver | same seed twice | identical output | unit | ✅ | different seeds give different timetables |
-| T6a | v0.2 | score | score on demo | 0 ≤ score ≤ 100 | unit | ⏳ | |
+| T6a | v0.2 | score | score on demos; crammed subject; empty timetable; determinism | 0–100 with every part 0–1; cramming one subject into a day lowers spread, same-day and total; deterministic | unit | ✅ | `solver/score.test.ts`; demos: DIET 96, DCAS 89 |
 | T6b | v0.2 | preflight | demos clean; overloaded teacher; bad semester dates; each T3 case | demos: no errors; error with exact message + fix for each impossible input | unit | ✅ | |
+| T6c | v0.2 | restarts | `solveBest` (20 seeds) vs first attempt | never more unplaced, never lower score, 0 conflicts, reproducible from `bestSeed`, semester totals reported | unit | ✅ | |
+| T6d | v0.2 | worker | `runSolver` without Web Workers | falls back inline with identical result | unit | ✅ | in the browser it runs in a real worker (checked: `worker.ts?worker_file` loaded) |
 | T35.1 | v0.35 | finder | free teachers at a demo slot | excludes busy/unavailable teachers | unit | ⏳ | |
 | T35.2 | v0.35 | finder | free rooms by type & capacity | only matching, unbooked rooms | unit | ⏳ | |
 | T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ⏳ | |
@@ -83,7 +85,7 @@
 ## Manual checklist (run on live Vercel URL before submit)
 | ID | Case | Status |
 |---|---|---|
-| M1 | Try each demo college → generate → "0 clashes — verified" seal | ⏳ |
+| M1 | Try each demo college → generate → "0 clashes — verified" seal | ✅ (local dev, 2026-10-21) — DIET 96/100, 111 periods/wk, 1,617 h, 432 ms; "Generate another" → seed 22, still 0 clashes; DCAS 89/100, 789 h, 144 ms. Re-check on the Vercel URL at v1.0 |
 | M2 | Create a tiny college from scratch via wizard (2 rooms, 2 teachers, 1 section) without help | ⏳ |
 | M3 | HOD marks Ready → College Admin generates & publishes → teacher & student see it | ⏳ |
 | M4 | HOD offers lab → other HOD requests → approve → borrower timetable uses it | ⏳ |

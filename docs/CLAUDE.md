@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.2 Engine — DESIGN (awaiting review)** · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
+**Current version: v0.2 Engine — code complete (P0.2-d awaiting push); next: v0.3 Timetable views** · v0.1 done (`12a8fc7`, `7485142`, `6f4dd13`) (plan revision 3 + subjects)
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -119,10 +119,17 @@
 **Done when:** all T1–T6 green, both demo colleges generate with 0 conflicts and 0 unplaced, and the landing shows the verified result.
 
 ### Built
-_(fill after v0.2)_
+- **P0.2-a** `f142336` — independent validator `solver/validate.ts` (H1–H14, plain-language conflicts, `mustKeep`, date-specific `leave`).
+- **P0.2-b** `88bf6c0` — solver core `solver/solve.ts` (+ `rng.ts`): dynamic most-constrained-first, hard rules as filters, soft-penalty pick, fixed/locked placements, department subsets; **semester calendar** `lib/semester.ts` (user request); **leave cover engine** `solver/substitutes.ts` (user request, pulled forward from v0.7).
+- **P0.2-c** `932f706` — repair step, diagnosed unplaced reasons + fixes, pre-flight check `solver/preflight.ts`.
+- **P0.2-d** — quality score `solver/score.ts`, restarts `solver/best.ts`, Web Worker `solver/worker.ts` + `runSolver.ts`, landing `GeneratePanel` (verified stamp, score, periods/week, semester hours, "Generate another").
+- Results: DIET 96/100 (111 periods/week, 1,617 contact hours, 105 teaching days), DCAS 89/100 (58 periods/week, 789 h, 74 days); 20 tries in ~0.4 s / ~0.15 s in the browser worker. 167 tests green.
 
 ### Open issues
-_(fill after v0.2)_
+- Teacher daily **balance** is the weakest score part (DIET 75 %, DCAS 65 %) — could get a stronger S5 weight later; not a correctness issue.
+- Repair rarely helps (2/300 random colleges); fine as a safety net.
+- Results are not stored yet — the timetable itself becomes visible in v0.3 (grids) and persists from v0.4 (store).
+- Vercel still not connected (user step).
 
 ---
 <!-- Next: write "## v0.3 Timetable views — Design" here before starting v0.3 -->
