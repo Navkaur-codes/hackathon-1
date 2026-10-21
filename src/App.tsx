@@ -194,7 +194,7 @@ export default function App() {
       </main>
 
       <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
-        <span>Kaalchakra · v0.3</span>
+        <span>Kaalchakra · v0.35</span>
         <span>Built at the Punjab Jobs AI Bootcamp</span>
       </footer>
     </div>

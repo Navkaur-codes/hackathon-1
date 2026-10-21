@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.35-b) — `npm test` 203 passed / 0 failed (13 files) · build ✅ · lint ✅
+**Last run:** 2026-10-21 (P0.35-c) — `npm test` 206 passed / 0 failed (14 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -51,7 +51,8 @@
 | T35.3 | v0.35 | finder | commonFree(teacher A, teacher B) | intersection of free slots | unit | ✅ | equals the intersection of week strips (2 teachers + seminar hall); never offers a section break or an unavailable slot |
 | T35.4 | v0.35 | finder | nextFree / weekStrip / nowSlot | earliest free slot after a time; strip marks busy · free · break; real clock time → pattern slot | unit | ✅ | ECE lunch column = break; Sharma's Saturday = unavailable; wrap-around; Mon 10:00 → P2, Sunday / 08:00 → none, DCAS 11:30 → lunch slot |
 | T35.5 | v0.35 | filters | filter by dept / subject / theory-lab / room type / day; URL round-trip | only matching cells; `fromSearch(toSearch(f))` equals `f` | unit | ✅ | `lib/filters.test.ts`: each filter, AND-combination, URL round-trip, malformed values ignored |
-| T35.6 | v0.35 | viewUrl | timetable page state ↔ URL (college, seed, view, entity, filters) | round-trip equal; no college/seed → null; bad view → section; the URL's seed rebuilds the identical timetable | unit | ✅ | `lib/viewUrl.test.ts` (3 cases) |
+| T35.6 | v0.35 | viewUrl | timetable page state ↔ URL (college, seed, view, entity, filters, tab) | round-trip equal; no college/seed → null; bad view → section; the URL's seed rebuilds the identical timetable | unit | ✅ | `lib/viewUrl.test.ts` (3 cases); `tab=free` added in P0.35-c |
+| T35.7 | v0.35 | fuzzy | Ctrl/⌘+K palette matcher | subsequence only, case-insensitive; contiguous / word-start hits rank first; empty query keeps order | unit | ✅ | `lib/fuzzy.test.ts` (3 cases) |
 | T4.1 | v0.4 | csv | parse pasted TSV/CSV teachers & assignments | correct rows, bad rows reported | unit | ⏳ | |
 | T4.2 | v0.4 | store | persist → reload | identical state | unit | ⏳ | |
 | T4.3 | v0.4 | store | export JSON → import JSON | identical data | unit | ⏳ | |
@@ -94,7 +95,7 @@
 | M3 | HOD marks Ready → College Admin generates & publishes → teacher & student see it | ⏳ |
 | M4 | HOD offers lab → other HOD requests → approve → borrower timetable uses it | ⏳ |
 | M5 | Teacher requests leave for a date → HOD approves → a free teacher is auto-allotted (HOD can swap) → student sees the substitute on that date only | ⏳ |
-| M6 | Who's free? finder + Ctrl+K search jump to timetable | ⏳ |
+| M6 | Who's free? finder + Ctrl+K search jump to timetable | ✅ (local dev, 2026-10-21, DIET seed 9) — `?tab=free` reopens the finder; Fri P5+P6 · Lab · for CSE → CL-1, CL-2 (shared), ECE Electronics Lab (needs a grant); **Now** at Wed 18:15 → "No class is running right now"; common free slot of Gill + Kaur + Arora → 22 slots listed and drawn; Ctrl+K → "grew" → Enter opens Prof. Baljit Grewal's grid; "em eng" → Enter applies the EM subject filter (`&subject=EM`); 375 px: no page scroll, mini week scrolls in its box; no console errors. Re-check on Vercel at v1.0 |
 | M7 | Kaal Assistant answers 3 sample questions | ⏳ |
 | M8 | Print preview: one clean timetable per A4 | ✅ simulated (2026-10-21): print CSS applied on screen — only header + grid, colours kept, one week = 434 px of a 718 px A4-landscape page; "Print all sections" → 7 pages (one per DIET section), all classes visible, page breaks set. ⏳ confirm once in a real print dialog |
 | M9 | Phone width (375px): student view readable, no horizontal scroll | ⏳ — timetable page checked at 349 px: page never scrolls sideways, grid scrolls inside its box with sticky times (P0.3-a); student view in v0.6 |

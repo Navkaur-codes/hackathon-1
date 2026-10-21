@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Printer, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Printer, RotateCcw, Search } from 'lucide-react'
 import { matches, type Filters } from '../lib/filters'
 import { buildGrid, listEntities, type Grid, type GridCell, type GridView } from '../lib/gridModel'
 import { semesterSummary } from '../lib/semester'
@@ -8,11 +8,13 @@ import type { SolveResult } from '../solver/best'
 import { runSolver } from '../solver/runSolver'
 import type { CollegeData, Id } from '../types'
 import { ClashCourt } from './ClashCourt'
+import { CommandPalette, type PaletteChoice } from './CommandPalette'
 import { FilterBar } from './FilterBar'
 import { captureGrid } from './gridMotion'
 import { TimetableGrid } from './TimetableGrid'
 import { VerifiedStamp } from './VerifiedStamp'
 import { ViewPicker } from './ViewPicker'
+import { WhoIsFree } from './WhoIsFree'
 import { Wheel } from './Wheel'
 
 const shortDate = (iso: string) =>
@@ -27,7 +29,7 @@ type Props = {
   /** A regenerated result replaces the current one (kept by the parent). */
   onResult: (r: SolveResult) => void
   /** View, entity and filters to open with (from a shared link). */
-  initial?: { view: GridView; entityId: Id; filters: Filters }
+  initial?: { view: GridView; entityId: Id; filters: Filters; tab?: 'free' }
 }
 
 /** Header printed above every timetable page (screen: hidden). */
@@ -65,14 +67,35 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
   // an unknown id (stale shared link) falls back to the first entity
   const entityId = groups.some((g) => g.items.some((i) => i.id === picked[view])) ? picked[view] : firstId
   const [filters, setFilters] = useState<Filters>(initial?.filters ?? {})
+  const [tab, setTab] = useState<'timetable' | 'free'>(initial?.tab === 'free' ? 'free' : 'timetable')
+  const [palette, setPalette] = useState(false)
   const grid = useMemo(() => buildGrid(college, result.timetable, view, entityId), [college, result, view, entityId])
   const matching = grid.cells.filter((c) => matches(c, filters)).length
 
   // view, entity, filters and seed live in the URL, so this exact view can be bookmarked or shared
   useEffect(() => {
-    const search = viewToSearch({ collegeId: college.college.id, seed: result.bestSeed, view, entityId, filters })
+    const search = viewToSearch({
+      collegeId: college.college.id,
+      seed: result.bestSeed,
+      view,
+      entityId,
+      filters,
+      ...(tab === 'free' ? { tab } : {}),
+    })
     window.history.replaceState(null, '', `${window.location.pathname}?${search}`)
-  }, [college, result.bestSeed, view, entityId, filters])
+  }, [college, result.bestSeed, view, entityId, filters, tab])
+
+  // Ctrl/⌘+K opens the quick search from anywhere on the page
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPalette(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const sem = semesterSummary(college)
   const [selected, setSelected] = useState<{ cell: GridCell; anchor: HTMLElement } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -93,6 +116,21 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
   const changeEntity = (id: Id) => {
     captureGrid()
     setPicked((p) => ({ ...p, [view]: id }))
+  }
+  /** Show one section / teacher / room on the Timetable tab (from Who's free? or the palette). */
+  const openEntity = (v: GridView, id: Id) => {
+    if (tab === 'timetable') captureGrid()
+    setTab('timetable')
+    setView(v)
+    setPicked((p) => ({ ...p, [v]: id }))
+    setSelected(null)
+    requestAnimationFrame(() => document.getElementById('timetable-tabs')?.scrollIntoView({ block: 'start' }))
+  }
+  const choose = (c: PaletteChoice) => {
+    if (c.kind === 'subject') {
+      setTab('timetable')
+      setFilters((f) => ({ ...f, subjectCode: c.code }))
+    } else openEntity(c.kind, c.id)
   }
   const regenerate = async () => {
     setBusy(true)
@@ -159,14 +197,21 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
             </button>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => {
+                // the finder isn't printable: show the timetable, then print it
+                setTab('timetable')
+                requestAnimationFrame(() => window.print())
+              }}
               className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper"
             >
               Print <Printer size={15} aria-hidden />
             </button>
             <button
               type="button"
-              onClick={() => setPrintAll(true)}
+              onClick={() => {
+                setTab('timetable')
+                setPrintAll(true)
+              }}
               className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90"
             >
               Print all sections <Printer size={15} aria-hidden />
@@ -208,32 +253,80 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
           </div>
         )}
 
-        <div className="no-print mt-6">
-          <ViewPicker view={view} entityId={entityId} groups={groups} onView={changeView} onEntity={changeEntity} />
+        <div
+          id="timetable-tabs"
+          className="no-print mt-6 flex scroll-mt-4 flex-wrap items-end justify-between gap-3 border-b border-rule"
+        >
+          <div role="tablist" aria-label="Timetable or finder" className="flex gap-5">
+            {(
+              [
+                ['timetable', 'Timetable'],
+                ['free', "Who's free?"],
+              ] as const
+            ).map(([id, text]) => (
+              <button
+                key={id}
+                id={`tab-${id}`}
+                role="tab"
+                type="button"
+                aria-selected={tab === id}
+                aria-controls={`panel-${id}`}
+                onClick={() => {
+                  setSelected(null)
+                  setTab(id)
+                }}
+                className={`-mb-px border-b-2 pb-2 font-display text-base font-semibold transition ${
+                  tab === id ? 'border-vermilion text-ink' : 'border-transparent text-muted hover:text-ink'
+                }`}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPalette(true)}
+            className="mb-2 inline-flex items-center gap-2 rounded-full border border-rule bg-card px-3 py-1.5 text-[13px] text-muted transition hover:border-ink hover:text-ink"
+          >
+            <Search size={14} aria-hidden /> Jump to…
+            <kbd className="rounded border border-rule px-1.5 font-mono text-[10px]">Ctrl K</kbd>
+          </button>
         </div>
 
-        <div className="no-print mt-6 flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <h2 className="font-display text-xl font-semibold">{grid.title}</h2>
-            <p className="text-[13px] text-muted">{grid.subtitle}</p>
+        {tab === 'free' ? (
+          <div id="panel-free" role="tabpanel" aria-labelledby="tab-free" className="no-print mt-6">
+            <WhoIsFree college={college} timetable={result.timetable} onOpen={openEntity} />
           </div>
-          <span className="font-mono text-[11px] tracking-wider text-muted uppercase">
-            {grid.periods} {grid.periods === 1 ? 'period' : 'periods'} a week
-          </span>
-        </div>
+        ) : (
+          <div id="panel-timetable" role="tabpanel" aria-labelledby="tab-timetable">
+            <div className="no-print mt-6">
+              <ViewPicker view={view} entityId={entityId} groups={groups} onView={changeView} onEntity={changeEntity} />
+            </div>
 
-        <div className="mt-3 print:mt-0">
-          <PrintHeader college={college} grid={grid} result={result} />
-          <div className="no-print mb-3">
-            <FilterBar college={college} filters={filters} onChange={setFilters} matching={matching} total={grid.cells.length} />
+            <div className="no-print mt-6 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <h2 className="font-display text-xl font-semibold">{grid.title}</h2>
+                <p className="text-[13px] text-muted">{grid.subtitle}</p>
+              </div>
+              <span className="font-mono text-[11px] tracking-wider text-muted uppercase">
+                {grid.periods} {grid.periods === 1 ? 'period' : 'periods'} a week
+              </span>
+            </div>
+
+            <div className="mt-3 print:mt-0">
+              <PrintHeader college={college} grid={grid} result={result} />
+              <div className="no-print mb-3">
+                <FilterBar college={college} filters={filters} onChange={setFilters} matching={matching} total={grid.cells.length} />
+              </div>
+              <TimetableGrid
+                grid={grid}
+                onSelect={(cell, anchor) => setSelected({ cell, anchor })}
+                dimmed={(c) => !matches(c, filters)}
+              />
+              <p className="no-print mt-2 text-[12px] text-muted">Tap any class to see why it is allowed there.</p>
+            </div>
           </div>
-          <TimetableGrid
-            grid={grid}
-            onSelect={(cell, anchor) => setSelected({ cell, anchor })}
-            dimmed={(c) => !matches(c, filters)}
-          />
-          <p className="no-print mt-2 text-[12px] text-muted">Tap any class to see why it is allowed there.</p>
-        </div>
+        )}
       </div>
 
       {printAll && (
@@ -249,6 +342,8 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
           })}
         </div>
       )}
+
+      {palette && <CommandPalette college={college} onChoose={choose} onClose={() => setPalette(false)} />}
 
       {selected && (
         <ClashCourt

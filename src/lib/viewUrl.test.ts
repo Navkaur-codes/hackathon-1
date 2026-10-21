@@ -6,7 +6,7 @@ import { viewFromSearch, viewToSearch, type ViewState } from './viewUrl'
 const [, dcas] = buildDemoColleges()
 
 describe('T35.6 shareable timetable URL', () => {
-  it('round-trips view, entity, seed and filters', () => {
+  it('round-trips view, entity, seed, filters and tab', () => {
     const s: ViewState = {
       collegeId: 'diet',
       seed: 7,
@@ -18,6 +18,9 @@ describe('T35.6 shareable timetable URL', () => {
     const plain: ViewState = { collegeId: 'dcas', seed: 1, view: 'room', entityId: '', filters: {} }
     expect(viewToSearch(plain)).toBe('college=dcas&seed=1&view=room')
     expect(viewFromSearch(viewToSearch(plain))).toEqual(plain)
+    const free: ViewState = { ...plain, tab: 'free' }
+    expect(viewToSearch(free)).toBe('college=dcas&seed=1&view=room&tab=free')
+    expect(viewFromSearch(viewToSearch(free))).toEqual(free)
   })
 
   it('needs a college and a numeric seed; bad view falls back to section', () => {

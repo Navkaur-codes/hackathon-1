@@ -12,6 +12,8 @@ export type ViewState = {
   /** Empty = the first entity of the view. */
   entityId: Id
   filters: Filters
+  /** Which tab is open; the timetable when left out. */
+  tab?: 'free'
 }
 
 const VIEWS: GridView[] = ['section', 'teacher', 'room']
@@ -23,6 +25,7 @@ export function viewToSearch(s: ViewState): string {
   q.set('seed', String(s.seed))
   q.set('view', s.view)
   if (s.entityId) q.set('id', s.entityId)
+  if (s.tab) q.set('tab', s.tab)
   const f = toSearch(s.filters)
   return f ? `${q}&${f}` : q.toString()
 }
@@ -34,11 +37,13 @@ export function viewFromSearch(search: string): ViewState | null {
   const seed = q.get('seed')
   if (!collegeId || !seed || !/^\d+$/.test(seed)) return null
   const view = q.get('view') as GridView | null
+  const tab = q.get('tab') === 'free' ? ('free' as const) : undefined
   return {
     collegeId,
     seed: Number(seed),
     view: view && VIEWS.includes(view) ? view : 'section',
     entityId: q.get('id') ?? '',
     filters: fromSearch(search),
+    ...(tab ? { tab } : {}),
   }
 }

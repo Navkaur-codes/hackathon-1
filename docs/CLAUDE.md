@@ -3,9 +3,9 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.35 Finder & filters — P0.35-a pushed, P0.35-b done (filter bar + shareable URL), P0.35-c next** · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.35 Finder & filters — all three features built; P0.35-c awaiting push, then v0.4 design** · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** the v0.35 design below is approved. P0.35-a is pushed (`5e991cc`). P0.35-b (`components/FilterBar.tsx`, `lib/viewUrl.ts`, 203 tests green) is built — the user commits & pushes it. Next: **P0.35-c** ("Who's free?" tab + Ctrl/⌘+K palette), then write the v0.4 design. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
+> **▶ RESUME HERE (new chat):** the v0.35 design below is approved. P0.35-a (`5e991cc`) and P0.35-b (`24ff73b`) are pushed. P0.35-c (`components/WhoIsFree.tsx`, `components/CommandPalette.tsx`, `lib/fuzzy.ts`, 206 tests green) is built — the user commits & pushes it. Next: **write the v0.4 design** (Super Admin + College Admin portals, store, `access.ts`) and show the 5-line summary before coding. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -207,7 +207,7 @@
 |---|---|---|---|
 | P0.35-a | `lib/finder.ts` + `lib/filters.ts` | T35.1 free teachers exclude busy, unavailable and over-limit teachers · T35.2 free rooms by type & capacity with correct usable badge · T35.3 `commonFree` = intersection · T35.4 `nextFree` / `weekStrip` · T35.5 filters match + URL round-trip · `nowSlot` maps real times | `feat(core): finder and filters` |
 | P0.35-b | Filter bar on the grid (fade non-matching, match count, URL state) | T35.6 URL round-trip + seed reproduces the timetable · manual M16: filter → count, shareable URL restores the view | `feat(ui): timetable filter bar` |
-| P0.35-c | "Who's free?" tab (free teachers / rooms, Now, Is X free, common free slot) + Ctrl/⌘+K palette | manual: Now, common slot, palette jump | `feat(ui): who's free finder and quick search` |
+| P0.35-c | "Who's free?" tab (free teachers / rooms, Now, Is X free, common free slot) + Ctrl/⌘+K palette | T35.7 fuzzy matcher · manual M6: Now, free lab Fri after lunch, common slot, palette jump | `feat(ui): who's free finder and quick search` |
 
 **Decisions**
 - Everything is visible to everyone for now; **role scoping** (HOD sees own dept, students only their section, students never see free-room finder) arrives with `access.ts` in **v0.4** — the finder takes an optional scope so no rewrite is needed.
@@ -218,10 +218,16 @@
 **Done when:** on the demo timetable a user can filter to labs only, find a free lab on Friday after lunch, find the common free slots of three teachers, and jump to any teacher with Ctrl+K — all from the keyboard as well as the mouse.
 
 ### Built
-_(fill after v0.35)_
+- **P0.35-a** `5e991cc` — `lib/finder.ts` (occupancy, free teachers / rooms, week strip, next free, common free, now slot) + `lib/filters.ts`; 16 tests.
+- **P0.35-b** `24ff73b` — `FilterBar` (theory/lab, subject, day, room type, department; match count; Clear); non-matching classes fade via CSS `filter` (never fights GSAP); `lib/viewUrl.ts` puts college, seed, view, entity, filters (and later tab) in the URL — a shared link re-solves the seed and restores the exact view.
+- **P0.35-c** — "Who's free?" tab (`WhoIsFree`: free at a time with Now, Is it free? strip + next free, common free slot; free cells and names are clickable) and Ctrl/⌘+K `CommandPalette` with a built-in fuzzy matcher (`lib/fuzzy.ts`).
+- Done-when met on DIET: labs-only filter, a free lab on Friday after lunch (CL-1 / CL-2 shared), common slots of three teachers (22), Ctrl+K jump to any teacher — all keyboard-reachable. 206 tests green.
 
 ### Open issues
-_(fill after v0.35)_
+- No role scoping yet: everyone sees every finder list (students will not see free rooms) — arrives with `access.ts` in v0.4; the finder functions already take optional scope options.
+- Finder works on the weekly pattern only; date-aware "who's free on 26 Oct" (holidays, substitutions) belongs to v0.6/v0.7.
+- Shared links carry the solver seed because nothing is stored yet; from v0.4 they should point at the stored / published version.
+- "Now" uses the device clock and local time zone; fine for a single-campus demo.
 
 ---
 <!-- Next: write "## v0.4 Super Admin + College Admin — Design" here before starting v0.4 -->
