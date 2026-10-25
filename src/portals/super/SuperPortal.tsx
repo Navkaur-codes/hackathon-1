@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Archive, ArchiveRestore, ArrowRight, Eye, Plus, UserCog } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Eye, Plus, Shapes, UserCog } from 'lucide-react'
 import { setArchived, setCollegeAdmins } from '../../lib/edit'
 import { summarizeCollege } from '../../lib/structure'
 import type { SolveResult } from '../../solver/best'
@@ -15,6 +15,7 @@ type Props = {
   onView: (collegeId: Id) => void
   /** Step into a college as its College Admin. */
   onOpenAsAdmin: (collegeId: Id) => void
+  onOpenStructure: (collegeId: Id) => void
 }
 
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition'
@@ -75,7 +76,7 @@ function AdminNames({ college }: { college: CollegeData }) {
 }
 
 /** Super Admin: every college on the platform — create, clone, archive, admins and read-only status. */
-export function SuperPortal({ colleges, results, onView, onOpenAsAdmin }: Props) {
+export function SuperPortal({ colleges, results, onView, onOpenAsAdmin, onOpenStructure }: Props) {
   const addCollege = useKaal((s) => s.addCollege)
   const updateCollege = useKaal((s) => s.updateCollege)
   const [creating, setCreating] = useState(false)
@@ -116,6 +117,9 @@ export function SuperPortal({ colleges, results, onView, onOpenAsAdmin }: Props)
             <span>
               <strong>{created.college.name}</strong> ({created.college.code}) is on the platform.
             </span>
+            <button type="button" onClick={() => onOpenStructure(created.college.id)} className={`${btn} border-ink bg-ink text-paper hover:opacity-90`}>
+              <Shapes size={14} aria-hidden /> Shape its structure
+            </button>
             <button type="button" onClick={() => onOpenAsAdmin(created.college.id)} className={`${btn} border-ink hover:bg-ink hover:text-paper`}>
               Open as its College Admin <ArrowRight size={14} aria-hidden />
             </button>
@@ -162,6 +166,9 @@ export function SuperPortal({ colleges, results, onView, onOpenAsAdmin }: Props)
                   : ' · no draft yet (the College Admin generates it)'}
               </p>
               <div className="mt-auto flex flex-wrap gap-2">
+                <button type="button" onClick={() => onOpenStructure(c.college.id)} className={`${btn} border-ink bg-ink text-paper hover:opacity-90`}>
+                  <Shapes size={14} aria-hidden /> Structure
+                </button>
                 {r && (
                   <button type="button" onClick={() => onView(c.college.id)} className={`${btn} border-rule hover:border-ink`}>
                     <Eye size={14} aria-hidden /> View timetable
@@ -189,9 +196,6 @@ export function SuperPortal({ colleges, results, onView, onOpenAsAdmin }: Props)
         })}
       </ul>
 
-      <p className="mt-6 rounded-lg border border-dashed border-rule p-4 text-[13px] text-muted">
-        Next on this desk: the Structure Builder — calendar, departments, programmes, sections and subjects for any college.
-      </p>
     </section>
   )
 }

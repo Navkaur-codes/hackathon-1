@@ -11,6 +11,8 @@ import { viewFromSearch } from './lib/viewUrl'
 import { ComingSoon } from './portals/ComingSoon'
 import { CollegePortal } from './portals/college/CollegePortal'
 import { SuperPortal } from './portals/super/SuperPortal'
+import { StructureBuilder } from './portals/super/structure/StructureBuilder'
+import { asBuilderTab } from './portals/super/structure/tabs'
 import type { SolveResult } from './solver/best'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
@@ -29,6 +31,7 @@ export default function App() {
   const switchCollege = useKaal((s) => s.switchCollege)
   const signOut = useKaal((s) => s.signOut)
   const resetDemo = useKaal((s) => s.resetDemo)
+  const updateCollege = useKaal((s) => s.updateCollege)
   const active = switchableColleges(colleges)
 
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash))
@@ -48,7 +51,8 @@ export default function App() {
   const inPortal = route.page === 'portal' && session !== null
   useEffect(() => {
     if (route.page !== 'portal') return
-    const want = formatRoute(session ? { page: 'portal', portal: portalOf(session.role) } : { page: 'landing' })
+    const own = session && route.portal === portalOf(session.role)
+    const want = formatRoute(own ? route : session ? { page: 'portal', portal: portalOf(session.role) } : { page: 'landing' })
     if (window.location.hash !== want) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${want}`)
   }, [route, session])
 
@@ -102,6 +106,10 @@ export default function App() {
   }
 
   const home = session ? collegeFor(session, colleges, session.collegeId) : undefined
+  // #/super/<collegeId>/structure[/<tab>] — only for a session allowed to shape that college
+  const subPath = route.page === 'portal' ? (route.path ?? []) : []
+  const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
+  const building = target && can(session, 'editStructure', target.college.id, colleges) ? target : undefined
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
@@ -163,8 +171,26 @@ export default function App() {
           <div className="flex items-center gap-3 py-24 text-muted" role="status">
             <Wheel size={22} spokes={8} /> Opening the shared timetable…
           </div>
+        ) : building ? (
+          <StructureBuilder
+            college={building}
+            tab={asBuilderTab(subPath[2])}
+            onTab={(t) => go({ page: 'portal', portal: 'super', path: [building.college.id, 'structure', t] })}
+            onBack={() => go({ page: 'portal', portal: 'super' })}
+            edit={(fn) => {
+              updateCollege(building.college.id, fn)
+              // a timetable generated before this change no longer matches the structure
+              setResults((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== building.college.id)))
+            }}
+          />
         ) : inPortal && session.role === 'superAdmin' ? (
-          <SuperPortal colleges={colleges} results={results} onView={view} onOpenAsAdmin={openAsAdmin} />
+          <SuperPortal
+            colleges={colleges}
+            results={results}
+            onView={view}
+            onOpenAsAdmin={openAsAdmin}
+            onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
+          />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
           <CollegePortal college={home} result={results[home.college.id]} onResult={keep(home.college.id)} onView={() => view(home.college.id)} />
         ) : inPortal && session.role === 'collegeAdmin' ? (

@@ -297,6 +297,8 @@ export type CollegeData = {
   meetings: MeetingRequest[]
   /** Draft weekly pattern being worked on. */
   draft?: Timetable
+  /** The structure or setup changed after the draft was generated: viewable, but generate again before publishing. */
+  draftStale?: boolean
   /** The weekly pattern everyone follows for the semester (with date-specific substitutions on top). */
   published?: Published
 }

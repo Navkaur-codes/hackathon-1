@@ -10,8 +10,15 @@ describe('hash routes', () => {
   })
 
   it('anything else is the landing page (in-page anchors keep working)', () => {
-    for (const h of ['', '#', '#colleges', '#/nope', '#/super/extra/bits']) expect(parseRoute(h)).toEqual({ page: 'landing' })
+    for (const h of ['', '#', '#colleges', '#/nope', '#/super/Bad Path', '#/nope/diet']) expect(parseRoute(h)).toEqual({ page: 'landing' })
     expect(parseRoute('#/college/')).toEqual({ page: 'portal', portal: 'college' })
+  })
+
+  it('sub-paths inside a portal round-trip', () => {
+    const r = { page: 'portal' as const, portal: 'super' as const, path: ['gndec', 'structure'] }
+    expect(formatRoute(r)).toBe('#/super/gndec/structure')
+    expect(parseRoute('#/super/gndec/structure')).toEqual(r)
+    expect(parseRoute('#/super/gndec/structure/')).toEqual(r)
   })
 
   it('each role has its own portal', () => {
