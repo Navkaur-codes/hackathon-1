@@ -3,9 +3,9 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.4 Super Admin + College Admin portals — P0.4-a pushed, P0.4-b built (awaiting push), P0.4-c next** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.4 Super Admin + College Admin portals — P0.4-a, P0.4-b pushed, P0.4-x flexible lunch built (awaiting push), P0.4-c next** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** v0.35 is complete and pushed (`5e991cc`, `24ff73b`, `443b3aa`; 206 tests green). The **v0.4 design** below is **approved** (2026-10-21). Print-preview fix pushed (`ae19925`); live at https://kaalchakra-seven.vercel.app. **P0.4-a** pushed (`7f63b9c`). **P0.4-b** (`lib/edit.ts` new / clone / archive, Super Admin portal, 231 tests) is built — the user commits & pushes it. Next: **P0.4-c** Structure Builder (extend `lib/edit.ts` with structure edits; `#/super` sub-route or in-portal tab), then d → e. Generated results still live in App memory until P0.4-e stores the draft. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
+> **▶ RESUME HERE (new chat):** v0.35 is complete and pushed (`5e991cc`, `24ff73b`, `443b3aa`; 206 tests green). The **v0.4 design** below is **approved** (2026-10-21). Print-preview fix pushed (`ae19925`); live at https://kaalchakra-seven.vercel.app. **P0.4-a** pushed (`7f63b9c`). **P0.4-b** pushed (`f8bc701`). **P0.4-x flexible lunch** (user request; `BreakRule.options`, solver + validator + views, 241 tests) is built — the user commits & pushes it. Next: **P0.4-c** (its break editor must cover fixed per-day lunches and flexible options) Structure Builder (extend `lib/edit.ts` with structure edits; `#/super` sub-route or in-portal tab), then d → e. Generated results still live in App memory until P0.4-e stores the draft. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -275,6 +275,19 @@
 - **Decided in P0.4-b:** a clone copies structure + setup (incl. grants and office hours) but never timetables or date-specific records, and starts with no College Admins. College codes may not overlap another college's id prefix (e.g. "DIET CSE" → `diet-cse-…` would mix with DIET's records). Super Admin can open a draft only read-only and only while one exists in this browser session — stored drafts arrive in P0.4-e.
 
 **Done when:** a Super Admin creates a new college (or clones DIET) and shapes its calendar, departments, programmes and subjects; switched to that college's College Admin, they add rooms and teachers (one batch pasted from Excel), assign teachers, generate with 0 clashes and publish v1; after a browser refresh everything is still there; and the College Admin of DCAS never sees any of it.
+
+### Added design — flexible lunch (user request after P0.4-b, 2026-10-26) · *approved and built (P0.4-x)*
+**Request:** a section's lunch may sit in a different slot on different days, and Kaalchakra may choose it — "either 11:30 or 12:30" — when that gives a better timetable. This is an **engine change** (v0.2 area: solver, validator, rule H7) requested during v0.4; built as its own checkpoint **P0.4-x before P0.4-c**, so the Structure Builder can edit it.
+- **Already possible:** a *fixed* lunch that differs by day (`BreakRule.days`, e.g. P4 Mon–Wed, P5 Thu–Sat) at college / department / programme / section level — only the editing screen is missing (P0.4-c).
+- **New — flexible break:** `BreakRule.options?: number[]` (slot indexes, e.g. `[3, 4]` = DIET's 11:30 and 12:20 slots — times always come from the calendar, never hard-coded, rule G2). On each working day of the rule (all days, or its `days`), **exactly one option slot stays free** for the section as its break; `period` is the preferred slot.
+- **Solver:** option slots are teachable, but a class may never take a section's *last* free option that day (same idea as H14 for teachers); a lab block can never cover every option. A soft penalty keeps lunch at the preferred slot, so it moves only when that buys a better placement. No second algorithm — the same legality filter, one more check.
+- **Validator (independent):** H7 = no class in a fixed break or blocked slot **and**, for every flexible rule and day, at least one option slot free for the section.
+- **Views:** one helper `resolvedBreakSlots(college, section, busy)` in `lib/structure.ts` picks the slot that is actually lunch each day (preferred if free, else the first free option); the grid, Clash Court ("Lunch at 12:20 today — 11:30 is taken by DS"), Who's free and pre-flight use it. Pre-flight counts a flexible break as one slot per day.
+- **Demo:** DIET **ME Year 3** gets a flexible lunch `[P4 11:30, P5 12:20]` to prove it; everything else unchanged.
+- **Tests (T7f.1–T7f.4):** the solver never fills all options of a day (many seeds × random colleges, validator clean); the validator catches a hand-made "no lunch left" day; both demos still 0 clashes / 0 unplaced, quality not lower than with the fixed lunch; the resolved lunch is shown in the grid / explain / finder.
+- **Root CLAUDE.md:** H7 got one sentence for flexible breaks (user approved, 2026-10-26).
+- **Learned while building:** on DIET the lunch never moves (96/100 either way) — the small penalty keeps 11:30 unless moving buys a placement; a test college with a 4-period lab shows the move. Colleges already saved in a browser keep their old breaks (the demo is only a seed) — "Reset demo data" picks up the new demo.
+- **Room lending for one class on one day** (asked at the same time) = Room Exchange, **v0.5 (P0.5-c)**; the engine already supports slot grants (H11).
 
 ### Built
 _(fill after v0.4)_

@@ -2,7 +2,7 @@
 // language instead of discovering unplaced classes afterwards. Pure — no solving involved.
 
 import { semesterSummary } from '../lib/semester'
-import { sectionBreakSlots, slotKey } from '../lib/structure'
+import { sectionBreakSlots, sectionFlexBreaks, slotKey } from '../lib/structure'
 import type { CollegeData, Id } from '../types'
 
 export type Warning = {
@@ -118,7 +118,9 @@ export function preflight(college: CollegeData): Warning[] {
   // ── Sections: enough free slots, and room for each lab block ─────────
   for (const section of college.sections) {
     const closed = new Set([...sectionBreakSlots(college, section), ...blocked])
-    const free = D * P - [...closed].filter((k) => Number(k.split('-')[0]) < D).length
+    // a flexible break still costs one slot each day it applies — whichever option it lands on
+    const flex = sectionFlexBreaks(college, section)
+    const free = D * P - [...closed].filter((k) => Number(k.split('-')[0]) < D).length - flex.length
     const mine = college.subjects.filter((s) => s.programmeId === section.programmeId)
     const demand = mine.reduce((sum, s) => sum + s.periodsPerWeek, 0)
     if (demand > free)
@@ -129,13 +131,18 @@ export function preflight(college: CollegeData): Warning[] {
         suggestion: `Add a period or a working day, or reduce ${section.name}'s curriculum.`,
         ids: [section.id],
       })
-    // longest run of consecutive non-break slots on any day
+    // longest run of consecutive non-break slots on any day (a flexible break may land on any of its options)
     let longest = 0
     for (let d = 0; d < D; d++) {
-      let run = 0
-      for (let p = 0; p < P; p++) {
-        run = closed.has(slotKey(d, p)) ? 0 : run + 1
-        longest = Math.max(longest, run)
+      const today = flex.filter((f) => f.day === d)
+      const choices = today.length ? today[0].options : [-1]
+      for (const pick of choices) {
+        const shut = (p: number) => closed.has(slotKey(d, p)) || p === pick || today.slice(1).some((f) => p === f.preferred)
+        let run = 0
+        for (let p = 0; p < P; p++) {
+          run = shut(p) ? 0 : run + 1
+          longest = Math.max(longest, run)
+        }
       }
     }
     for (const s of mine.filter((x) => x.kind === 'lab')) {

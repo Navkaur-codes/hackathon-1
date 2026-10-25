@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-26 (P0.4-b) — `npm test` 231 passed / 0 failed (18 files) · build ✅ · lint ✅
+**Last run:** 2026-10-26 (P0.4-x flexible lunch) — `npm test` 241 passed / 0 failed (19 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -77,6 +77,10 @@
 | T6.8 | v0.6 | meetings | re-plan puts class into accepted meeting slot | meeting → needsReschedule | unit | ⏳ | |
 | T7.1 | v0.2 (engine, from v0.7) | leave cover | HOD approves a leave for a date | every affected class gets an auto-allotted free substitute (or `uncovered`), 0 conflicts on that date, weekly pattern & other dates untouched, holidays need no cover, two leaves same date never share a substitute | unit | ✅ | `solver/substitutes.test.ts`; property: every teacher × every day of a week validates clean |
 | T7.2 | v0.2 (engine, from v0.7) | substitutes | ranking | free, available, within max/day, keeps lunch; same dept → same subject → knows section → lightest load | unit | ✅ | |
+| T7f.1 | v0.4 (engine) | flexible break | rules → fixed slots + one choice per day; break lands on the preferred slot if free, else the first free option | as described; a single option = fixed break; DIET ME-Y3 has a P4/P5 lunch every working day | unit | ✅ | `solver/flexBreak.test.ts` |
+| T7f.2 | v0.4 (engine) | flexible break | solver never takes the last free option | DIET × 20 seeds and a college-wide flexible lunch × 10 seeds: 0 conflicts, 0 unplaced, every section keeps a lunch slot every day; quality with the flexible lunch ≥ fixed (measured 96 = 96) | unit | ✅ | |
+| T7f.3 | v0.4 (engine) | flexible break | a 4-period lab only fits by moving lunch | fixed lunch → pre-flight `lab-block` + unplaced; flexible → all placed, lunch moves to P5 on the lab day only; grid, Clash Court ("is at P5 — P4 is taken by PHL") and Who's free show the moved lunch | unit | ✅ | |
+| T7f.4 | v0.4 (engine) | flexible break | hand-made day with both options taken | validator H7 "ME-Y3-A has no lunch on …"; Clash Court shows the failing H7 check | unit | ✅ | |
 | T7.3 | v0.7 | lock | lock slot, regenerate | slot unchanged | unit | ⏳ | |
 | T7.4 | v0.7 | conflicts | inject cross-dept room clash | detected with both depts; publish blocked | unit | ⏳ | |
 | T7.5 | v0.7 | ledger | per shared room | totals equal placement count | unit | ⏳ | |

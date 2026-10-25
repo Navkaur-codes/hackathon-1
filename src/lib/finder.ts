@@ -3,7 +3,7 @@
 // and the assistant. Shape always comes from the calendar (rule G4).
 
 import type { Calendar, CollegeData, Id, Room, SlotKey, Teacher, Timetable } from '../types'
-import { periodTimes, sectionBreakSlots, slotKey } from './structure'
+import { periodTimes, resolvedBreakSlots, slotKey } from './structure'
 
 export type Occupancy = {
   teacher: Map<Id, Set<SlotKey>>
@@ -119,7 +119,8 @@ export function weekStrip(college: CollegeData, occ: Occupancy, kind: EntityKind
   const blocked = new Set(cal.blockedSlots)
   const busy = occ[kind].get(id) ?? new Set<SlotKey>()
   const section = kind === 'section' ? college.sections.find((s) => s.id === id) : undefined
-  const breaks = section ? sectionBreakSlots(college, section) : new Set<SlotKey>()
+  // a section's flexible break shows where it actually landed in this timetable
+  const breaks = section ? new Set(resolvedBreakSlots(college, section, busy).keys()) : new Set<SlotKey>()
   const teacher = kind === 'teacher' ? college.teachers.find((t) => t.id === id) : undefined
   return cal.days.map((_, d) =>
     Array.from({ length: cal.periodsPerDay }, (_, p): SlotState => {

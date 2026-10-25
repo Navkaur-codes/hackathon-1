@@ -1,7 +1,7 @@
 // Pure model of one timetable grid (rule G4: shape comes only from the college calendar).
 
 import type { CollegeData, Id, Placement, Room, Section, Subject, Teacher, Timetable } from '../types'
-import { effectiveBreaks, periodTimes, slotKey } from './structure'
+import { periodTimes, resolvedBreakSlots, slotKey } from './structure'
 
 export type GridView = 'section' | 'teacher' | 'room'
 
@@ -107,13 +107,14 @@ export function buildGrid(college: CollegeData, timetable: Timetable, view: Grid
   if (view === 'section') {
     const s = sections.get(entityId)
     if (s) {
-      const dept = college.departments.find((d) => d.id === s.deptId)
       const prog = college.programmes.find((p) => p.id === s.programmeId)
       title = s.name
       subtitle = `${prog?.name ?? ''} · ${s.strength} students`
-      for (const rule of effectiveBreaks(cal, dept, prog, s)) {
-        const days = rule.days ?? cal.days.map((_, d) => d)
-        for (const day of days) if (day < cal.days.length) breaks.push({ day, period: rule.period, label: rule.label ?? 'Break' })
+      // fixed breaks, plus each day's flexible break where it actually landed in this timetable
+      const busy = new Set(cells.flatMap((c) => Array.from({ length: c.span }, (_, i) => slotKey(c.day, c.start + i))))
+      for (const [k, label] of resolvedBreakSlots(college, s, busy)) {
+        const [day, period] = k.split('-').map(Number)
+        breaks.push({ day, period, label: label ?? 'Break' })
       }
     }
   } else if (view === 'teacher') {

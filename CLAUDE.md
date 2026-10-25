@@ -41,7 +41,7 @@
 | H4 | Room **type** matches the session (theory→lecture/seminar as specified, lab→lab). |
 | H5 | Room **capacity** ≥ section strength. |
 | H6 | No class in a teacher's **unavailable** slots, or with a teacher on **approved leave** that date (checked on that date's adjusted timetable). |
-| H7 | No class in a section's **break slots** or any college **blocked slot**. Breaks may differ by group and day: a section's breaks = its own rules → else its programme's → else its department's → else the college default (`effectiveBreaks` / `sectionBreakSlots` in `lib/structure.ts`). *(staggered breaks added at the user's request in v0.1)* |
+| H7 | No class in a section's **break slots** or any college **blocked slot**. Breaks may differ by group and day: a section's breaks = its own rules → else its programme's → else its department's → else the college default (`effectiveBreaks` / `sectionBreakSlots` in `lib/structure.ts`). *(staggered breaks added at the user's request in v0.1)* A **flexible** break (`BreakRule.options`, e.g. lunch at 11:30 or 12:20) lets the solver pick the slot per day: at least one option slot stays free for the section every day it applies (`sectionFlexBreaks` / `resolvedBreakSlots`). *(flexible breaks added at the user's request in v0.4)* |
 | H8 | A **lab** occupies `blockLength` (default from calendar) **consecutive** periods on the same day, same room, never crossing that section's break slot or the day end. |
 | H9 | Teacher **max periods/day** and **max periods/week** are respected. |
 | H10 | **Locked** placements never move or disappear. |

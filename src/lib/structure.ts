@@ -67,21 +67,69 @@ export function effectiveBreaks(
   return section?.breaks ?? programme?.breaks ?? dept?.breaks ?? calendar.breaks
 }
 
-/** Expand break rules into concrete slot keys for the given number of working days. */
+/** A rule is flexible when it offers more than one slot to choose from. */
+export const isFlexible = (r: BreakRule) => (r.options?.length ?? 0) > 1
+
+const ruleDays = (r: BreakRule, dayCount: number) =>
+  (r.days ?? Array.from({ length: dayCount }, (_, d) => d)).filter((d) => d >= 0 && d < dayCount)
+
+/** Expand the **fixed** break rules into concrete slot keys (flexible ones are resolved per timetable). */
 export function breakSlots(rules: BreakRule[], dayCount: number): Set<SlotKey> {
   const out = new Set<SlotKey>()
-  for (const r of rules) {
-    const days = r.days ?? Array.from({ length: dayCount }, (_, d) => d)
-    for (const d of days) if (d >= 0 && d < dayCount) out.add(slotKey(d, r.period))
-  }
+  for (const r of rules) if (!isFlexible(r)) for (const d of ruleDays(r, dayCount)) out.add(slotKey(d, r.period))
   return out
 }
 
-/** Break slots for one section of a college, resolved through the inheritance chain. */
-export function sectionBreakSlots(college: Pick<CollegeData, 'calendar' | 'departments' | 'programmes'>, section: Section): Set<SlotKey> {
-  const dept = college.departments.find((d) => d.id === section.deptId)
-  const programme = college.programmes.find((p) => p.id === section.programmeId)
-  return breakSlots(effectiveBreaks(college.calendar, dept, programme, section), college.calendar.days.length)
+/** One flexible break on one day: exactly one of `options` must stay free; `preferred` if possible. */
+export type FlexBreak = { day: number; options: number[]; preferred: number; label?: string }
+
+export function flexBreaks(rules: BreakRule[], dayCount: number): FlexBreak[] {
+  return rules.filter(isFlexible).flatMap((r) =>
+    ruleDays(r, dayCount).map((day) => ({
+      day,
+      options: [...new Set(r.options)].sort((a, b) => a - b),
+      preferred: r.options!.includes(r.period) ? r.period : r.options![0],
+      label: r.label,
+    })),
+  )
+}
+
+type BreakCollege = Pick<CollegeData, 'calendar' | 'departments' | 'programmes'>
+
+const sectionRules = (college: BreakCollege, section: Section) =>
+  effectiveBreaks(
+    college.calendar,
+    college.departments.find((d) => d.id === section.deptId),
+    college.programmes.find((p) => p.id === section.programmeId),
+    section,
+  )
+
+/** Fixed break slots for one section, resolved through the inheritance chain — never usable for a class. */
+export function sectionBreakSlots(college: BreakCollege, section: Section): Set<SlotKey> {
+  return breakSlots(sectionRules(college, section), college.calendar.days.length)
+}
+
+/** Flexible breaks of one section, per day. */
+export function sectionFlexBreaks(college: BreakCollege, section: Section): FlexBreak[] {
+  return flexBreaks(sectionRules(college, section), college.calendar.days.length)
+}
+
+/** Which option is the break that day, given the section's busy slots: the preferred one if free, else the first free. */
+export function chosenBreak(f: FlexBreak, isBusy: (period: number) => boolean): number {
+  if (!isBusy(f.preferred)) return f.preferred
+  return f.options.find((p) => !isBusy(p)) ?? f.preferred
+}
+
+/**
+ * Every break slot the section actually has in a timetable: fixed breaks plus, for each flexible break,
+ * the slot chosen that day. `busy` holds the section's booked slot keys.
+ */
+export function resolvedBreakSlots(college: BreakCollege, section: Section, busy: Set<SlotKey>): Map<SlotKey, string | undefined> {
+  const out = new Map<SlotKey, string | undefined>()
+  for (const r of sectionRules(college, section))
+    if (!isFlexible(r)) for (const d of ruleDays(r, college.calendar.days.length)) out.set(slotKey(d, r.period), r.label)
+  for (const f of sectionFlexBreaks(college, section)) out.set(slotKey(f.day, chosenBreak(f, (p) => busy.has(slotKey(f.day, p)))), f.label)
+  return out
 }
 
 /** At-a-glance numbers for a college card — all derived from data, never typed in. */

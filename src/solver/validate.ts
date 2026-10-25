@@ -1,7 +1,7 @@
 // Independent clash checker (root CLAUDE.md §3, §5). It must never import the solver — it is the judge.
 // It rebuilds its own indexes from the raw college data and checks every hard rule H1–H14.
 
-import { sectionBreakSlots, slotKey } from '../lib/structure'
+import { sectionBreakSlots, sectionFlexBreaks, slotKey } from '../lib/structure'
 import type { CollegeData, Id, Placement, SlotKey, Timetable } from '../types'
 
 export type HardRule = `H${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14}`
@@ -188,6 +188,17 @@ export function validate(college: CollegeData, timetable: Timetable, opts: Valid
   doubles(teacherAt, 'H1', (id) => teachers.get(id)?.name ?? id)
   doubles(sectionAt, 'H2', (id) => sections.get(id)?.name ?? id)
   doubles(roomAt, 'H3', (id) => rooms.get(id)?.name ?? id)
+
+  // H7 — a flexible break keeps at least one of its option slots free every day it applies
+  for (const section of college.sections) {
+    for (const f of sectionFlexBreaks(college, section)) {
+      const taken = f.options.map((p) => sectionAt.get(`${section.id}|${slotKey(f.day, p)}`))
+      if (taken.every((ids) => ids && ids.length > 0)) {
+        const when = f.options.map((p) => at(f.day, p)).join(' and ')
+        add('H7', `${section.name} has no ${f.label?.toLowerCase() ?? 'break'} on ${dayName(f.day)} — ${when} are all taken.`, ...taken.flat().filter((x): x is Id => !!x))
+      }
+    }
+  }
 
   // H9 — teacher limits
   for (const [key, n] of teacherDay) {

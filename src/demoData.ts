@@ -174,6 +174,8 @@ export const engineeringSpec: CollegeSpec = {
           shortName: 'Y3',
           sectionsCount: 1,
           defaultStrength: 45,
+          // Flexible lunch: the 11:30 slot or the 12:20 slot each day, whichever gives the better week.
+          breaks: [{ period: 3, options: [3, 4], label: 'Lunch' }],
           subjects: [
             { code: 'HT', name: 'Heat Transfer', kind: 'theory', periodsPerWeek: 4, teachers: ['brar'] },
             { code: 'MD', name: 'Machine Design', kind: 'theory', periodsPerWeek: 4, teachers: ['brar'] },

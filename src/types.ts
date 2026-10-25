@@ -26,11 +26,16 @@ export type College = {
  * (staggered lunch), so every section still shares one clock and clashes stay checkable.
  */
 export type BreakRule = {
-  /** 0-based period index that is a break. */
+  /** 0-based period index that is a break (for a flexible break: the preferred slot). */
   period: number
   /** 0-based day indexes this applies to; omitted = every working day. */
   days?: number[]
   label?: string
+  /**
+   * Flexible break: on each of its days exactly one of these slots stays free as the break, chosen by the
+   * solver for a better timetable (e.g. lunch at 11:30 or 12:20). Omitted = a fixed break at `period`.
+   */
+  options?: number[]
 }
 
 export type Calendar = {

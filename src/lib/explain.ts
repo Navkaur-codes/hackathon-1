@@ -3,7 +3,7 @@
 
 import type { HardRule } from '../solver/validate'
 import type { CollegeData, Placement, Timetable } from '../types'
-import { periodTimes, sectionBreakSlots, slotKey } from './structure'
+import { chosenBreak, periodTimes, sectionBreakSlots, sectionFlexBreaks, slotKey } from './structure'
 
 export type Check = { rule: HardRule; ok: boolean; text: string }
 
@@ -84,6 +84,29 @@ export function explainPlacement(college: CollegeData, timetable: Timetable, p: 
       ? `Not in ${section.name}'s break${ownBreaks.length ? ` (${cal.days[p.day]}: ${ownBreaks.join(', ')})` : ''}.`
       : `${slotName(inBreak[0])} is ${section.name}'s break or a blocked slot.`,
   )
+  // flexible break: one option must stay free that day; say where it landed and why
+  const flexToday = sectionFlexBreaks(college, section).filter((f) => f.day === p.day)
+  if (flexToday.length) {
+    const sectionToday = timetable.placements.filter((o) => o.day === p.day && assignmentOf.get(o.assignmentId)?.sectionId === section.id)
+    const holder = (period: number) => sectionToday.find((o) => o.period <= period && period < o.period + o.length)
+    for (const f of flexToday) {
+      const what = f.label ?? 'Break'
+      const free = f.options.filter((period) => !holder(period))
+      if (free.length === 0) {
+        add('H7', false, `${section.name} has no ${what.toLowerCase()} on ${cal.days[p.day]} — ${f.options.map(slotName).join(' and ')} are all taken.`)
+        continue
+      }
+      const chosen = chosenBreak(f, (period) => !!holder(period))
+      const moved = holder(f.preferred)
+      add(
+        'H7',
+        true,
+        moved
+          ? `${what} on ${cal.days[p.day]} is at ${slotName(chosen)} — ${slotName(f.preferred)} is taken by ${nameOf(moved)}.`
+          : `${what} on ${cal.days[p.day]} stays at ${slotName(chosen)}.`,
+      )
+    }
+  }
   const blockLength = subject.blockLength ?? cal.labBlockLength
   const fitsDay = p.period + p.length <= cal.periodsPerDay
   if (subject.kind === 'lab')

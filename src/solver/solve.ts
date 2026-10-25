@@ -2,7 +2,7 @@
 // Invariant: every placement it adds satisfies H1–H14 given what is already booked. When a session
 // cannot be placed legally it is reported as unplaced — the solver never emits a clash.
 
-import { sectionBreakSlots, slotKey } from '../lib/structure'
+import { sectionBreakSlots, sectionFlexBreaks, slotKey, type FlexBreak } from '../lib/structure'
 import type { Assignment, CollegeData, Id, Placement, Room, Section, Subject, Teacher, Timetable, Unplaced } from '../types'
 import { mulberry32 } from './rng'
 
@@ -43,6 +43,7 @@ const W = {
   teacherDayLoad: 2, // S5
   notOwnRoom: 3, // S6
   lateLab: 6, // S7
+  lunchMoved: 3, // flexible break: keep the preferred lunch slot unless moving it buys a better placement
   roomSlack: 0.01, // best-fit room
   jitter: 0.5,
 }
@@ -79,9 +80,13 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
   const unavailable = new Map(college.teachers.map((t) => [t.id, new Set<string>(t.unavailable)]))
   const lunchNeed = Math.min(cal.teacherMinFreeInLunchWindow, cal.lunchWindow.length)
 
-  // Section slots that can never hold a class (own breaks + college blocked slots).
+  // Section slots that can never hold a class (own fixed breaks + college blocked slots).
   const closed = new Map<Id, Set<string>>()
   for (const s of college.sections) closed.set(s.id, new Set([...sectionBreakSlots(college, s), ...blocked]))
+  // Flexible breaks: `${sectionId}|${day}` → breaks where one option slot must stay free (H7).
+  const flex = new Map<string, FlexBreak[]>()
+  for (const s of college.sections)
+    for (const f of sectionFlexBreaks(college, s)) flex.set(`${s.id}|${f.day}`, [...(flex.get(`${s.id}|${f.day}`) ?? []), f])
 
   // ── Bookings ─────────────────────────────────────────────────────────
   const teacherBusy = new Map<string, Set<number>>() // `${tid}|${d}` → periods
@@ -239,6 +244,7 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
     for (let d = 0; d < D; d++) {
       const tBusy = teacherBusy.get(`${teacher.id}|${d}`) ?? EMPTY
       const sBusy = sectionBusy.get(`${section.id}|${d}`) ?? EMPTY
+      const flexToday = flex.get(`${section.id}|${d}`)
 
       // H9 — teacher limits
       if (tBusy.size + length > teacher.maxPerDay) continue
@@ -249,6 +255,18 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
         let free = true
         for (let i = 0; i < length && free; i++) if (tBusy.has(start + i) || sBusy.has(start + i)) free = false
         if (!free) continue // H1, H2
+
+        // H7 — a flexible break keeps at least one of its option slots free for the section
+        let lunchMoved = 0
+        if (flexToday) {
+          let keepsBreak = true
+          for (const f of flexToday) {
+            const inBlock = (p: number) => p >= start && p < start + length
+            if (!f.options.some((p) => !sBusy.has(p) && !inBlock(p))) keepsBreak = false
+            if (inBlock(f.preferred)) lunchMoved++
+          }
+          if (!keepsBreak) continue
+        }
 
         // H14 — teacher keeps lunch
         if (lunchNeed > 0) {
@@ -282,6 +300,7 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
           sectionGapDelta * W.sectionGap +
           tBusy.size * W.teacherDayLoad +
           (subject.kind === 'lab' && start + length >= P ? W.lateLab : 0) +
+          lunchMoved * W.lunchMoved +
           roomPenalty +
           s.noise[d * P + start] * W.jitter
 
