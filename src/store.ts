@@ -68,7 +68,21 @@ export function createKaalStore(storage?: StateStorage) {
   )
 }
 
+/**
+ * Keep every open tab on the same data: when another tab saves, reload from storage. Without this, a tab
+ * opened earlier still holds the old colleges in memory and its next save would overwrite newer edits.
+ */
+export function syncAcrossTabs(store: ReturnType<typeof createKaalStore>, target: EventTarget) {
+  const onStorage = (e: Event) => {
+    const key = (e as StorageEvent).key
+    if (key === STORE_KEY || key === null) void store.persist.rehydrate()
+  }
+  target.addEventListener('storage', onStorage)
+  return () => target.removeEventListener('storage', onStorage)
+}
+
 export const appStore = createKaalStore()
+if (typeof window !== 'undefined') syncAcrossTabs(appStore, window)
 
 /** React hook over the app store. */
 export const useKaal = <T,>(selector: (s: KaalState) => T): T => useStore(appStore, selector)

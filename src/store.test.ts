@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { StateStorage } from 'zustand/middleware'
 import { buildDemoColleges } from './demoData'
 import { cloneCollege } from './lib/edit'
-import { createKaalStore, STORE_KEY } from './store'
+import { createKaalStore, STORE_KEY, syncAcrossTabs } from './store'
 
 /** localStorage stand-in: a plain map that survives between two store instances (= a page reload). */
 function memoryStorage(): StateStorage & { data: Map<string, string> } {
@@ -47,6 +47,25 @@ describe('T4.2 store persists across a reload', () => {
     a.getState().addCollege(clone) // same id again → ignored
     expect(a.getState().colleges.map((c) => c.college.id)).toEqual([diet.college.id, dcas.college.id, 'gndec'])
     expect(createKaalStore(storage).getState().colleges[2]).toEqual(clone)
+  })
+
+  it('two tabs: when one saves, the other reloads — its next save never overwrites the newer data', () => {
+    const storage = memoryStorage()
+    const tabA = createKaalStore(storage)
+    const tabB = createKaalStore(storage) // opened earlier, same data in memory
+    const windowB = new EventTarget()
+    const stop = syncAcrossTabs(tabB, windowB)
+    tabA.getState().addCollege(cloneCollege(diet, 'GNDEC', 'GNDEC'))
+    // the browser tells tab B that the saved data changed
+    windowB.dispatchEvent(Object.assign(new Event('storage'), { key: STORE_KEY }))
+    expect(tabB.getState().colleges.map((c) => c.college.id)).toEqual([diet.college.id, dcas.college.id, 'gndec'])
+    tabB.getState().enterAs('superAdmin') // tab B saves later…
+    expect(createKaalStore(storage).getState().colleges).toHaveLength(3) // …and GNDEC survives
+    // other keys are ignored
+    const before = tabB.getState().colleges
+    windowB.dispatchEvent(Object.assign(new Event('storage'), { key: 'something-else' }))
+    expect(tabB.getState().colleges).toBe(before)
+    stop()
   })
 
   it('an edit touches only its own college (rule G1)', () => {

@@ -2,7 +2,7 @@ import { Chips, NumberField } from '../../../components/fields'
 import { setCalendar, setSlotsPerDay, setWorkingDays, WEEKDAY_NAMES } from '../../../lib/edit'
 import { periodTimes } from '../../../lib/structure'
 import type { CollegeData } from '../../../types'
-import { BreakEditor } from './BreakEditor'
+import { BreakEditor } from '../../../components/BreakEditor'
 
 type Props = { college: CollegeData; edit: (fn: (c: CollegeData) => CollegeData) => void }
 

@@ -14,7 +14,7 @@ import {
   updateProgramme,
 } from '../../../lib/edit'
 import type { CollegeData, Department, Programme } from '../../../types'
-import { BreakEditor } from './BreakEditor'
+import { BreakEditor } from '../../../components/BreakEditor'
 
 type Edit = (fn: (c: CollegeData) => CollegeData) => void
 type Props = { college: CollegeData; edit: Edit }

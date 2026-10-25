@@ -1,7 +1,7 @@
 // Pure edits on one college (the store only routes them, rule G1). P0.4-b: create, clone, archive;
 // P0.4-c adds structure edits. Everything new still goes through `buildCollege` (rule G3).
 
-import type { BreakRule, Calendar, CollegeData, Id, Programme, Semester, SlotKey, Subject } from '../types'
+import type { BreakRule, Calendar, CollegeData, Id, Programme, Room, Semester, SlotKey, Subject } from '../types'
 import { buildCollege, generateSections, slotKey, slug, syncAssignments, type CollegeSpec } from './structure'
 
 /** Why `code` cannot name a new college, or null. Ids are prefixed by the college id, so prefixes must not overlap. */
@@ -386,3 +386,147 @@ export function updateSubject(
 }
 
 export const removeSubject = (c: CollegeData, id: Id): CollegeData => resync({ ...c, subjects: c.subjects.filter((s) => s.id !== id) })
+
+// ── College setup (College Admin, P0.4-d) ─────────────────────────────
+// Sections, rooms, teachers (+ availability), who teaches what, blocked slots. Same rules: consistent
+// references, a stored draft goes stale.
+
+/** A free id `${base}`, `${base}-2`, `${base}-3` … among `taken`. */
+const freeId = (base: string, taken: Set<string>) => {
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base}-${n}`)) n++
+  return `${base}-${n}`
+}
+
+const toggleKey = (keys: SlotKey[], k: SlotKey) => (keys.includes(k) ? keys.filter((x) => x !== k) : [...keys, k])
+
+// ── Sections ──
+
+export function updateSection(c: CollegeData, id: Id, patch: { name?: string; strength?: number }): CollegeData {
+  return touched({
+    ...c,
+    sections: c.sections.map((s) =>
+      s.id !== id
+        ? s
+        : {
+            ...s,
+            ...(patch.name !== undefined && patch.name.trim() ? { name: patch.name.trim() } : {}),
+            ...(patch.strength !== undefined ? { strength: clamp(patch.strength, 1, 1000) } : {}),
+          },
+    ),
+  })
+}
+
+// ── Rooms ──
+
+export type RoomInput = { name: string; type: Room['type']; capacity: number; owner: Id | 'shared' }
+
+export function roomProblem(c: CollegeData, name: string, exceptId?: Id): string | null {
+  if (!name.trim()) return 'Give the room a name, e.g. LT-101.'
+  if (c.rooms.some((r) => r.id !== exceptId && r.name.trim().toLowerCase() === name.trim().toLowerCase())) return `${name.trim()} already exists.`
+  return null
+}
+
+export function addRoom(c: CollegeData, input: RoomInput): CollegeData {
+  const owner = input.owner === 'shared' || c.departments.some((d) => d.id === input.owner) ? input.owner : 'shared'
+  const id = freeId(`${c.college.id}-rm-${slug(input.name) || 'room'}`, new Set(c.rooms.map((r) => r.id)))
+  return touched({ ...c, rooms: [...c.rooms, { id, collegeId: c.college.id, name: input.name.trim(), type: input.type, capacity: clamp(input.capacity, 1, 2000), owner }] })
+}
+
+export function updateRoom(c: CollegeData, id: Id, patch: Partial<RoomInput>): CollegeData {
+  return touched({
+    ...c,
+    rooms: c.rooms.map((r) =>
+      r.id !== id
+        ? r
+        : {
+            ...r,
+            ...(patch.name !== undefined && patch.name.trim() ? { name: patch.name.trim() } : {}),
+            ...(patch.type ? { type: patch.type } : {}),
+            ...(patch.capacity !== undefined ? { capacity: clamp(patch.capacity, 1, 2000) } : {}),
+            ...(patch.owner && (patch.owner === 'shared' || c.departments.some((d) => d.id === patch.owner)) ? { owner: patch.owner } : {}),
+          },
+    ),
+  })
+}
+
+/** Removes the room and any grant that lent it. */
+export const removeRoom = (c: CollegeData, id: Id): CollegeData =>
+  touched({ ...c, rooms: c.rooms.filter((r) => r.id !== id), grants: c.grants.filter((g) => g.roomId !== id) })
+
+// ── Teachers ──
+
+export type TeacherInput = { name: string; deptId: Id; maxPerDay: number; maxPerWeek: number }
+
+export function teacherProblem(c: CollegeData, name: string, exceptId?: Id): string | null {
+  if (!name.trim()) return 'Give the teacher a name.'
+  if (c.teachers.some((t) => t.id !== exceptId && t.name.trim().toLowerCase() === name.trim().toLowerCase())) return `${name.trim()} is already a teacher here.`
+  return null
+}
+
+export function addTeacher(c: CollegeData, input: TeacherInput): CollegeData {
+  const deptId = c.departments.some((d) => d.id === input.deptId) ? input.deptId : (c.departments[0]?.id ?? input.deptId)
+  const id = freeId(`${c.college.id}-t-${slug(input.name) || 'teacher'}`, new Set(c.teachers.map((t) => t.id)))
+  const maxPerDay = clamp(input.maxPerDay, 1, c.calendar.periodsPerDay)
+  return touched({
+    ...c,
+    teachers: [
+      ...c.teachers,
+      { id, collegeId: c.college.id, deptId, name: input.name.trim(), maxPerDay, maxPerWeek: clamp(input.maxPerWeek, 1, maxPerDay * 7), unavailable: [] },
+    ],
+  })
+}
+
+export function updateTeacher(c: CollegeData, id: Id, patch: Partial<TeacherInput>): CollegeData {
+  return touched({
+    ...c,
+    teachers: c.teachers.map((t) =>
+      t.id !== id
+        ? t
+        : {
+            ...t,
+            ...(patch.name !== undefined && patch.name.trim() ? { name: patch.name.trim() } : {}),
+            ...(patch.deptId && c.departments.some((d) => d.id === patch.deptId) ? { deptId: patch.deptId } : {}),
+            ...(patch.maxPerDay !== undefined ? { maxPerDay: clamp(patch.maxPerDay, 1, c.calendar.periodsPerDay) } : {}),
+            ...(patch.maxPerWeek !== undefined ? { maxPerWeek: clamp(patch.maxPerWeek, 1, 100) } : {}),
+          },
+    ),
+  })
+}
+
+/** Mark a slot unavailable (or available again) for a teacher (rule H6). */
+export const toggleUnavailable = (c: CollegeData, teacherId: Id, slot: SlotKey): CollegeData =>
+  touched({ ...c, teachers: c.teachers.map((t) => (t.id === teacherId ? { ...t, unavailable: toggleKey(t.unavailable, slot) } : t)) })
+
+/** Removes the teacher; their classes go back to "no teacher yet" (pre-flight then asks for one). */
+export const removeTeacher = (c: CollegeData, id: Id): CollegeData =>
+  touched({
+    ...c,
+    teachers: c.teachers.filter((t) => t.id !== id),
+    assignments: c.assignments.map((a) => (a.teacherId === id ? { ...a, teacherId: null } : a)),
+    officeHours: c.officeHours.filter((o) => o.teacherId !== id),
+  })
+
+// ── Who teaches what (rule G5: an assignment only links section × subject → teacher) ──
+
+export const setAssignmentTeacher = (c: CollegeData, assignmentId: Id, teacherId: Id | null): CollegeData =>
+  touched({
+    ...c,
+    assignments: c.assignments.map((a) =>
+      a.id === assignmentId && (teacherId === null || c.teachers.some((t) => t.id === teacherId)) ? { ...a, teacherId } : a,
+    ),
+  })
+
+/** Periods a week each teacher is assigned (from the curriculum), for load hints. */
+export function assignedLoad(c: CollegeData): Map<Id, number> {
+  const periods = new Map(c.subjects.map((s) => [s.id, s.periodsPerWeek]))
+  const out = new Map<Id, number>()
+  for (const a of c.assignments) if (a.teacherId) out.set(a.teacherId, (out.get(a.teacherId) ?? 0) + (periods.get(a.subjectId) ?? 0))
+  return out
+}
+
+// ── Blocked slots (assembly, sports hour…: nothing may be scheduled, rule H7) ──
+
+export const toggleBlocked = (c: CollegeData, slot: SlotKey): CollegeData =>
+  touched({ ...c, calendar: { ...c.calendar, blockedSlots: toggleKey(c.calendar.blockedSlots, slot) } })

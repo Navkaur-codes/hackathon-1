@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { Chips, TextField } from '../../../components/fields'
-import { periodTimes } from '../../../lib/structure'
-import type { BreakRule, Calendar } from '../../../types'
+import { Chips, TextField } from './fields'
+import { periodTimes } from '../lib/structure'
+import type { BreakRule, Calendar } from '../types'
 
 type Props = {
   calendar: Calendar

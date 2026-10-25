@@ -13,10 +13,11 @@ import { CollegePortal } from './portals/college/CollegePortal'
 import { SuperPortal } from './portals/super/SuperPortal'
 import { StructureBuilder } from './portals/super/structure/StructureBuilder'
 import { asBuilderTab } from './portals/super/structure/tabs'
+import { asSetupTab } from './portals/college/setup/tabs'
 import type { SolveResult } from './solver/best'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
-import type { Role } from './types'
+import type { CollegeData, Role } from './types'
 
 // A shared link (?college=…&seed=…) reopens that exact timetable, view and filters.
 const shared = (() => {
@@ -110,6 +111,11 @@ export default function App() {
   const subPath = route.page === 'portal' ? (route.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
   const building = target && can(session, 'editStructure', target.college.id, colleges) ? target : undefined
+  /** Apply a pure edit to one college; a timetable generated before it no longer matches, so it is dropped. */
+  const editOf = (collegeId: string) => (fn: (c: CollegeData) => CollegeData) => {
+    updateCollege(collegeId, fn)
+    setResults((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== collegeId)))
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
@@ -177,11 +183,7 @@ export default function App() {
             tab={asBuilderTab(subPath[2])}
             onTab={(t) => go({ page: 'portal', portal: 'super', path: [building.college.id, 'structure', t] })}
             onBack={() => go({ page: 'portal', portal: 'super' })}
-            edit={(fn) => {
-              updateCollege(building.college.id, fn)
-              // a timetable generated before this change no longer matches the structure
-              setResults((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== building.college.id)))
-            }}
+            edit={editOf(building.college.id)}
           />
         ) : inPortal && session.role === 'superAdmin' ? (
           <SuperPortal
@@ -192,7 +194,16 @@ export default function App() {
             onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
           />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
-          <CollegePortal college={home} result={results[home.college.id]} onResult={keep(home.college.id)} onView={() => view(home.college.id)} />
+          <CollegePortal
+            college={home}
+            result={results[home.college.id]}
+            onResult={keep(home.college.id)}
+            onView={() => view(home.college.id)}
+            page={subPath[0] === 'setup' ? 'setup' : 'overview'}
+            setupTab={asSetupTab(subPath[1])}
+            onPage={(page, tab) => go({ page: 'portal', portal: 'college', ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : {}) })}
+            edit={can(session, 'editSetup', home.college.id, colleges) ? editOf(home.college.id) : undefined}
+          />
         ) : inPortal && session.role === 'collegeAdmin' ? (
           <p className="py-16 text-muted">This college is archived or no longer exists — pick another college above.</p>
         ) : inPortal ? (
