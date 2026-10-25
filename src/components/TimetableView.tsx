@@ -59,7 +59,8 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
       filters,
       ...(tab === 'free' ? { tab } : {}),
     })
-    window.history.replaceState(null, '', `${window.location.pathname}?${search}`)
+    // keep the hash: it holds the portal route
+    window.history.replaceState(null, '', `${window.location.pathname}?${search}${window.location.hash}`)
   }, [college, result.bestSeed, view, entityId, filters, tab])
 
   // Ctrl/⌘+K opens the quick search from anywhere on the page

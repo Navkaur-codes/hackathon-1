@@ -3,13 +3,13 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.4 Super Admin + College Admin — design approved, P0.4-a next · **Live URL:** https://kaalchakra-seven.vercel.app · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.4 Super Admin + College Admin — P0.4-a done, awaiting push · **Live URL:** https://kaalchakra-seven.vercel.app · **Repo:** https://github.com/Navkaur-codes/hackathon-1
 
 ## Resume here (for a new chat)
-- **Done:** v0.1, v0.2, v0.3 · v0.35: P0.35-a (finder + filters logic), P0.35-b (filter bar + shareable URL), P0.35-c (Who's free? tab + Ctrl/⌘+K).
-- **Next:** P0.4-a store + `access.ts` + role/college switcher → P0.4-b … P0.4-e (Super Admin + College Admin).
+- **Done:** v0.1, v0.2, v0.3 · v0.35: P0.35-a (finder + filters logic), P0.35-b (filter bar + shareable URL), P0.35-c (Who's free? tab + Ctrl/⌘+K) · print-preview fix · v0.4: P0.4-a (store + `access.ts` + role/college switcher).
+- **Next:** P0.4-b Super Admin colleges (create / clone / archive) → P0.4-c Structure Builder → P0.4-d setup → P0.4-e publish.
 - **Still open:** OS reduced-motion (M10) not hand-checked; one hand check of Chrome's Ctrl+P on the live URL (M8).
-- **Numbers:** 206 tests · DIET 96/100, DCAS 89/100 · 0 clashes · 20 tries ≈ 0.4 s in the browser.
+- **Numbers:** 224 tests · DIET 96/100, DCAS 89/100 · 0 clashes · 20 tries ≈ 0.4 s in the browser.
 
 ## Version checklist (ticked after the user confirms each push)
 - [x] **v0.1 Foundation**
@@ -31,7 +31,7 @@
   - [x] P0.35-b Filter bar on the grid (URL state) — `24ff73b`
   - [x] P0.35-c "Who's free?" tab + Ctrl/⌘+K palette — `443b3aa`
 - [ ] **v0.4 Super Admin + College Admin portals**
-  - [ ] P0.4-a Store + role/college switcher + `access.ts`
+  - [ ] P0.4-a Store + role/college switcher + `access.ts` (done, awaiting push)
   - [ ] P0.4-b Super Admin colleges list/create/clone
   - [ ] P0.4-c Structure Builder
   - [ ] P0.4-d College Admin setup + paste-from-Excel
@@ -84,8 +84,9 @@
 | — | v0.35 | P0.35-a | **Finder** `lib/finder.ts` (`occupancy`, `freeTeachers` with load + teaches-subject ranking, `freeRooms` with own / granted / shared / needs-grant, `weekStrip`, `nextFree`, `commonFree`, `nowSlot`) and **filters** `lib/filters.ts` (dept, subject, theory/lab, room type, day; URL round-trip) | `5e991cc` | 16 tests; logic only — screens come in P0.35-b/c |
 | — | v0.35 | P0.35-b | **Filter bar** `components/FilterBar.tsx` above the grid: All / Theory / Lab chips, subject, day, room type and department pickers (options read from the college), "6 of 17 classes match" count, Clear. Non-matching classes **fade back** (CSS `filter`, so it never fights GSAP's opacity tweens) and stay clickable. **Shareable URL** `lib/viewUrl.ts`: college, seed, view, entity and filters live in the query; opening the link re-solves the same seed (deterministic) and restores the exact view; Back clears it | `24ff73b` | 203 tests (T35.6); browser-checked desktop + 375 px |
 | — | v0.35 | P0.35-c | **"Who's free?" tab** `components/WhoIsFree.tsx` beside "Timetable": pick a day + one or more periods or press **Now** → free teachers (dept / subject filters, load that day, "teaches DS") and free rooms (type, min seats, badge own / granted / shared / needs a grant for a chosen dept); **Is it free?** week strip (free · busy · break · unavailable) + next free slot; **Common free slot** for any mix of teachers, rooms, sections. Clicking a free cell asks who's free then; names open their grid. **Ctrl/⌘+K palette** `components/CommandPalette.tsx` + `lib/fuzzy.ts` (subsequence matcher, no library): sections, teachers, rooms, subjects; ↑↓ Enter Esc; a subject applies the subject filter. Tab kept in the URL (`tab=free`); Print switches back to the timetable | `443b3aa` | 206 tests (T35.7); M6 browser-checked desktop + 375 px |
-| — | fix | — | **Print preview** (user report: the print dialog showed no preview). Diagnosis: print output was already correct (checked through Chrome's real print-to-PDF engine, 1 page per timetable, 7 for all sections); the Claude in-app browser opens the Windows system dialog, which has no preview pane. Fix: `components/PrintSheets.tsx` — Kaalchakra's own preview of the exact A4 sheets (This timetable / All sections, Print, Esc) opens before the browser dialog; screen-side copy of the print styles (`.print-sheet` in `theme.css`); `shortDate` moved to `lib/semester.ts`. Vercel connected: kaalchakra-seven.vercel.app | pending | 206 tests; checked desktop + 375 px and via print-to-PDF |
+| — | fix | — | **Print preview** (user report: the print dialog showed no preview). Diagnosis: print output was already correct (checked through Chrome's real print-to-PDF engine, 1 page per timetable, 7 for all sections); the Claude in-app browser opens the Windows system dialog, which has no preview pane. Fix: `components/PrintSheets.tsx` — Kaalchakra's own preview of the exact A4 sheets (This timetable / All sections, Print, Esc) opens before the browser dialog; screen-side copy of the print styles (`.print-sheet` in `theme.css`); `shortDate` moved to `lib/semester.ts`. Vercel connected: kaalchakra-seven.vercel.app | `ae19925` | 206 tests; checked desktop + 375 px and via print-to-PDF |
 | — | v0.4 | D | **v0.4 design** written in `docs/CLAUDE.md`: zustand store (persist, seed, reset), `access.ts`, role/college switcher, Super Admin colleges + Structure Builder, College Admin setup + paste-from-Excel, generate → publish with versions, export/import; pure `edit` / `publish` / `csv` modules | — | approved by the user |
+| — | v0.4 | P0.4-a | **Persistent multi-college store + role access**: `store.ts` (zustand `persist`, key `kaalchakra` v1, seeds the demos through `buildCollege`, reset demo data, migrate / corrupt data → fresh seed, `updateCollege` touches one college only); `lib/access.ts` (`visibleColleges`, `collegeFor`, `can` per action, `sessionFor`); `lib/route.ts` hash routes `#/super` · `#/college` · `#/dept` · `#/teacher` · `#/student` (a portal always matches the session's role); header `RoleSwitcher` (chips / select on phones) + `CollegeSwitcher` + "My desk" + leave; `Landing` split out of `App` with "Enter" per role; portal shells: Super Admin all-colleges status, College Admin own college (generate → view timetable), HOD / Teacher / Student "opens in v0.5 / v0.6"; footer "Reset demo data". Dev fix: zustand pre-bundled in `vite.config.ts` (late discovery loaded two React copies in dev only) | pending | 224 tests (T4.2, T4.4, T4.6 + routes); browser-checked desktop + 375 px |
 | — | v0.2 | — | Decision (user): **leave is date-specific** — HOD approval creates that date's adjusted timetable (substitute or moved class); weekly master unchanged. `LeaveRequest`/`Substitution` gain `date` | — | built in v0.7 |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 

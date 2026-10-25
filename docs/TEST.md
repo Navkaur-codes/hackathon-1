@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-26 (print-preview fix) — `npm test` 206 passed / 0 failed (14 files) · build ✅ · lint ✅
+**Last run:** 2026-10-26 (P0.4-a) — `npm test` 224 passed / 0 failed (17 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -54,11 +54,11 @@
 | T35.6 | v0.35 | viewUrl | timetable page state ↔ URL (college, seed, view, entity, filters, tab) | round-trip equal; no college/seed → null; bad view → section; the URL's seed rebuilds the identical timetable | unit | ✅ | `lib/viewUrl.test.ts` (3 cases); `tab=free` added in P0.35-c |
 | T35.7 | v0.35 | fuzzy | Ctrl/⌘+K palette matcher | subsequence only, case-insensitive; contiguous / word-start hits rank first; empty query keeps order | unit | ✅ | `lib/fuzzy.test.ts` (3 cases) |
 | T4.1 | v0.4 | csv | parse pasted TSV/CSV teachers & assignments | correct rows, bad rows reported | unit | ⏳ | |
-| T4.2 | v0.4 | store | persist → reload | identical state | unit | ⏳ | |
+| T4.2 | v0.4 | store | persist → reload | identical state | unit | ✅ | `store.test.ts` (6 cases, in-memory storage = a reload): first load seeds both demos + no session; edits + session survive a second store on the same storage; an edit touches only its own college; unknown college ignored; reset demo data; old version / corrupt data → fresh seed |
 | T4.3 | v0.4 | store | export JSON → import JSON | identical data | unit | ⏳ | |
-| T4.4 | v0.4 | access | collegeAdmin scope | sees all depts of own college only | unit | ⏳ | |
+| T4.4 | v0.4 | access | collegeAdmin scope | sees all depts of own college only | unit | ✅ | `lib/access.test.ts`: sees only its college; setup / generate / publish / export own college, never structure, nothing of another college; loses access when its college is archived |
 | T4.5 | v0.4 | structure | Super Admin changes sections count / strength / periods per day | sections regenerate; new calendar (e.g. 5 days × 5 periods) still solves with 0 conflicts | unit | ⏳ | |
-| T4.6 | v0.4 | access | superAdmin scope | sees all colleges, cannot edit timetables; college A data never visible to college B users | unit | ⏳ | |
+| T4.6 | v0.4 | access | superAdmin scope | sees all colleges, cannot edit timetables; college A data never visible to college B users | unit | ✅ | super sees all (archived too), edits structure + reads drafts, never sets up / generates / publishes / exports; every role of DIET sees nothing of DCAS; HOD / teacher / student read published only; no session → nothing; role switching keeps the college (also `lib/route.test.ts`: hash routes round-trip, unknown hashes = landing) |
 | T4.7 | v0.4 | clone | clone DIET as a new college; blank template | every id re-prefixed, refs resolve, no id shared with the source, both solve with 0 conflicts | unit | ⏳ | |
 | T4.8 | v0.4 | publish | publish with a conflict / stale draft / unplaced; publish twice; unpublish | refused with reason; unplaced needs confirm; version 1 → 2; unpublish clears | unit | ⏳ | |
 | T4.9 | v0.4 | edit | add / remove subject or department, rename section | other assignments and chosen teachers kept; draft marked stale | unit | ⏳ | |
@@ -103,7 +103,7 @@
 | M8 | Print preview: one clean timetable per A4 | ✅ (2026-10-26) — **real print pipeline**: headless Chrome `Page.printToPDF` (the engine behind the print dialog) on local dev and on kaalchakra-seven.vercel.app: one section → 1 A4-landscape page, Dr. Manjit Gill → 1 page, "Print all sections" → 7 pages, header + verified stamp + all classes, colours kept. User report: the dialog showed **no preview** — cause: the Claude in-app browser opens the Windows system print dialog, which has no preview pane. Fix: Kaalchakra's own **Print preview** (exact A4 sheets, This timetable / All sections, Esc closes) opens before the browser dialog; checked at desktop and 375 px. ⏳ one hand check in desktop Chrome's Ctrl+P on the live URL |
 | M9 | Phone width (375px): student view readable, no horizontal scroll | ⏳ — timetable page checked at 349 px: page never scrolls sideways, grid scrolls inside its box with sticky times (P0.3-a); student view in v0.6 |
 | M10 | Reduced motion: no GSAP animation; dark mode readable | ⏳ — code skips all motion under `prefers-reduced-motion` (landing, card, grid drop-in, Flip); not yet checked with the OS setting. Print forces ink-on-white even in dark mode |
-| M11 | Refresh browser: data kept | ⏳ |
+| M11 | Refresh browser: data kept | ⏳ partly (2026-10-26, local dev): the session survives a reload — College Admin of DCAS reopens on `#/college` showing DCAS only; typing `#/super` as a Teacher bounces back to `#/teacher`; generate → View timetable → back returns to the desk; leaving the desk clears the saved session; 375 px no sideways scroll; fresh tab no console errors. Saved timetables / edits arrive in P0.4-c…e |
 | M12 | Login with each demo account (v0.9) | ⏳ |
 | M16 | Filter bar: filter → faded classes + count; shared URL restores the view | ✅ (2026-10-21) — DIET CSE-Y2-A + *Lab* → "2 of 15 classes match", 13 faded, URL gains `&kind=lab`; reload of `?college=diet&seed=9&view=teacher&id=diet-t-gill&day=4` reopens Dr. Manjit Gill's week with Fri selected (2 of 12 match, only Friday classes bright); Clear drops the filter params; All colleges clears the query; 375 px: bar wraps, page never scrolls sideways; no console errors |
 | M15 | Grid motion: classes drop in on first show; "Generate another" glides each class to its new slot | ✅ (2026-10-21) — drop-in: opacity 0 at 120 ms → all visible, inline styles cleared; Flip: same element moved Fri P1 → Mon P3, transform during, none after |
