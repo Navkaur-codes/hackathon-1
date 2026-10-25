@@ -28,10 +28,12 @@ type Props = {
   onResult: (r: SolveResult) => void
   /** View, entity and filters to open with (from a shared link). */
   initial?: { view: GridView; entityId: Id; filters: Filters; tab?: 'free' }
+  /** No "Generate another" (Super Admin reads, never generates — root §2). */
+  readOnly?: boolean
 }
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack, onResult, initial }: Props) {
+export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false }: Props) {
   const [view, setView] = useState<GridView>(initial?.view ?? 'section')
   const groups = useMemo(() => listEntities(college, view), [college, view])
   const firstId = groups[0]?.items[0]?.id ?? ''
@@ -158,22 +160,28 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={regenerate}
-              disabled={busy}
-              className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper disabled:opacity-60"
-            >
-              {busy ? (
-                <>
-                  <Wheel size={16} spokes={8} /> Solving…
-                </>
-              ) : (
-                <>
-                  Generate another <RotateCcw size={15} aria-hidden />
-                </>
-              )}
-            </button>
+            {readOnly ? (
+              <span className="self-center rounded-full border border-rule px-3 py-1 font-mono text-[11px] tracking-wider text-muted uppercase">
+                Read-only
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={regenerate}
+                disabled={busy}
+                className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper disabled:opacity-60"
+              >
+                {busy ? (
+                  <>
+                    <Wheel size={16} spokes={8} /> Solving…
+                  </>
+                ) : (
+                  <>
+                    Generate another <RotateCcw size={15} aria-hidden />
+                  </>
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { StateStorage } from 'zustand/middleware'
 import { buildDemoColleges } from './demoData'
+import { cloneCollege } from './lib/edit'
 import { createKaalStore, STORE_KEY } from './store'
 
 /** localStorage stand-in: a plain map that survives between two store instances (= a page reload). */
@@ -36,6 +37,16 @@ describe('T4.2 store persists across a reload', () => {
     expect(b.getState().session).toEqual({ role: 'collegeAdmin', collegeId: dcas.college.id })
     expect(b.getState().colleges).toEqual(a.getState().colleges)
     expect(b.getState().colleges[1].teachers[0].maxPerDay).toBe(2)
+  })
+
+  it('a new college is added once and survives a reload', () => {
+    const storage = memoryStorage()
+    const a = createKaalStore(storage)
+    const clone = cloneCollege(diet, 'GNDEC', 'Guru Nanak Dev Engineering College')
+    a.getState().addCollege(clone)
+    a.getState().addCollege(clone) // same id again → ignored
+    expect(a.getState().colleges.map((c) => c.college.id)).toEqual([diet.college.id, dcas.college.id, 'gndec'])
+    expect(createKaalStore(storage).getState().colleges[2]).toEqual(clone)
   })
 
   it('an edit touches only its own college (rule G1)', () => {

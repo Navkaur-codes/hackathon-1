@@ -5,7 +5,7 @@ import { Landing } from './components/Landing'
 import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { collegeFor, switchableColleges } from './lib/access'
+import { can, collegeFor, switchableColleges } from './lib/access'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
 import { ComingSoon } from './portals/ComingSoon'
@@ -83,6 +83,12 @@ export default function App() {
     setOpen(null)
     go({ page: 'portal', portal: portalOf(role) })
   }
+  const openAsAdmin = (collegeId: string) => {
+    enterAs('collegeAdmin')
+    switchCollege(collegeId)
+    setOpen(null)
+    go({ page: 'portal', portal: 'college' })
+  }
   const exit = () => {
     signOut()
     setOpen(null)
@@ -151,13 +157,14 @@ export default function App() {
             onBack={back}
             onResult={keep(openCollege.college.id)}
             initial={initial?.collegeId === openCollege.college.id ? initial : undefined}
+            readOnly={inPortal && !can(session, 'generate', openCollege.college.id, colleges)}
           />
         ) : openCollege ? (
           <div className="flex items-center gap-3 py-24 text-muted" role="status">
             <Wheel size={22} spokes={8} /> Opening the shared timetable…
           </div>
         ) : inPortal && session.role === 'superAdmin' ? (
-          <SuperPortal colleges={colleges} />
+          <SuperPortal colleges={colleges} results={results} onView={view} onOpenAsAdmin={openAsAdmin} />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
           <CollegePortal college={home} result={results[home.college.id]} onResult={keep(home.college.id)} onView={() => view(home.college.id)} />
         ) : inPortal && session.role === 'collegeAdmin' ? (

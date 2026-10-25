@@ -3,9 +3,9 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.4 Super Admin + College Admin portals — P0.4-a built (awaiting push), P0.4-b next** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.4 Super Admin + College Admin portals — P0.4-a pushed, P0.4-b built (awaiting push), P0.4-c next** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** v0.35 is complete and pushed (`5e991cc`, `24ff73b`, `443b3aa`; 206 tests green). The **v0.4 design** below is **approved** (2026-10-21). Print-preview fix pushed (`ae19925`); live at https://kaalchakra-seven.vercel.app. **P0.4-a** (store + `access.ts` + routes + switchers, 224 tests) is built — the user commits & pushes it. Next: **P0.4-b** (Super Admin create / clone / archive), then c → e. Generated results still live in App memory until P0.4-e stores the draft. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
+> **▶ RESUME HERE (new chat):** v0.35 is complete and pushed (`5e991cc`, `24ff73b`, `443b3aa`; 206 tests green). The **v0.4 design** below is **approved** (2026-10-21). Print-preview fix pushed (`ae19925`); live at https://kaalchakra-seven.vercel.app. **P0.4-a** pushed (`7f63b9c`). **P0.4-b** (`lib/edit.ts` new / clone / archive, Super Admin portal, 231 tests) is built — the user commits & pushes it. Next: **P0.4-c** Structure Builder (extend `lib/edit.ts` with structure edits; `#/super` sub-route or in-portal tab), then d → e. Generated results still live in App memory until P0.4-e stores the draft. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -272,6 +272,7 @@
 - Super Admin has **no generate / publish / setup edits** (root §2) — structure and read-only status only.
 - If time runs short: paste-from-Excel is the last part of P0.4-d to build; Export / Import JSON the last part of P0.4-e.
 - **Decided in P0.4-a:** routes are only `#/<portal>` for now (sub-routes come with the screens that need them); the shown portal always follows the session's role, the URL is corrected to match. The college switcher lists every active college — it stands in for logging in, not for data access. Super Admin's session remembers the last college so switching back to another role lands there (its access ignores it).
+- **Decided in P0.4-b:** a clone copies structure + setup (incl. grants and office hours) but never timetables or date-specific records, and starts with no College Admins. College codes may not overlap another college's id prefix (e.g. "DIET CSE" → `diet-cse-…` would mix with DIET's records). Super Admin can open a draft only read-only and only while one exists in this browser session — stored drafts arrive in P0.4-e.
 
 **Done when:** a Super Admin creates a new college (or clones DIET) and shapes its calendar, departments, programmes and subjects; switched to that college's College Admin, they add rooms and teachers (one batch pasted from Excel), assign teachers, generate with 0 clashes and publish v1; after a browser refresh everything is still there; and the College Admin of DCAS never sees any of it.
 

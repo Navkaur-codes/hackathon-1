@@ -16,6 +16,8 @@ export type KaalState = {
   enterAs: (role: Role) => void
   switchCollege: (collegeId: Id) => void
   signOut: () => void
+  /** Add a college built by `lib/edit.ts` (new from template or clone); ignored if its id is taken. */
+  addCollege: (c: CollegeData) => void
   /** Replace one college with `fn(college)`; other colleges are never touched. */
   updateCollege: (collegeId: Id, fn: (c: CollegeData) => CollegeData) => void
   /** Back to the two demo colleges; the session is kept only if it still fits. */
@@ -39,6 +41,8 @@ export function createKaalStore(storage?: StateStorage) {
         switchCollege: (collegeId) =>
           set((s) => (s.session && s.colleges.some((c) => c.college.id === collegeId) ? { session: { role: s.session.role, collegeId } } : s)),
         signOut: () => set({ session: null }),
+        addCollege: (c) =>
+          set((s) => (s.colleges.some((x) => x.college.id === c.college.id) ? s : { colleges: [...s.colleges, c] })),
         updateCollege: (collegeId, fn) =>
           set((s) => ({ colleges: s.colleges.map((c) => (c.college.id === collegeId ? fn(c) : c)) })),
         resetDemo: () =>

@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-26 (P0.4-a) — `npm test` 224 passed / 0 failed (17 files) · build ✅ · lint ✅
+**Last run:** 2026-10-26 (P0.4-b) — `npm test` 231 passed / 0 failed (18 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -59,7 +59,7 @@
 | T4.4 | v0.4 | access | collegeAdmin scope | sees all depts of own college only | unit | ✅ | `lib/access.test.ts`: sees only its college; setup / generate / publish / export own college, never structure, nothing of another college; loses access when its college is archived |
 | T4.5 | v0.4 | structure | Super Admin changes sections count / strength / periods per day | sections regenerate; new calendar (e.g. 5 days × 5 periods) still solves with 0 conflicts | unit | ⏳ | |
 | T4.6 | v0.4 | access | superAdmin scope | sees all colleges, cannot edit timetables; college A data never visible to college B users | unit | ✅ | super sees all (archived too), edits structure + reads drafts, never sets up / generates / publishes / exports; every role of DIET sees nothing of DCAS; HOD / teacher / student read published only; no session → nothing; role switching keeps the college (also `lib/route.test.ts`: hash routes round-trip, unknown hashes = landing) |
-| T4.7 | v0.4 | clone | clone DIET as a new college; blank template | every id re-prefixed, refs resolve, no id shared with the source, both solve with 0 conflicts | unit | ⏳ | |
+| T4.7 | v0.4 | clone | clone DIET as a new college; blank template | every id re-prefixed, refs resolve, no id shared with the source, both solve with 0 conflicts | unit | ✅ | `lib/edit.test.ts` (6 cases): DIET → GNDEC every id `gndec-…`, none shared, no "diet" left anywhere, all refs + `collegeId` in-college, shape and teacher choices kept, starts unpublished; DIET and DCAS clones solve 0 conflicts / 0 unplaced; blank template complete and solvable (semester from the given date); codes: empty / taken / too long / prefix-overlapping ("DIET CSE") rejected; archive / restore; admin names trimmed and de-duplicated. Store: a new college is added once and survives a reload |
 | T4.8 | v0.4 | publish | publish with a conflict / stale draft / unplaced; publish twice; unpublish | refused with reason; unplaced needs confirm; version 1 → 2; unpublish clears | unit | ⏳ | |
 | T4.9 | v0.4 | edit | add / remove subject or department, rename section | other assignments and chosen teachers kept; draft marked stale | unit | ⏳ | |
 | T5.1 | v0.5 | access | HOD scope | sees/edits only own dept (+ shared/granted rooms read) | unit | ⏳ | |
@@ -107,5 +107,5 @@
 | M12 | Login with each demo account (v0.9) | ⏳ |
 | M16 | Filter bar: filter → faded classes + count; shared URL restores the view | ✅ (2026-10-21) — DIET CSE-Y2-A + *Lab* → "2 of 15 classes match", 13 faded, URL gains `&kind=lab`; reload of `?college=diet&seed=9&view=teacher&id=diet-t-gill&day=4` reopens Dr. Manjit Gill's week with Fri selected (2 of 12 match, only Friday classes bright); Clear drops the filter params; All colleges clears the query; 375 px: bar wraps, page never scrolls sideways; no console errors |
 | M15 | Grid motion: classes drop in on first show; "Generate another" glides each class to its new slot | ✅ (2026-10-21) — drop-in: opacity 0 at 120 ms → all visible, inline styles cleared; Flip: same element moved Fri P1 → Mon P3, transform during, none after |
-| M13 | Super Admin creates a new college from scratch with a custom structure (own days, periods, depts, sections, strength) → timetable generates with 0 clashes | ⏳ |
+| M13 | Super Admin creates a new college from scratch with a custom structure (own days, periods, depts, sections, strength) → timetable generates with 0 clashes | ⏳ partly (2026-10-26, local dev): New college form refuses a missing name and the code "DIET CSE" (would mix ids); GNDEC created as a copy of DIET → "Open as its College Admin" → generate: 0 clashes, 96/100 → Super Admin card shows the draft and opens it **read-only** (no Generate button); archive DCAS → its College Admin can no longer pick it; restore → back; reload keeps all three colleges; form fits at 375 px; no console errors. Custom structure needs the Structure Builder (P0.4-c) |
 | M14 | Student requests a meeting → teacher accepts with room → student sees accepted status | ⏳ |
