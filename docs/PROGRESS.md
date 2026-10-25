@@ -3,11 +3,11 @@
 > Updated after every feature. Source material for the final README.
 > Each version: **D**esign → **B**uild → **T**est → **R**ecord, with a 🚀 push checkpoint after every feature (the user commits & pushes).
 
-**Status:** v0.35 Finder & filters built — P0.35-c done, awaiting push (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
+**Status:** v0.4 Super Admin + College Admin — design approved, P0.4-a next (Vercel pending) · **Live URL:** _tbd_ · **Repo:** https://github.com/Navkaur-codes/hackathon-1
 
 ## Resume here (for a new chat)
 - **Done:** v0.1, v0.2, v0.3 · v0.35: P0.35-a (finder + filters logic), P0.35-b (filter bar + shareable URL), P0.35-c (Who's free? tab + Ctrl/⌘+K).
-- **Next:** write the v0.4 design (Super Admin + College Admin).
+- **Next:** P0.4-a store + `access.ts` + role/college switcher → P0.4-b … P0.4-e (Super Admin + College Admin).
 - **Still open:** Vercel not connected (no live URL); real print dialog (M8) and OS reduced-motion (M10) not hand-checked.
 - **Numbers:** 206 tests · DIET 96/100, DCAS 89/100 · 0 clashes · 20 tries ≈ 0.4 s in the browser.
 
@@ -26,10 +26,10 @@
   - [x] P0.3-a Grid model + grids by section / teacher / room, opened from the card — `73f2053`
   - [x] P0.3-b Verified stamp, score, unplaced list + Clash Court popover — `88a955c`
   - [x] P0.3-c GSAP cell-drop + Flip, print (single + all sections) — `d8d5440`
-- [ ] **v0.35 Finder & filters**
+- [x] **v0.35 Finder & filters**
   - [x] P0.35-a `lib/finder.ts` + `lib/filters.ts` — `5e991cc`
   - [x] P0.35-b Filter bar on the grid (URL state) — `24ff73b`
-  - [ ] P0.35-c "Who's free?" tab + Ctrl/⌘+K palette (done, awaiting push)
+  - [x] P0.35-c "Who's free?" tab + Ctrl/⌘+K palette — `443b3aa`
 - [ ] **v0.4 Super Admin + College Admin portals**
   - [ ] P0.4-a Store + role/college switcher + `access.ts`
   - [ ] P0.4-b Super Admin colleges list/create/clone
@@ -83,7 +83,8 @@
 | — | v0.3 | P0.3-c | **Grid motion** `components/gridMotion.ts`: staggered drop-in on first show; **GSAP Flip** on "Generate another" / view switch (stable per-class ids, snapshot taken right before the state change); all off under reduced motion. **Generate another** on the timetable page. **Print** (one timetable per A4 landscape, print header with college, semester, verified stamp, date) and **Print all sections** (one page per section); print always ink-on-white, colours kept | `d8d5440` | fixed: print would have been white-on-white in dark mode; a week overflowed A4 (745 px > 718) → compact print cells (434 px); hover translate removed from cells (fights GSAP) |
 | — | v0.35 | P0.35-a | **Finder** `lib/finder.ts` (`occupancy`, `freeTeachers` with load + teaches-subject ranking, `freeRooms` with own / granted / shared / needs-grant, `weekStrip`, `nextFree`, `commonFree`, `nowSlot`) and **filters** `lib/filters.ts` (dept, subject, theory/lab, room type, day; URL round-trip) | `5e991cc` | 16 tests; logic only — screens come in P0.35-b/c |
 | — | v0.35 | P0.35-b | **Filter bar** `components/FilterBar.tsx` above the grid: All / Theory / Lab chips, subject, day, room type and department pickers (options read from the college), "6 of 17 classes match" count, Clear. Non-matching classes **fade back** (CSS `filter`, so it never fights GSAP's opacity tweens) and stay clickable. **Shareable URL** `lib/viewUrl.ts`: college, seed, view, entity and filters live in the query; opening the link re-solves the same seed (deterministic) and restores the exact view; Back clears it | `24ff73b` | 203 tests (T35.6); browser-checked desktop + 375 px |
-| — | v0.35 | P0.35-c | **"Who's free?" tab** `components/WhoIsFree.tsx` beside "Timetable": pick a day + one or more periods or press **Now** → free teachers (dept / subject filters, load that day, "teaches DS") and free rooms (type, min seats, badge own / granted / shared / needs a grant for a chosen dept); **Is it free?** week strip (free · busy · break · unavailable) + next free slot; **Common free slot** for any mix of teachers, rooms, sections. Clicking a free cell asks who's free then; names open their grid. **Ctrl/⌘+K palette** `components/CommandPalette.tsx` + `lib/fuzzy.ts` (subsequence matcher, no library): sections, teachers, rooms, subjects; ↑↓ Enter Esc; a subject applies the subject filter. Tab kept in the URL (`tab=free`); Print switches back to the timetable | pending | 206 tests (T35.7); M6 browser-checked desktop + 375 px |
+| — | v0.35 | P0.35-c | **"Who's free?" tab** `components/WhoIsFree.tsx` beside "Timetable": pick a day + one or more periods or press **Now** → free teachers (dept / subject filters, load that day, "teaches DS") and free rooms (type, min seats, badge own / granted / shared / needs a grant for a chosen dept); **Is it free?** week strip (free · busy · break · unavailable) + next free slot; **Common free slot** for any mix of teachers, rooms, sections. Clicking a free cell asks who's free then; names open their grid. **Ctrl/⌘+K palette** `components/CommandPalette.tsx` + `lib/fuzzy.ts` (subsequence matcher, no library): sections, teachers, rooms, subjects; ↑↓ Enter Esc; a subject applies the subject filter. Tab kept in the URL (`tab=free`); Print switches back to the timetable | `443b3aa` | 206 tests (T35.7); M6 browser-checked desktop + 375 px |
+| — | v0.4 | D | **v0.4 design** written in `docs/CLAUDE.md`: zustand store (persist, seed, reset), `access.ts`, role/college switcher, Super Admin colleges + Structure Builder, College Admin setup + paste-from-Excel, generate → publish with versions, export/import; pure `edit` / `publish` / `csv` modules | — | approved by the user |
 | — | v0.2 | — | Decision (user): **leave is date-specific** — HOD approval creates that date's adjusted timetable (substitute or moved class); weekly master unchanged. `LeaveRequest`/`Substitution` gain `date` | — | built in v0.7 |
 | — | v0.1 | — | Scope: **Subjects** added — curriculum per programme in the Structure Builder; assignments = section × subject → teacher | — | user request; root CLAUDE.md G2/G5 + docs updated |
 

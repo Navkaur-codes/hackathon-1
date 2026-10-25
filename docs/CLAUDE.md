@@ -3,9 +3,9 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.35 Finder & filters — all three features built; P0.35-c awaiting push, then v0.4 design** · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.4 Super Admin + College Admin portals — design approved, P0.4-a next** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** the v0.35 design below is approved. P0.35-a (`5e991cc`) and P0.35-b (`24ff73b`) are pushed. P0.35-c (`components/WhoIsFree.tsx`, `components/CommandPalette.tsx`, `lib/fuzzy.ts`, 206 tests green) is built — the user commits & pushes it. Next: **write the v0.4 design** (Super Admin + College Admin portals, store, `access.ts`) and show the 5-line summary before coding. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
+> **▶ RESUME HERE (new chat):** v0.35 is complete and pushed (`5e991cc`, `24ff73b`, `443b3aa`; 206 tests green). The **v0.4 design** below is **approved** (2026-10-21) — build **P0.4-a** (store + `access.ts` + role/college switcher), then b → e in order. Follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version. Restart the dev server after adding component files (Tailwind dev quirk). Check `git log -1` first to see whether the last checkpoint was pushed.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -220,7 +220,7 @@
 ### Built
 - **P0.35-a** `5e991cc` — `lib/finder.ts` (occupancy, free teachers / rooms, week strip, next free, common free, now slot) + `lib/filters.ts`; 16 tests.
 - **P0.35-b** `24ff73b` — `FilterBar` (theory/lab, subject, day, room type, department; match count; Clear); non-matching classes fade via CSS `filter` (never fights GSAP); `lib/viewUrl.ts` puts college, seed, view, entity, filters (and later tab) in the URL — a shared link re-solves the seed and restores the exact view.
-- **P0.35-c** — "Who's free?" tab (`WhoIsFree`: free at a time with Now, Is it free? strip + next free, common free slot; free cells and names are clickable) and Ctrl/⌘+K `CommandPalette` with a built-in fuzzy matcher (`lib/fuzzy.ts`).
+- **P0.35-c** `443b3aa` — "Who's free?" tab (`WhoIsFree`: free at a time with Now, Is it free? strip + next free, common free slot; free cells and names are clickable) and Ctrl/⌘+K `CommandPalette` with a built-in fuzzy matcher (`lib/fuzzy.ts`).
 - Done-when met on DIET: labs-only filter, a free lab on Friday after lunch (CL-1 / CL-2 shared), common slots of three teachers (22), Ctrl+K jump to any teacher — all keyboard-reachable. 206 tests green.
 
 ### Open issues
@@ -230,4 +230,54 @@
 - "Now" uses the device clock and local time zone; fine for a single-campus demo.
 
 ---
-<!-- Next: write "## v0.4 Super Admin + College Admin — Design" here before starting v0.4 -->
+## v0.4 Super Admin + College Admin portals
+
+### Design
+**Goal:** Kaalchakra becomes a real multi-college platform that remembers everything. A **Super Admin** creates, clones and archives colleges and shapes each one in the **Structure Builder**; a **College Admin** fills in rooms, teachers, availability and who-teaches-what (by hand or pasted from Excel), generates the whole college, checks it and **publishes** a version. Every screen reads through `access.ts`, so data of college A never shows in college B. Data persists in localStorage. Roles still come from a role + college switcher (auth is v0.9).
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `store.ts` | zustand + `persist` (key `kaalchakra`, `version: 1` + `migrate`). State: `platform.colleges: CollegeData[]`, `session: Session`. Seeds the two demo colleges (via `buildCollege`) on first load; **Reset demo data**. Actions are thin: each calls a pure function from `lib/edit.ts` / `lib/publish.ts` on one college (found by `collegeId` first, rule G1) and replaces it. |
+| `lib/access.ts` | `visibleColleges(session, platform)` (super: all, read-only · others: own college only, never archived ones) · `can(session, action, collegeId)` for `editStructure` (super only) · `editSetup` / `generate` / `publish` / `export` (collegeAdmin of that college) · `viewDraft` (super read-only + collegeAdmin) · `viewPublished` (everyone in that college). Components never check roles inline. |
+| `lib/edit.ts` | Pure edits that keep a college consistent: calendar (days ↔ weekdays, slots, times, per-slot lengths, breaks, lunch window, lab block, blocked slots), semester (dates, holidays, no-class days), department / programme / subject add · update · remove (sections regenerate with `generateSections`, assignments re-sync with `syncAssignments`, chosen teachers kept), section rename / strength / breaks, rooms, teachers (incl. unavailable slots), assignment teacher. Any structure or setup edit **marks the draft stale** (`draftStale: true`) — still viewable, but it cannot be published until regenerated. `cloneCollege(data, code, name)` re-ids every record under the new college id. `newCollege(code, name)` = a small blank template (5 days × 6 slots, a lunch slot, one department, one programme, one section) built through `buildCollege`. |
+| `lib/publish.ts` | `publish(college, now)` → refuses with the reason if the draft is missing, stale, or the independent validator reports **any** conflict (root §5); unplaced periods need an explicit `acceptUnplaced`. Stores `published = { timetable, version: n+1, at }` and appends `{ version, at, score, periods }` to `publishLog`. `unpublish(college)`. |
+| `lib/csv.ts` | papaparse, tab- or comma-separated, header row optional. `parseTeachers` (`name, dept code, max/day, max/week`), `parseRooms` (`name, type, capacity, owner dept code or "shared"`), `parseAssignments` (`section, subject code, teacher name`). Returns `{ rows, errors: { line, message }[] }`; names resolve within **this** college only. |
+| `solver/best.ts` | + `describeTimetable(college, timetable)` → the same summary `SolveResult` carries (score, conflicts, pre-flight, hours…), so the store keeps only the `Timetable` and the UI recomputes the rest. |
+| `types.ts` | `CollegeData` gains `draftStale?: boolean` and `publishLog: { version, at, score, periods }[]`; `College.collegeAdminIds` holds admin display names until v0.9 links real users. |
+
+**Screens**
+- **Header** (every page): wordmark · `RoleSwitcher` (role chips in the role accent colours) · `CollegeSwitcher` (only colleges `access.ts` allows; hidden for Super Admin) · current-role badge. The session persists, so a refresh reopens the same portal. Light hash routes (`#/super`, `#/super/<collegeId>/structure`, `#/college/setup`, `#/college/generate`, …) — no router library.
+- **Landing:** hero stays; the five role cards become **"Enter as …"** buttons; the colleges section lists the colleges in the store (new ones appear). HOD / Teacher / Student show a short "arrives in v0.5 / v0.6" panel in v0.4.
+- **Super Admin → Colleges:** a card per college — status (active / archived), counts from `summarizeCollege`, draft / published version, last score, clash count (read-only status). Actions: **New college** (name + code → blank template, or **Clone** an existing one), **Open Structure Builder**, **View timetable** (read-only), **Archive / Restore**, College Admin names.
+- **Structure Builder** (Super Admin): tabs **Calendar** (working-day chips mapped to real weekdays, slots per day, start time, slot length + per-slot lengths, breaks per day with labels, lunch window, teacher min free in the lunch window, lab block length) · **Semester** (dates, holidays, no-class days, live "N teaching days") · **Departments** (add / rename / archive, department breaks) · **Programmes** (per department: name, short name, **number of sections**, **students per section**, breaks → generated sections listed live) · **Subjects** (per programme: code, name, theory / lab, periods per week, lab block, room type). A side panel shows the live summary and **pre-flight** warnings with fixes, so impossible structures are caught before anyone generates.
+- **College Admin → Setup:** tabs **Sections** (rename, strength, section breaks) · **Rooms** (department and **shared** rooms: name, type, capacity, owner) · **Teachers** (name, department, max/day, max/week, **availability grid** — click slots to mark unavailable; grid shape from the calendar) · **Assignments** (per section: each subject → teacher picker; unassigned highlighted) · **Blocked slots** (click grid) · **Paste from Excel** (pick teachers / rooms / assignments, paste, preview good rows + row errors, Import). Every tab shows the pre-flight count.
+- **College Admin → Generate & publish:** pre-flight panel → **Generate whole college** (worker, 20 tries) → saved as the draft → result strip + the existing `TimetableView` (grids, filters, Who's free?, Clash Court, print) → **Publish** (blocked with the validator's reasons on any conflict; confirm if periods are unplaced) · **Unpublish** · version history · **Export JSON** / **Import JSON** (whole college, validated: ids, `collegeId`, references).
+- `TimetableView` gains `readOnly` (no Generate another) for Super Admin. Once timetables are stored, shared links point at `?college=…&v=<published version>` (or the draft) instead of a seed.
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.4-a | Store (persist, seed, reset, migrate) + `access.ts` + RoleSwitcher / CollegeSwitcher + hash routes + landing "Enter as …" | T4.2 persist → reload identical · T4.4 collegeAdmin sees only own college · T4.6 super sees all, cannot edit setup / generate / publish; college A never visible to B | `feat(core): persistent multi-college store and role access` |
+| P0.4-b | Super Admin colleges list: new (blank template), clone, archive / restore, read-only status + timetable | T4.7 clone: every id re-prefixed, refs resolve, no id shared with the source, solves with 0 conflicts · blank template solves | `feat(super): colleges list, create, clone and archive` |
+| P0.4-c | Structure Builder (calendar, semester, departments, programmes, subjects) + live pre-flight | T4.5 change sections count / strength / slots per day → sections & assignments regenerate; a 5-day × 5-slot calendar still solves with 0 conflicts · T4.9 add / remove subject or department keeps other assignments and chosen teachers; edits mark the draft stale | `feat(super): structure builder` |
+| P0.4-d | College Admin setup (sections, rooms, teachers + availability grid, assignments, blocked slots) + paste-from-Excel | T4.1 csv: good rows parsed, bad rows reported with line numbers, names resolved within the college only | `feat(college): college setup and paste from excel` |
+| P0.4-e | Generate whole college → draft → Publish / Unpublish / version log + Export / Import JSON | T4.3 export → import identical · T4.8 publish blocked on conflict or stale draft, version increments, unpublish clears | `feat(college): generate, publish and versions` |
+
+**Decisions**
+- **Store holds data, logic stays pure.** Every edit is a tested function in `lib/edit.ts` / `lib/publish.ts`; the zustand store only routes it to the right college. The solver and validator stay untouched (they already take a `CollegeData`).
+- **Only the `Timetable` is stored**; score, conflicts and pre-flight are recomputed (`describeTimetable`), so they can never drift from the data.
+- **Edits mark the draft stale instead of deleting it** — the admin can still look at it, but Publish needs a fresh generate. A published version stays live until replaced or unpublished.
+- **College Admin sets up all rooms in v0.4** (department + shared). HOD department CRUD and Room Exchange are **v0.5**, Teacher / Student portals **v0.6**, real logins **v0.9**. Role scoping of the v0.35 finder (students never see free rooms) is applied through `access.ts` when those portals arrive.
+- Super Admin has **no generate / publish / setup edits** (root §2) — structure and read-only status only.
+- If time runs short: paste-from-Excel is the last part of P0.4-d to build; Export / Import JSON the last part of P0.4-e.
+
+**Done when:** a Super Admin creates a new college (or clones DIET) and shapes its calendar, departments, programmes and subjects; switched to that college's College Admin, they add rooms and teachers (one batch pasted from Excel), assign teachers, generate with 0 clashes and publish v1; after a browser refresh everything is still there; and the College Admin of DCAS never sees any of it.
+
+### Built
+_(fill after v0.4)_
+
+### Open issues
+_(fill after v0.4)_
+
+---

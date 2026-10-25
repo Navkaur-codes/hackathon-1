@@ -59,6 +59,9 @@
 | T4.4 | v0.4 | access | collegeAdmin scope | sees all depts of own college only | unit | ⏳ | |
 | T4.5 | v0.4 | structure | Super Admin changes sections count / strength / periods per day | sections regenerate; new calendar (e.g. 5 days × 5 periods) still solves with 0 conflicts | unit | ⏳ | |
 | T4.6 | v0.4 | access | superAdmin scope | sees all colleges, cannot edit timetables; college A data never visible to college B users | unit | ⏳ | |
+| T4.7 | v0.4 | clone | clone DIET as a new college; blank template | every id re-prefixed, refs resolve, no id shared with the source, both solve with 0 conflicts | unit | ⏳ | |
+| T4.8 | v0.4 | publish | publish with a conflict / stale draft / unplaced; publish twice; unpublish | refused with reason; unplaced needs confirm; version 1 → 2; unpublish clears | unit | ⏳ | |
+| T4.9 | v0.4 | edit | add / remove subject or department, rename section | other assignments and chosen teachers kept; draft marked stale | unit | ⏳ | |
 | T5.1 | v0.5 | access | HOD scope | sees/edits only own dept (+ shared/granted rooms read) | unit | ⏳ | |
 | T5.2 | v0.5 | solver | dept A generate, then dept B generate | 0 global conflicts | unit | ⏳ | engine side already covered by T5.0 (v0.2) |
 | T5.3 | v0.5 | grants | no grant | other dept's room never used | unit | ⏳ | |
