@@ -68,7 +68,7 @@
 - Tests: 32 green (T0.1–T0.7).
 
 ### Open issues
-- Vercel not connected yet (user step) — live URL pending.
+- ~~Vercel not connected yet~~ → live at https://kaalchakra-seven.vercel.app (connected 2026-10-26).
 - Vite dev server's Tailwind output once went stale after a newly created component (missing classes); restarting the dev server fixed it. Production build was unaffected. If classes seem missing in dev, restart the preview before debugging CSS.
 - "Generate timetable" buttons are disabled placeholders until v0.2/v0.4 wire the solver.
 - Root `README.md` is still the Vite template — replaced at v1.0.
@@ -131,7 +131,7 @@
 - Teacher daily **balance** is the weakest score part (DIET 75 %, DCAS 65 %) — could get a stronger S5 weight later; not a correctness issue.
 - Repair rarely helps (2/300 random colleges); fine as a safety net.
 - Results are not stored yet — the timetable itself becomes visible in v0.3 (grids) and persists from v0.4 (store).
-- Vercel still not connected (user step).
+- ~~Vercel still not connected~~ → live at https://kaalchakra-seven.vercel.app (2026-10-26).
 
 ---
 ## v0.3 Timetable views
@@ -177,7 +177,7 @@
 - 184 tests green; browser-checked at 349 / 375 / 768 / 1280 px.
 
 ### Open issues
-- Real print dialog not exercised by automation (print CSS was simulated on screen) — confirm once by hand (M8).
+- ~~Real print dialog not exercised~~ → checked 2026-10-26 through Chrome's print-to-PDF engine. A user saw **no preview** in the dialog (the in-app browser uses the Windows system dialog); fixed with Kaalchakra's own print preview (`components/PrintSheets.tsx`) that opens first. One hand check in Chrome's Ctrl+P on the live URL remains (M8).
 - Reduced-motion path is coded but not yet checked with the OS setting (M10).
 - Timetables still live in memory only — persistence arrives with the store in v0.4.
 - Tailwind dev server needs a restart after new component files (stale classes) — dev-only quirk.

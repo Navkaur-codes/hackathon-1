@@ -189,3 +189,40 @@
     break-after: auto;
   }
 }
+
+/* ── Print preview sheets: the print look on screen (same values as @media print) ── */
+.print-sheet {
+  --paper: #fff;
+  --card: #fff;
+  --ink: #1c1b19;
+  --muted: #6b665e;
+  --rule: #d9d2c5;
+  --vermilion: #d9481c;
+  --grid-row-h: 3.1rem;
+  color-scheme: light;
+  color: var(--ink);
+  font-size: 11px;
+}
+.print-sheet [data-grid] [data-cell] {
+  margin: 2px;
+  padding: 3px 6px;
+  gap: 0;
+  box-shadow: none;
+}
+.print-sheet [data-grid] [data-cell] > span:nth-child(1) {
+  font-size: 8px;
+}
+.print-sheet [data-grid] [data-cell] > span:nth-child(2) {
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+.print-sheet [data-grid] [data-cell] > span:nth-child(3) {
+  font-size: 8.5px;
+  line-height: 1.2;
+}
+.print-sheet [data-grid] [role="columnheader"],
+.print-sheet [data-grid] [role="rowheader"] {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 9px;
+}

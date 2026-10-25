@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-21 (P0.35-c) — `npm test` 206 passed / 0 failed (14 files) · build ✅ · lint ✅
+**Last run:** 2026-10-26 (print-preview fix) — `npm test` 206 passed / 0 failed (14 files) · build ✅ · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |
@@ -100,7 +100,7 @@
 | M5 | Teacher requests leave for a date → HOD approves → a free teacher is auto-allotted (HOD can swap) → student sees the substitute on that date only | ⏳ |
 | M6 | Who's free? finder + Ctrl+K search jump to timetable | ✅ (local dev, 2026-10-21, DIET seed 9) — `?tab=free` reopens the finder; Fri P5+P6 · Lab · for CSE → CL-1, CL-2 (shared), ECE Electronics Lab (needs a grant); **Now** at Wed 18:15 → "No class is running right now"; common free slot of Gill + Kaur + Arora → 22 slots listed and drawn; Ctrl+K → "grew" → Enter opens Prof. Baljit Grewal's grid; "em eng" → Enter applies the EM subject filter (`&subject=EM`); 375 px: no page scroll, mini week scrolls in its box; no console errors. Re-check on Vercel at v1.0 |
 | M7 | Kaal Assistant answers 3 sample questions | ⏳ |
-| M8 | Print preview: one clean timetable per A4 | ✅ simulated (2026-10-21): print CSS applied on screen — only header + grid, colours kept, one week = 434 px of a 718 px A4-landscape page; "Print all sections" → 7 pages (one per DIET section), all classes visible, page breaks set. ⏳ confirm once in a real print dialog |
+| M8 | Print preview: one clean timetable per A4 | ✅ (2026-10-26) — **real print pipeline**: headless Chrome `Page.printToPDF` (the engine behind the print dialog) on local dev and on kaalchakra-seven.vercel.app: one section → 1 A4-landscape page, Dr. Manjit Gill → 1 page, "Print all sections" → 7 pages, header + verified stamp + all classes, colours kept. User report: the dialog showed **no preview** — cause: the Claude in-app browser opens the Windows system print dialog, which has no preview pane. Fix: Kaalchakra's own **Print preview** (exact A4 sheets, This timetable / All sections, Esc closes) opens before the browser dialog; checked at desktop and 375 px. ⏳ one hand check in desktop Chrome's Ctrl+P on the live URL |
 | M9 | Phone width (375px): student view readable, no horizontal scroll | ⏳ — timetable page checked at 349 px: page never scrolls sideways, grid scrolls inside its box with sticky times (P0.3-a); student view in v0.6 |
 | M10 | Reduced motion: no GSAP animation; dark mode readable | ⏳ — code skips all motion under `prefers-reduced-motion` (landing, card, grid drop-in, Flip); not yet checked with the OS setting. Print forces ink-on-white even in dark mode |
 | M11 | Refresh browser: data kept | ⏳ |

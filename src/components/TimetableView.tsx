@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Printer, RotateCcw, Search } from 'lucide-react'
 import { matches, type Filters } from '../lib/filters'
-import { buildGrid, listEntities, type Grid, type GridCell, type GridView } from '../lib/gridModel'
-import { semesterSummary } from '../lib/semester'
+import { buildGrid, listEntities, type GridCell, type GridView } from '../lib/gridModel'
+import { semesterSummary, shortDate } from '../lib/semester'
 import { viewToSearch } from '../lib/viewUrl'
 import type { SolveResult } from '../solver/best'
 import { runSolver } from '../solver/runSolver'
@@ -10,15 +10,13 @@ import type { CollegeData, Id } from '../types'
 import { ClashCourt } from './ClashCourt'
 import { CommandPalette, type PaletteChoice } from './CommandPalette'
 import { FilterBar } from './FilterBar'
+import { PrintHeader, PrintPreview, type PreviewMode } from './PrintSheets'
 import { captureGrid } from './gridMotion'
 import { TimetableGrid } from './TimetableGrid'
 import { VerifiedStamp } from './VerifiedStamp'
 import { ViewPicker } from './ViewPicker'
 import { WhoIsFree } from './WhoIsFree'
 import { Wheel } from './Wheel'
-
-const shortDate = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 const ATTEMPTS = 20
 
@@ -30,27 +28,6 @@ type Props = {
   onResult: (r: SolveResult) => void
   /** View, entity and filters to open with (from a shared link). */
   initial?: { view: GridView; entityId: Id; filters: Filters; tab?: 'free' }
-}
-
-/** Header printed above every timetable page (screen: hidden). */
-function PrintHeader({ college, grid, result }: { college: CollegeData; grid: Grid; result: SolveResult }) {
-  const sem = semesterSummary(college)
-  return (
-    <div className="mb-3 hidden border-b border-ink pb-2 print:block">
-      <div className="flex items-baseline justify-between gap-4">
-        <p className="font-display text-lg font-semibold">
-          {grid.title} <span className="text-sm font-normal">— {grid.subtitle}</span>
-        </p>
-        <p className="font-mono text-[10px]">
-          {result.conflicts.length === 0 ? '0 clashes — verified' : `${result.conflicts.length} clashes`} · quality {result.score.total}/100
-        </p>
-      </div>
-      <p className="text-[11px]">
-        {college.college.name} · {sem.name} ({shortDate(sem.startDate)} – {shortDate(sem.endDate)}) · weekly pattern · printed{' '}
-        {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · Kaalchakra
-      </p>
-    </div>
-  )
 }
 
 /** The timetable page for one generated result. */
@@ -101,6 +78,7 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
   const [busy, setBusy] = useState(false)
   const [round, setRound] = useState(1)
   const [printAll, setPrintAll] = useState(false)
+  const [preview, setPreview] = useState<PreviewMode | null>(null)
   const errors = result.preflight.filter((w) => w.level === 'error')
   const unplacedName = (assignmentId: string) => {
     const a = college.assignments.find((x) => x.id === assignmentId)
@@ -198,23 +176,23 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
             <button
               type="button"
               onClick={() => {
-                // the finder isn't printable: show the timetable, then print it
+                // the finder isn't printable: show the timetable behind the preview
                 setTab('timetable')
-                requestAnimationFrame(() => window.print())
+                setPreview('one')
               }}
               className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium transition hover:bg-ink hover:text-paper"
             >
-              Print <Printer size={15} aria-hidden />
+              Print… <Printer size={15} aria-hidden />
             </button>
             <button
               type="button"
               onClick={() => {
                 setTab('timetable')
-                setPrintAll(true)
+                setPreview('all')
               }}
               className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90"
             >
-              Print all sections <Printer size={15} aria-hidden />
+              Print all sections… <Printer size={15} aria-hidden />
             </button>
           </div>
         </header>
@@ -341,6 +319,19 @@ export function TimetableView({ college, result, onBack, onResult, initial }: Pr
             )
           })}
         </div>
+      )}
+
+      {preview && (
+        <PrintPreview
+          college={college}
+          timetable={result.timetable}
+          result={result}
+          grid={grid}
+          mode={preview}
+          onMode={setPreview}
+          onPrint={() => (preview === 'all' ? setPrintAll(true) : window.print())}
+          onClose={() => setPreview(null)}
+        />
       )}
 
       {palette && <CommandPalette college={college} onChoose={choose} onClose={() => setPalette(false)} />}

@@ -122,3 +122,7 @@ export function classesOn(
       }
     })
 }
+
+/** '2026-07-20' → '20 Jul' (UTC, so the date never shifts with the viewer's time zone). */
+export const shortDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
