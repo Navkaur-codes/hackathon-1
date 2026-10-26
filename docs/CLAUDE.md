@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.8 Kaal Assistant — design approved; P0.8-a built (awaiting push), P0.8-b next** · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.8 complete — P0.8-b built (awaiting push); v0.9 design next** · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
 > **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first. v0.7 complete: P0.7-a `f658fa7`, P0.7-b `e186e9c`, P0.7-c `2d14471` (375 tests).
 >
-> **Next:** the user commits & pushes P0.8-a (`feat(assistant): rule-based kaal assistant`). Then **P0.8-b** ChatDrawer on every desk: `Ask Kaal` button + Ctrl/⌘+J, chips from `suggestions`, answer cards with `jumps` (admins / HOD → timetable page; teacher → My week; student → Week), `open` links (Leave, Conflicts, Meetings), student Request actions through `requestMeeting`, follow-ups via the returned `AskContext`.
+> **Next:** the user commits & pushes P0.8-b (`feat(assistant): chat drawer on every desk`). Then write the **v0.9 design** — Authentication (`docs/PLAN.md`: login replaces the role switcher; Super Admin creates College Admin accounts, College Admin creates users linked to a department / teacher / section; passwords hashed with Web Crypto SHA-256 + salt in the local store; route guards through `access.ts`; demo accounts listed on the login page; README states the production path) — and show the 5-line summary before coding. v0.8 complete: P0.8-a `6dc6f54`.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -542,8 +542,14 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 
 ### Built
 - **P0.8-a** — **assistant logic**: `lib/askParse.ts`, `lib/assistant.ts` (14 intents + fallback + follow-ups + role chips), `assistantScope` in `access.ts`. Decided: entities match by whole words against this college's names (one typo only for words of 5+ letters, so "will" never becomes "Gill"); "classes / schedule / my day" lists the day, "now / next" answers Now / Next; free-room lists say who owns each room and whether it needs its HOD.
+- **P0.8-b** — **ChatDrawer** on every desk (`components/ChatDrawer.tsx`): Ask Kaal button + Ctrl/⌘+J, chips, answer cards, jumps to the right grid, Open links, student Request with a topic, follow-ups, phone bottom sheet. Decided: a teacher or student only jumps to their own week (other people's grids are not their views); the conversation lives in memory and resets per desk / identity.
+- Done-when met on DIET: the student's next class, a meeting request sent from an answer and a refused free-lab question; the teacher's next class and meeting requests; the College Admin's "is Kaur free Tue 3rd period", "free labs Fri after lunch" and "any clashes" — each correct with a working jump; DCAS covered by the chip tests; unknown questions get examples. 392 tests green.
 
 ### Open issues
-_(fill after v0.8)_
+- Rule-based only: questions phrased far from the patterns fall back to examples; an LLM upgrade (Claude through a Vercel function with the finder functions as tools) is README future work.
+- Names are matched whole-word (one typo for 5+ letters); two teachers with the same surname → the better full-name match wins, otherwise the first.
+- "Now" uses the device clock; dated questions use the semester calendar.
+- The conversation is not saved (by design).
+- Bundle 756 kB > 500 kB — code-split the desks before v1.0; M8 / M10 hand checks still open.
 
 ---

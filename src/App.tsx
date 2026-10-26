@@ -5,12 +5,16 @@ import { DeptSwitcher } from './components/DeptSwitcher'
 import { TeacherSwitcher } from './components/TeacherSwitcher'
 import { SectionSwitcher } from './components/SectionSwitcher'
 import { SharedWeek } from './components/SharedWeek'
+import { ChatDrawer } from './components/ChatDrawer'
+import { roleMeta } from './components/roles'
+import { requestMeeting } from './lib/meetings'
+import { localIso } from './lib/myDay'
 import { decodeShare } from './lib/share'
 import { Landing } from './components/Landing'
 import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { can, canDept, canLock, collegeFor, deptScope, studentScope, switchableColleges, teacherScope } from './lib/access'
+import { assistantScope, can, canDept, canLock, collegeFor, deptScope, studentScope, switchableColleges, teacherScope } from './lib/access'
 import { deptEdit, deptSolveOptions, markReady, mergeDept, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
@@ -33,6 +37,7 @@ import { lockedFixed, toggleLock, unlockAll } from './lib/lock'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
 import type { CollegeData, Role } from './types'
+import type { Jump, OpenPage } from './lib/assistant'
 
 // A shared link (?college=…&seed=…) reopens that exact timetable, view and filters.
 const shared = (() => {
@@ -196,6 +201,33 @@ export default function App() {
     setResults((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== collegeId)))
   }
 
+  // Kaal Assistant: the college this desk is about (Super Admin: the one being looked at, else the last one)
+  const askCollegeId =
+    session?.role === 'superAdmin' ? (superInsights?.college.id ?? openCollege?.college.id ?? building?.college.id ?? session.collegeId ?? colleges[0]?.college.id) : session?.collegeId
+  const askScope = inPortal && sharedWeek === undefined ? assistantScope(session, colleges, askCollegeId) : undefined
+  const askCollege = askScope ? colleges.find((c) => c.college.id === askScope.collegeId) : undefined
+  const askJump = (j: Jump) => {
+    if (!askScope || !askCollege) return
+    if (askScope.role === 'teacher') return go({ page: 'portal', portal: 'teacher', path: ['week'] })
+    if (askScope.role === 'student') return go({ page: 'portal', portal: 'student', path: ['week'] })
+    setInitial({ collegeId: askCollege.college.id, seed: askCollege.draft?.seed ?? 0, view: j.view, entityId: j.entityId, filters: {} })
+    view(askCollege.college.id)
+  }
+  const askCanJump = (j: Jump) =>
+    !askScope || !askCollege
+      ? false
+      : askScope.role === 'teacher'
+        ? j.view === 'teacher' && j.entityId === askScope.teacherId
+        : askScope.role === 'student'
+          ? j.view === 'section' && j.entityId === askScope.sectionId
+          : !!askCollege.draft
+  const askOpen = (page: OpenPage) => {
+    setOpen(null)
+    if (page === 'meetings') go({ page: 'portal', portal: 'teacher', path: ['meetings'] })
+    else if (page === 'leave') go({ page: 'portal', portal: session?.role === 'deptAdmin' ? 'dept' : 'college', path: ['leave'] })
+    else go({ page: 'portal', portal: 'college', path: ['conflicts'] })
+  }
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
       <header className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-rule py-4">
@@ -269,6 +301,7 @@ export default function App() {
           />
         ) : openCollege && openResult ? (
           <TimetableView
+            key={`${openCollege.college.id}:${initial?.collegeId === openCollege.college.id ? `${initial.view}:${initial.entityId}` : ''}`}
             college={openCollege}
             result={openResult}
             onBack={back}
@@ -456,8 +489,36 @@ export default function App() {
         )}
       </main>
 
+      {askScope && askCollege && session && (
+        <ChatDrawer
+          key={`${askCollege.college.id}/${session.role}/${session.teacherId ?? ''}/${session.sectionId ?? ''}/${session.deptId ?? ''}`}
+          college={askCollege}
+          scope={askScope}
+          accent={roleMeta(session.role).accent}
+          onJump={askJump}
+          canJump={askCanJump}
+          onOpen={askScope.role === 'student' || askScope.role === 'super' ? undefined : askOpen}
+          onRequest={
+            askScope.role === 'student'
+              ? (a, topic) => {
+                  if (!session.studentName?.trim()) return 'Type your name in “Your name” at the top of your desk first — the teacher needs to know who is asking.'
+                  const d = new Date()
+                  return applyTo(askCollege.college.id)((c) =>
+                    requestMeeting(
+                      c,
+                      { studentName: session.studentName ?? '', sectionId: a.sectionId, teacherId: a.teacherId, date: a.date, period: a.period, topic, note: 'Asked from Kaal Assistant' },
+                      d.toISOString(),
+                      { today: localIso(d), minutes: d.getHours() * 60 + d.getMinutes() },
+                    ),
+                  )
+                }
+              : undefined
+          }
+        />
+      )}
+
       <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
-        <span>Kaalchakra · v0.6 · saved in this browser</span>
+        <span>Kaalchakra · v0.8 · saved in this browser</span>
         <span className="flex items-center gap-3">
           <button type="button" onClick={reset} className="underline-offset-2 hover:text-ink hover:underline">
             Reset demo data
