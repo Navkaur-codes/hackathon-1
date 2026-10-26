@@ -5,7 +5,7 @@ import { can, canDept, canLock, collegeFor, deptScope, sessionFor, switchableCol
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
-const ACTIONS: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts']
+const ACTIONS: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights']
 const ids = (cs: CollegeData[]) => cs.map((c) => c.college.id)
 const archive = (c: CollegeData): CollegeData => ({ ...c, college: { ...c.college, status: 'archived' } })
 
@@ -19,7 +19,7 @@ describe('T4.4 college admin scope', () => {
   })
 
   it('may set up, generate, publish and export its own college — not structure, not another college', () => {
-    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts'] as Action[])
+    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights'] as Action[])
       expect(can(admin, a, dcas.college.id, colleges)).toBe(true)
     expect(can(admin, 'editStructure', dcas.college.id, colleges)).toBe(false)
     for (const a of ACTIONS) expect(can(admin, a, diet.college.id, colleges)).toBe(false)
@@ -44,6 +44,7 @@ describe('T4.6 super admin scope and college isolation', () => {
     for (const c of colleges) {
       expect(can(sup, 'editStructure', c.college.id, colleges)).toBe(true)
       expect(can(sup, 'viewDraft', c.college.id, colleges)).toBe(true)
+      expect(can(sup, 'insights', c.college.id, colleges)).toBe(true)
       for (const a of ['editSetup', 'generate', 'publish', 'export'] as Action[]) expect(can(sup, a, c.college.id, colleges)).toBe(false)
     }
   })

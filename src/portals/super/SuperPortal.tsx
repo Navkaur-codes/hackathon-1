@@ -11,6 +11,8 @@ import { NewCollegeForm } from './NewCollegeForm'
 type Props = {
   colleges: CollegeData[]
   onView: (collegeId: Id) => void
+  /** Read-only college dashboard. */
+  onInsights?: (collegeId: Id) => void
   /** Step into a college as its College Admin. */
   onOpenAsAdmin: (collegeId: Id) => void
   onOpenStructure: (collegeId: Id) => void
@@ -74,7 +76,7 @@ function AdminNames({ college }: { college: CollegeData }) {
 }
 
 /** Super Admin: every college on the platform — create, clone, archive, admins and read-only status. */
-export function SuperPortal({ colleges, onView, onOpenAsAdmin, onOpenStructure }: Props) {
+export function SuperPortal({ colleges, onView, onInsights, onOpenAsAdmin, onOpenStructure }: Props) {
   const addCollege = useKaal((s) => s.addCollege)
   const updateCollege = useKaal((s) => s.updateCollege)
   const [creating, setCreating] = useState(false)
@@ -173,6 +175,11 @@ export function SuperPortal({ colleges, onView, onOpenAsAdmin, onOpenStructure }
                 {r && (
                   <button type="button" onClick={() => onView(c.college.id)} className={`${btn} border-rule hover:border-ink`}>
                     <Eye size={14} aria-hidden /> View timetable
+                  </button>
+                )}
+                {onInsights && (c.published || c.draft) && (
+                  <button type="button" onClick={() => onInsights(c.college.id)} className={`${btn} border-rule hover:border-ink`}>
+                    Insights
                   </button>
                 )}
                 {!archived && (

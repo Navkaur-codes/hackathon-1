@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.7 Ops & insights — P0.7-a pushed, P0.7-b built (awaiting push), P0.7-c next** · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.7 complete — P0.7-c built (awaiting push); v0.8 design next** · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
 > **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
 >
-> **Next:** the user commits & pushes P0.7-b (`feat(ops): lock and regenerate, conflict center`). Then **P0.7-c** Insights dashboard + Shared-Resource Ledger (`lib/insights.ts`, `#/college/insights`; hand-made SVG / CSS charts), then fill v0.7 *Built* / *Open issues* and write the v0.8 design.
+> **Next:** the user commits & pushes P0.7-c (`feat(insights): college dashboard and shared-resource ledger`). Then write the **v0.8 design** — Kaal Assistant (`docs/PLAN.md`: chat drawer on every desk, rule-based intent parser, offline and deterministic, over `finder.ts` / `myDay.ts` / the published timetable, role-scoped through `access.ts`, answers that jump to the right grid) — and show the 5-line summary before coding.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -494,8 +494,15 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 ### Built
 - **P0.7-a** — **Leave inbox + Absence Mode** (`lib/leave.ts`, `lib/unavailability.ts`, `coverCandidates`): approve → auto cover verified by `validateDate`, swap to ranked free teachers / confirm, uncovered flagged, reject with reply, call off, cover re-planned on every publish; shared `LeaveDesk` for the HOD (own department) and the College Admin (all); teachers see decisions and who covers, and can ask to be unavailable. Decided: an unavailability approval is a setup change (department back to Draft, draft out of date) — the published version stays until the College Admin re-publishes.
 - **P0.7-b** — **Lock & regenerate** (`lib/lock.ts`, `canLock`; locks = fixed bookings in every generate, H10 via `mustKeep`; Clash Court Lock / Unlock, lock icon, "Unlock all") + **Conflict Center** (`solver/conflicts.ts`; College Admin Conflicts tab with parties and one-click fixes; draft, live-vs-today and upcoming leave days). Decided: the Conflict Center only offers existing actions; clash cards show just the classes at the slot / room the validator names (it reports assignments, not slots); a locked class that turned illegal is shown with Unlock first, never moved silently.
+- **P0.7-c** — **Insights dashboard + Shared-Resource Ledger** (`lib/insights.ts`; College Admin Insights tab, Super Admin read-only): tiles, quality parts, departments, teacher load with limit tick, room heatmap (one hue, numbers in cells), idle rooms to lend, shared-room ledger, semester delivery. Decided: magnitude only — no categorical colours, departments are named in text; status red only with an icon and a label.
+- Done-when met on DIET: Dr. Kaur's leave approved with every class covered (one swapped), 0 clashes that date, duty and notices shown; a locked lab stayed put through regeneration; an injected cross-department room clash appeared in the Conflict Center with both departments and was fixed with Move room + Generate ECE while publishing stayed blocked; the dashboard shows loads, room use and the shared-room ledger on DIET and DCAS. 375 tests green.
 
 ### Open issues
-_(fill after v0.7)_
+- Absence Mode covers with substitutes only; moving an uncovered class to another free slot that week (`Substitution.movedTo`) is not built — students see a notice instead.
+- Leave and cover are decided on the published version; re-publishing re-plans upcoming cover (confirmed choices kept when free).
+- The Conflict Center narrows each card to the slot / room named in the validator's message (the validator reports assignments, not slots).
+- An approved unavailability request marks the whole draft out of date (same as any setup edit) — the College Admin or the HOD generates again.
+- Insights read the published version (draft only when nothing is published); the heatmap counts rooms per teachable slot, not per section break.
+- Bundle 723 kB > 500 kB — code-split the desks before v1.0; M8 / M10 hand checks still open.
 
 ---

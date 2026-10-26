@@ -142,7 +142,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
         {college.college.name} — your department only. Keep it ready; the College Admin generates and publishes the college.
       </PortalTitle>
 
-      <div role="tablist" aria-label="Department desk" className="mt-5 flex gap-5 border-b border-rule">
+      <div role="tablist" aria-label="Department desk" className="mt-5 flex gap-4 overflow-x-auto border-b border-rule sm:gap-5">
         {(
           [
             ['overview', 'Overview'],
@@ -157,7 +157,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
             type="button"
             aria-selected={page === id}
             onClick={() => onPage(id)}
-            className={`-mb-px border-b-2 pb-2 font-display text-base font-semibold transition ${
+            className={`-mb-px shrink-0 border-b-2 pb-2 font-display text-[15px] font-semibold transition sm:text-base ${
               page === id ? 'border-terracotta text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >

@@ -21,9 +21,11 @@ export type Action =
   | 'leave'
   /** The Conflict Center: every clash with its fix (root §2). */
   | 'conflicts'
+  /** The college dashboard (loads, room use, shared-resource ledger); Super Admin reads it too. */
+  | 'insights'
 
-const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts']
-const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished']
+const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights']
+const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished', 'insights']
 /** An HOD works on the college draft (their own department's part of it) — never publishes. */
 const DEPT_ADMIN: Action[] = ['viewDraft', 'viewPublished']
 

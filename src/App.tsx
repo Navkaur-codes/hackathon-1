@@ -21,6 +21,7 @@ import { asTeacherPage } from './portals/teacher/pages'
 import { StudentPortal } from './portals/student/StudentPortal'
 import { asStudentPage } from './portals/student/pages'
 import { CollegePortal } from './portals/college/CollegePortal'
+import { Insights } from './portals/college/Insights'
 import { SuperPortal } from './portals/super/SuperPortal'
 import { StructureBuilder } from './portals/super/structure/StructureBuilder'
 import { asBuilderTab } from './portals/super/structure/tabs'
@@ -165,6 +166,9 @@ export default function App() {
   const subPath = route.page === 'portal' ? (route.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
   const building = target && can(session, 'editStructure', target.college.id, colleges) ? target : undefined
+  // #/super/<collegeId>/insights — the read-only dashboard
+  const insightsTarget = inPortal && session.role === 'superAdmin' && subPath[1] === 'insights' ? collegeFor(session, colleges, subPath[0]) : undefined
+  const superInsights = insightsTarget && can(session, 'insights', insightsTarget.college.id, colleges) ? insightsTarget : undefined
   /** Apply a checked change (leave, bookings…) to the college as it is now — another tab may have changed it. */
   const applyTo =
     (collegeId: string) =>
@@ -304,10 +308,20 @@ export default function App() {
             onBack={() => go({ page: 'portal', portal: 'super' })}
             edit={editOf(building.college.id)}
           />
+        ) : superInsights ? (
+          <section className="py-8">
+            <button type="button" onClick={() => go({ page: 'portal', portal: 'super' })} className="text-[13px] text-muted underline-offset-2 hover:text-ink hover:underline">
+              ← All colleges
+            </button>
+            <h1 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">{superInsights.college.name}</h1>
+            <p className="mb-6 text-[14px] text-muted">Insights · read-only for the Super Admin</p>
+            <Insights college={superInsights} onExchangeHint={false} />
+          </section>
         ) : inPortal && session.role === 'superAdmin' ? (
           <SuperPortal
             colleges={colleges}
             onView={view}
+            onInsights={(id) => go({ page: 'portal', portal: 'super', path: [id, 'insights'] })}
             onOpenAsAdmin={openAsAdmin}
             onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
           />
@@ -317,13 +331,13 @@ export default function App() {
             college={home}
             onResult={saveDraft(home.college.id)}
             onView={() => view(home.college.id)}
-            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'leave' ? 'leave' : subPath[0] === 'conflicts' ? 'conflicts' : 'overview'}
+            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'leave' || subPath[0] === 'conflicts' || subPath[0] === 'insights' ? subPath[0] : 'overview'}
             setupTab={asSetupTab(subPath[1])}
             onPage={(page, tab) =>
               go({
                 page: 'portal',
                 portal: 'college',
-                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : page === 'leave' || page === 'conflicts' ? { path: [page] } : {}),
+                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : page === 'leave' || page === 'conflicts' || page === 'insights' ? { path: [page] } : {}),
               })
             }
             actLeave={can(session, 'leave', home.college.id, colleges) ? applyTo(home.college.id) : undefined}

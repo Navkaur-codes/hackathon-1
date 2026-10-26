@@ -11,6 +11,7 @@ import { PublishPanel } from './PublishPanel'
 import { leaveWaiting } from '../../lib/leave'
 import { LeaveDesk } from '../leave/LeaveDesk'
 import { ConflictCenter } from './ConflictCenter'
+import { Insights } from './Insights'
 import { conflictCount, conflictReport } from '../../solver/conflicts'
 import { localIso } from '../../lib/myDay'
 import type { Id, Placement } from '../../types'
@@ -23,9 +24,9 @@ type Props = {
   onResult: (r: SolveResult) => void
   onView: () => void
   /** `overview` = generate & view; `setup` = rooms, teachers, assignments… */
-  page: 'overview' | 'setup' | 'leave' | 'conflicts'
+  page: 'overview' | 'setup' | 'leave' | 'conflicts' | 'insights'
   setupTab: SetupTab
-  onPage: (page: 'overview' | 'setup' | 'leave' | 'conflicts', tab?: SetupTab) => void
+  onPage: (page: 'overview' | 'setup' | 'leave' | 'conflicts' | 'insights', tab?: SetupTab) => void
   /** Present only when this session may edit the setup (lib/access.ts). */
   edit?: Edit
   canPublish: boolean
@@ -59,13 +60,14 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         Your college only — set it up, generate one clash-free timetable for every department, then publish it.
       </PortalTitle>
 
-      <div role="tablist" aria-label="College desk" className="mt-5 flex gap-5 border-b border-rule">
+      <div role="tablist" aria-label="College desk" className="mt-5 flex gap-4 overflow-x-auto border-b border-rule sm:gap-5">
         {(
           [
             ['overview', 'Timetable'],
             ['setup', 'Setup'],
             ['leave', 'Leave'],
             ...(fixes ? ([['conflicts', 'Conflicts']] as const) : []),
+            ['insights', 'Insights'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -74,7 +76,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
             type="button"
             aria-selected={page === id}
             onClick={() => onPage(id)}
-            className={`-mb-px border-b-2 pb-2 font-display text-base font-semibold transition ${
+            className={`-mb-px shrink-0 border-b-2 pb-2 font-display text-[15px] font-semibold transition sm:text-base ${
               page === id ? 'border-vermilion text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
@@ -92,7 +94,11 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         ))}
       </div>
 
-      {page === 'conflicts' && fixes ? (
+      {page === 'insights' ? (
+        <div className="mt-6">
+          <Insights college={college} />
+        </div>
+      ) : page === 'conflicts' && fixes ? (
         <div className="mt-6 max-w-3xl">
           <ConflictCenter
             college={college}
