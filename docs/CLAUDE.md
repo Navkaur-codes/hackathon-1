@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.5 built (P0.5-c awaiting push) — next: v0.6 design (Teacher & Student portals + Meet-a-Teacher)** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.5 room rework — P0.5-d built (awaiting push), P0.5-e next; v0.6 design written, on hold** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.5 is built** — P0.5-a `74d652a`, P0.5-b `6171526` pushed; **P0.5-c** Room Exchange (`lib/exchange.ts`, `portals/department/ExchangeTab.tsx`, `portals/college/LoanLedger.tsx`; 299 tests) is built — the user commits & pushes it (`feat(dept): room exchange between departments`). Check `git log -1` first. v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
+> **▶ RESUME HERE (new chat):** **v0.5 is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`; 299 tests green. v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
 >
-> **Next:** write the **v0.6 design** (Teacher & Student portals + Meet-a-Teacher — root §2 rows for `teacher` / `student`, meeting rules in root §3; tests T6.1–T6.8 in `docs/TEST.md`): teachers and students read **only the published version** (never a draft), Today / Now-Next with that date's substitutions (`lib/semester.classesOn`), finder role scoping (students never see free rooms), share link of a published section timetable (`lz-string`), Meet-a-Teacher on `finder.commonFree`. Show the user a 5-line summary and wait for approval before coding.
+> **Next:** room rework approved (2026-10-26; root H11 + §2 updated). **P0.5-d** (`lib/allocation.ts`, solver `anyRoom`, Clash Court Move to another room; 307 tests) is built — the user commits & pushes it (`feat(rooms): college admin allocates rooms for the semester`). Then **P0.5-e** single-date room requests (`lib/bookings.ts`, see the added design under v0.5), then ask approval for the v0.6 design (written below) and build P0.6-a/b/c.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -355,6 +355,26 @@
 
 **Done when:** an HOD of DIET CSE fixes their setup, generates CSE against the rest, and marks it Ready; the ECE HOD requests CSE's lab for Thursday P3–P4, the CSE HOD approves, ECE re-generates and uses that lab only then; revoking it lists the affected class and blocks publishing until ECE re-generates; nothing ever clashes across departments; and an HOD can never edit another department.
 
+### Added design — semester room allocation + single-date room requests (user request before v0.6, 2026-10-26) · *approved; P0.5-d built*
+**Request:** the timetable is one weekly pattern for the whole semester, so a room another department uses is in effect theirs for the semester — the person who designs the timetable (the **College Admin**) should assign rooms, including other departments' rooms. Keep requesting, for when someone needs a specific room **on a particular day**. User's choices: allocation **automatic + hand edits**; requests **single dates, keep the weekly HOD loans**; a single-date request is approved by **the HOD who owns the room** (shared rooms → College Admin).
+This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**; built as **P0.5-d** and **P0.5-e** before v0.6.
+
+**P0.5-d — the College Admin assigns rooms for the semester**
+- **Whole-college generate** (`solveBest` option `anyRoom`, College Admin only): every suitable room of the college may be used — own department first, shared next, another department's room only when it helps (a heavier soft penalty than shared, S6). Department generate by an HOD keeps today's rules (own · shared · loans · allocations to it).
+- **Allocations are recorded, never silent:** `syncAllocations(college)` derives, from the draft **and** the published version, every class sitting in another department's room and keeps exactly those as `Grant { kind: 'allocation', status: 'approved' }` (from the owner to the user department, its weekly slots). So rule H11 stays true (an approved grant covers the slot), the validator stays independent, HOD generates honour them, and the published version stays valid while a newer draft changes things. Allocations are the College Admin's: HODs see them ("Allocated for the semester by the College Admin") but cannot revoke them; weekly HOD loans keep working as before.
+- **Hand edits:** on the College Admin's timetable, Clash Court gets **"Move to another room"**: rooms of the right type and size that are free for the whole block, labelled *own · shared · other department (will be allocated)*; `moveToRoom(college, placement, roomId)` checks type, seats and that the room is free, updates the draft and re-syncs allocations. The validator re-checks everything.
+- **Tests (T5.6, T5.7):** squeezed labs → whole-college generate puts ECE's labs in the CSE lab, records them as allocations, 0 conflicts; with enough own rooms no other department's room is used; an HOD re-generating a department keeps its allocated rooms; moving a class into another department's room creates the allocation and moving it back removes it (unless the published version still uses it); unsuitable / busy rooms refused.
+
+**P0.5-e — single-date room requests**
+- `RoomBooking { id, collegeId, roomId, deptId (asker), date, periods, purpose, status: requested · approved · declined · withdrawn · needsNewRoom, createdAt, decidedAt? }` — a room for **one date** (extra class, seminar, test). It never changes the weekly pattern.
+- `lib/bookings.ts`: `freeOnDate(college, roomId, date)` from the **published** timetable on that real date (holiday / no-class days are free) minus blocked slots and other approved bookings; `requestBooking`, `decideBooking` (the room's HOD; shared rooms → College Admin), `withdraw`; a booking for a date in the past or outside the semester is refused. `bookingsAfterPublish` marks approved bookings whose slot a new published version now needs as **needsNewRoom** (like meetings).
+- Screens: HOD Room Exchange gets **"Book a room for a day"** (pick room, date, free periods, purpose) and the bookings to decide; College Admin decides bookings of shared rooms and sees every booking in the ledger. (Teachers and students will see bookings on *Today* in v0.6.)
+- **Tests (T5.8):** free periods follow the published day of that date; owner HOD (or College Admin for shared rooms) decides, nobody else; the same period of a room is never booked twice; past dates refused; a re-publish that needs the slot → needsNewRoom.
+
+- **Learned in P0.5-d:** letting every room be a candidate made the solver 4–17× slower (the cache re-scored every session sharing any room). Two exact / safe fixes: the room loop stops once no later room can beat the best (rooms sorted by owner penalty, then size), and with `anyRoom` a room-sharer is re-scored only when its cached best choice sits in the booked room and time — cached choices stay legal, only the option count can be slightly stale. DIET 0.74 s → 0.58 s for 20 tries with all rooms; scores unchanged (DIET 96, DCAS 90).
+
+**Root CLAUDE.md (needs the user's OK):** H11 gets one sentence — *"The College Admin may allocate another department's room for the semester; every such use is recorded as an approved allocation grant, so the rule still holds."* — and §2 gains "allocate rooms across departments" for `collegeAdmin` and "request a room for a single date" for `deptAdmin`.
+
 ### Built
 - **P0.5-a** `74d652a` — **HOD desk** `#/dept`: HOD rules in `lib/access.ts` (`DeptAction`, `canDept`, `deptScope`; session `deptId` + department switcher), `lib/deptPlan.ts` readiness checklist + Ready / Draft (`markReady`, `deptEdit`), teacher load bars, department-scoped Setup reusing the College Admin tabs (+ Subjects) and scoped paste (`limitToDept`).
 - **P0.5-b** `6171526` — **Generate my department**: `deptSolveOptions` (other departments' placements as fixed bookings — same `solveBest`), `mergeDept`, `coverage`; per-department staleness (judged by coverage + the independent clash check); department-scoped timetable pickers; College Admin **Departments** strip; department remembered across role switches.
@@ -367,6 +387,53 @@
 - A college-wide change (blocked slot, calendar) holds back every department with a class there; each must re-generate (or the College Admin generates the whole college).
 - Leave approval and substitute screens on the HOD desk are **v0.7** (engine since v0.2).
 - Bundle > 500 kB (code-split the desks before v1.0); M8 / M10 hand checks still open.
+
+---
+
+## v0.6 Teacher & Student portals + Meet-a-Teacher
+
+### Design
+**Goal:** everyone who lives by the timetable can use it. A **teacher** sees their week and today (with any substitution duty), their load, asks for leave and keeps office hours; a **student** sees their section's week and **Now / Next** on a phone, sees substitute notices, prints or shares the timetable, and can **request a meeting** with a teacher in a slot when both are free. Both read **only the published version** — a draft never leaks (root §2). Dates are real semester dates (rule G6): holidays and no-class days say so instead of showing classes.
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `types.ts` | `Session.studentName?` (a student types their name once; real accounts in v0.9). `MeetingRequest` gains `date` (ISO), `createdAt`, `reply?`; `LeaveRequest` gains `createdAt`. |
+| `lib/access.ts` | `selfScope(session, colleges)` → the teacher or section this session is (validated inside its college). Teachers / students: `viewPublished` only; a student may ask only a teacher who teaches their section or belongs to its department (`canMeet`). The finder's free-room view stays with admins and HODs. |
+| `lib/myDay.ts` | Pure, from the **published** timetable only: `dayFor(college, date, who)` → that date's status (teaching / holiday / no-class / weekend / outside the semester, with its label) and the classes of a teacher or section in order, with that date's **substitutions** (teacher's own classes covered by someone else, and duties they cover for others; a section's class with its substitute). `nowNext(college, at, who)` → the class happening now (or the break) and the next one today, with clock times from `periodTimes` / `nowSlot`. `weekLoad(college, teacherId)` → periods per day and week vs limits. Nothing when nothing is published. |
+| `lib/share.ts` | `encodeShare(college, sectionId)` → a compact, self-contained, **read-only** snapshot of one section's published week (days, slot times, breaks, classes: subject, teacher, room; version, semester) compressed with `lz-string` into the URL (`?s=…`); `decodeShare(s)` → the snapshot or null. Fully client-side, so the link works on any phone without the college's data. |
+| `lib/meetings.ts` | `bookableSlots(college, teacherId, sectionId, date)` = teacher free ∩ section free on that date's published day (reusing `finder.commonFree`), minus breaks / blocked slots and past times; office-hour slots flagged. `requestMeeting(...)` refuses beyond `calendar.maxMeetingRequestsPerStudent` pending requests, outside the bookable slots, or with a teacher the student may not ask. Teacher actions: `accept` (optionally with a free room from `finder.freeRooms`), `propose` (another bookable slot), `decline` with a reply; student `withdraw`. `meetingsAfterPublish(college)` → accepted meetings whose slot now holds a class become `needsReschedule` (called by `publish`); meetings never block teaching (root §3). `meetingCounts(college, deptId)` for the HOD (counts only). |
+| `lib/publish.ts` | `publish` also re-checks accepted meetings against the new version. |
+
+**Screens**
+- **Header:** a **teacher picker** for the Teacher role (teachers of the college) and a **section picker + "your name"** for the Student role — stand-ins for logging in (v0.9).
+- **Teacher desk** `#/teacher` (accent plum): **Today** (date with ← → and "today"; holiday / no-class banner; classes in order with room and section; *substitution duty* and *covered by …* tags) · **My week** (published grid, print via the existing preview) · **Load** (periods per day vs daily limit, week vs weekly limit) · **Leave** (pick a teaching date → reason → request; list with status — approval and cover are the HOD's screens in **v0.7**) · **Office hours** (pick free slots of the week, "accepting requests" switch) · **Meeting requests** inbox (P0.6-c).
+- **Student desk** `#/student` (accent marigold, phone first): **Now / Next** card (what and where, until when; "Free now" / "Lunch" / "No classes today — Diwali break") · **Today** with substitute notices · **This week** (section grid, print) · **Share** (copy link → opens a read-only view of the section's week on any device) · **Meet a teacher** (P0.6-c: pick a teacher of the section, a date, a free slot — office hours highlighted — topic and note; my requests with status).
+- **Shared view** `/?s=…`: Kaalchakra header, section, semester, version, the week grid, print — no desk, no data needed.
+- When nothing is published: both desks say so plainly ("Your college has not published a timetable yet").
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.6-a | Teacher desk: identity picker, Today (dates, holidays, substitution duties), My week + print, load, leave request, office hours | T6.1 teachers and students read only the published version, never a draft · T6.2 teacher scope (own classes, duties) · T6.3 now / next for given times (incl. break, before / after hours, holiday) · leave request rules | `feat(teacher): teacher desk with today, week, load, leave and office hours` |
+| P0.6-b | Student desk: section + name, Now / Next, Today with substitute notices, This week + print, share link + shared read-only view; phone layout | T6.2 student scope (own section only) · T6.4 share encode → decode round trip; a broken link is refused · M9 phone width | `feat(student): student desk with now-next, notices and share link` |
+| P0.6-c | Meet-a-Teacher: student request (bookable slots, office hours, max pending), teacher inbox (accept with room / propose / decline), statuses, HOD counts; publish marks clashing accepted meetings `needsReschedule` | T6.5 bookable = teacher free ∩ section free (published) · T6.6 max pending refused · T6.7 teacher sees only own requests, HOD counts only · T6.8 a re-publish that puts a class into an accepted meeting → `needsReschedule` | `feat(meet): meet-a-teacher requests and inbox` |
+
+**Decisions**
+- **Published only, always.** Teacher and student screens never read `draft`; with nothing published they say so. Today's view = the published weekly pattern on that real date + that date's substitutions (`classesOn`).
+- **Share links carry the timetable itself** (compressed), because Kaalchakra has no server: whoever opens the link sees the snapshot taken when it was shared, labelled with its version and date — not live data.
+- **Meetings are booked on real dates** in slots where both are free in the published timetable; they never block teaching, and a later version that needs the slot turns them into *needs reschedule* with a notice to both.
+- **Leave:** the teacher requests here; the HOD's approval, auto-allotted substitute and notices are **v0.7** (engine since v0.2). Teacher-requested unavailable slots also wait for the HOD screens in v0.7.
+- No new library: `lz-string` is already in the stack for share links.
+- If time runs short: office hours and the load card drop first; the shared read-only view can fall back to "copy the section's printable page".
+
+**Done when:** after the College Admin publishes DIET, a teacher sees today's classes (and a holiday banner on a holiday), their week and load, and requests leave for a date; a student of CSE-Y2-A on a phone sees Now / Next and this week, shares a link that opens the week on another device, and requests a meeting in a slot when both are free; the teacher accepts it with a room and the student sees "accepted"; a re-publish that needs that slot marks it *needs reschedule*; and no teacher or student ever sees a draft.
+
+### Built
+_(fill after v0.6)_
+
+### Open issues
+_(fill after v0.6)_
 
 ---
 

@@ -19,6 +19,7 @@ import { asBuilderTab } from './portals/super/structure/tabs'
 import { asSetupTab } from './portals/college/setup/tabs'
 import { describeTimetable, type SolveResult } from './solver/best'
 import { setDraft } from './lib/publish'
+import { moveToRoom, syncAllocations } from './lib/allocation'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
 import type { CollegeData, Role } from './types'
@@ -71,7 +72,10 @@ export default function App() {
   const openCollege = open ? (inPortal ? collegeFor(session, colleges, open) : active.find((c) => c.college.id === open)) : undefined
   const keep = (collegeId: string) => (r: SolveResult) => setResults((prev) => ({ ...prev, [collegeId]: r }))
   /** Inside a desk a generated timetable is saved as the college's draft. */
-  const saveDraft = (collegeId: string) => (r: SolveResult) => updateCollege(collegeId, (c) => setDraft(c, r.timetable))
+  // every use of another department's room is recorded as a semester allocation (H11)
+  const saveDraft = (collegeId: string) => (r: SolveResult) => updateCollege(collegeId, (c) => syncAllocations(setDraft(c, r.timetable)))
+  /** The College Admin designs the timetable: any suitable room of the college may be used. */
+  const designerOptions = (collegeId: string) => (can(session, 'generate', collegeId, colleges) ? { anyRoom: true } : undefined)
   // a stored draft is described against the college as it is now (score, clashes, pre-flight recomputed)
   const openStored = useMemo(
     () => (inPortal && openCollege?.draft ? describeTimetable(openCollege, openCollege.draft) : undefined),
@@ -195,6 +199,17 @@ export default function App() {
             result={openResult}
             onBack={back}
             onResult={inPortal ? saveDraft(openCollege.college.id) : keep(openCollege.college.id)}
+            solveOptions={inPortal ? designerOptions(openCollege.college.id) : undefined}
+            onMoveRoom={
+              inPortal && can(session, 'generate', openCollege.college.id, colleges)
+                ? (placement, roomId) => {
+                    const current = appStore.getState().colleges.find((c) => c.college.id === openCollege.college.id)!
+                    const r = moveToRoom(current, placement, roomId)
+                    if (r.ok) updateCollege(openCollege.college.id, () => r.college)
+                    return r.ok ? null : r.reason
+                  }
+                : undefined
+            }
             notice={
               inPortal && openCollege.draftStale
                 ? 'This draft is out of date — the structure or setup changed after it was generated. Generate again before publishing.'
@@ -235,6 +250,7 @@ export default function App() {
             edit={can(session, 'editSetup', home.college.id, colleges) ? editOf(home.college.id) : undefined}
             canPublish={can(session, 'publish', home.college.id, colleges)}
             canExport={can(session, 'export', home.college.id, colleges)}
+            solveOptions={designerOptions(home.college.id)}
           />
         ) : inPortal && session.role === 'collegeAdmin' ? (
           <p className="py-16 text-muted">This college is archived or no longer exists — pick another college above.</p>
@@ -265,7 +281,7 @@ export default function App() {
                     // solve against the college as it is now; only this department moves
                     const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
                     const r = await runSolver(current, { attempts: 20, baseSeed: 1 + round * 20, ...deptSolveOptions(current, hodDept) })
-                    updateCollege(home.college.id, (c) => mergeDept(c, hodDept, r.timetable))
+                    updateCollege(home.college.id, (c) => syncAllocations(mergeDept(c, hodDept, r.timetable)))
                   }
                 : undefined
             }

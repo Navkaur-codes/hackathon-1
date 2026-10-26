@@ -1,6 +1,7 @@
 // Seeded restarts: run the solver with different seeds and keep the best weekly pattern —
 // fewest unplaced periods first, then the highest quality score. Also bundles everything the UI shows.
 
+import { syncAllocations } from '../lib/allocation'
 import { semesterDelivery, semesterSummary } from '../lib/semester'
 import type { CollegeData, Placement, Timetable } from '../types'
 import { preflight, type Warning } from './preflight'
@@ -43,8 +44,10 @@ export function solveBest(college: CollegeData, opts: BestOptions = {}): SolveRe
     if (!best || u < best.u || s.total > best.s.total) best = { t, s, u }
   }
 
+  // with anyRoom the result is judged as it will be stored: every use of another department's room allocated
+  const judged = opts.anyRoom ? syncAllocations({ ...college, draft: best!.t }) : college
   return {
-    ...describeTimetable(college, best!.t, { mustKeep: opts.fixed?.filter((p) => p.locked) }),
+    ...describeTimetable(judged, best!.t, { mustKeep: opts.fixed?.filter((p) => p.locked) }),
     attempts,
     ms: Date.now() - started,
   }

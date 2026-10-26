@@ -15,6 +15,7 @@ const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 te
 const field = 'rounded-lg border border-rule bg-paper px-2.5 py-1.5 text-[14px]'
 const small = 'font-mono text-[11px] tracking-[0.15em] text-muted uppercase'
 const now = () => new Date().toISOString()
+const ALLOCATED = { text: 'allocated', color: 'var(--vermilion)' }
 const STATUS: Record<Grant['status'], { text: string; color: string }> = {
   requested: { text: 'asked', color: 'var(--gold)' },
   offered: { text: 'offered', color: 'var(--gold)' },
@@ -222,15 +223,16 @@ export function ExchangeTab({ college, deptId, act }: Props) {
                 <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 text-[13px]">
                   <span
                     className="rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase"
-                    style={{ color: STATUS[g.status].color, borderColor: STATUS[g.status].color }}
+                    style={{ color: (g.kind === 'allocation' ? ALLOCATED : STATUS[g.status]).color, borderColor: (g.kind === 'allocation' ? ALLOCATED : STATUS[g.status]).color }}
                   >
-                    {STATUS[g.status].text}
+                    {(g.kind === 'allocation' ? ALLOCATED : STATUS[g.status]).text}
                   </span>
                   <span className="min-w-0 flex-1">
                     {lending ? `${roomName(g.roomId)} → ${code(g.toDeptId)}` : `${roomName(g.roomId)} from ${code(g.fromDeptId)}`} · {describeSlots(college, g.slots)}
                     {g.note && <span className="text-muted"> — “{g.note}”</span>}
+                    {g.kind === 'allocation' && <span className="text-muted"> — for the semester, by the College Admin</span>}
                   </span>
-                  {g.status === 'approved' && lending && (
+                  {g.status === 'approved' && lending && g.kind !== 'allocation' && (
                     <button
                       type="button"
                       onClick={() => {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { CollegeCard } from '../../components/CollegeCard'
-import { describeTimetable, type SolveResult } from '../../solver/best'
+import { describeTimetable, type BestOptions, type SolveResult } from '../../solver/best'
 import type { CollegeData } from '../../types'
 import { PortalTitle } from '../PortalTitle'
 import { DeptStrip } from './DeptStrip'
@@ -22,10 +22,12 @@ type Props = {
   edit?: Edit
   canPublish: boolean
   canExport: boolean
+  /** Whole-college generate options: the College Admin may use any department's room (allocated for the semester). */
+  solveOptions?: BestOptions
 }
 
 /** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport }: Props) {
+export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions }: Props) {
   // the stored draft, described against the college as it is now
   const draft = college.draft
   const result = useMemo(() => (draft ? describeTimetable(college, draft) : undefined), [college, draft])
@@ -81,7 +83,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
               The structure or setup changed after this draft was generated — generate again before publishing.
             </p>
           )}
-          <CollegeCard data={college} result={result} onResult={onResult} onView={onView} />
+          <CollegeCard data={college} result={result} onResult={onResult} onView={onView} solveOptions={solveOptions} />
           <div className="mt-4">
             <PublishPanel college={college} canPublish={canPublish} canExport={canExport} edit={edit} />
           </div>

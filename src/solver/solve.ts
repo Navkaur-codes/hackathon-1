@@ -16,6 +16,12 @@ export type SolveOptions = {
   leave?: { teacherId: Id; day: number }[]
   /** Try moving one already-placed class to make room when a class is stuck (default true). */
   repair?: boolean
+  /**
+   * College Admin's whole-college generate: any suitable room of the college may be used (own department first,
+   * shared next, another department's room only when it helps). Every such use must then be recorded as an
+   * allocation grant (`lib/allocation.ts`) so rule H11 holds.
+   */
+  anyRoom?: boolean
 }
 
 type Session = {
@@ -41,7 +47,8 @@ const W = {
   teacherGap: 4, // S3
   sectionGap: 4, // S4
   teacherDayLoad: 2, // S5
-  notOwnRoom: 3, // S6
+  notOwnRoom: 3, // S6 — shared or borrowed room
+  otherDeptRoom: 8, // S6 — another department's room the College Admin would allocate (anyRoom)
   lateLab: 6, // S7
   lunchMoved: 3, // flexible break: keep the preferred lunch slot unless moving it buys a better placement
   roomSlack: 0.01, // best-fit room
@@ -155,22 +162,30 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
   }
   const grantsTo = (deptId: Id, roomId: Id) => granted.get(`${deptId}|${roomId}`)
   const roomAllowedAt = (room: Room, section: Section, day: number, period: number, length: number) => {
-    if (room.owner === 'shared' || room.owner === section.deptId) return true
+    if (room.owner === 'shared' || room.owner === section.deptId || opts.anyRoom) return true
     const g = grantsTo(section.deptId, room.id)
     if (!g) return false
     if (g === 'all') return true
     for (let i = 0; i < length; i++) if (!g.has(slotKey(day, period + i))) return false
     return true
   }
+  /** S6 penalty of using a room for a section, before the best-fit slack: own · shared or loaned · another department's. */
+  const ownerPenalty = (r: Room, section: Section) =>
+    r.owner === section.deptId
+      ? 0
+      : r.owner === 'shared' || grantsTo(section.deptId, r.id) !== undefined
+        ? W.notOwnRoom
+        : W.otherDeptRoom // only reachable with anyRoom: the College Admin will allocate it
+  /** Usable rooms, cheapest owner first, then smallest — the order the room loop stops early on. */
   const roomsFor = (section: Section, subject: Subject) =>
     college.rooms
       .filter(
         (r) =>
           r.type === subject.roomType &&
           r.capacity >= section.strength &&
-          (r.owner === 'shared' || r.owner === section.deptId || grantsTo(section.deptId, r.id) !== undefined),
+          (r.owner === 'shared' || r.owner === section.deptId || grantsTo(section.deptId, r.id) !== undefined || opts.anyRoom),
       )
-      .sort((x, y) => Number(x.owner !== section.deptId) - Number(y.owner !== section.deptId) || x.capacity - y.capacity)
+      .sort((x, y) => ownerPenalty(x, section) - ownerPenalty(y, section) || x.capacity - y.capacity)
 
   // ── Static legality of a block for a section + teacher (ignores bookings) ──
   const staticOk = (section: Section, teacher: Teacher, day: number, start: number, length: number) => {
@@ -275,18 +290,20 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
           if (lunchFree < lunchNeed) continue
         }
 
-        // Room: H3 free, H11 allowed at these slots; best penalty among them
+        // Room: H3 free, H11 allowed at these slots; best penalty among them. Rooms are sorted by owner penalty,
+        // so once a room's owner penalty alone cannot beat the best found, no later room can (exact, just faster).
         let room: Room | null = null
         let roomPenalty = Infinity
         for (const r of s.rooms) {
+          const ownerPen = ownerPenalty(r, section)
+          if (ownerPen >= roomPenalty) break
+          const pen = ownerPen + (r.capacity - section.strength) * W.roomSlack
+          if (pen >= roomPenalty) continue
           let ok = roomAllowedAt(r, section, d, start, length)
           for (let i = 0; i < length && ok; i++) if (roomBusy[rb(r.id, d, start + i)]) ok = false
           if (!ok) continue
-          const pen = (r.owner === section.deptId ? 0 : W.notOwnRoom) + (r.capacity - section.strength) * W.roomSlack
-          if (pen < roomPenalty) {
-            room = r
-            roomPenalty = pen
-          }
+          room = r
+          roomPenalty = pen
         }
         if (!room) continue
 
@@ -331,9 +348,16 @@ export function solve(college: CollegeData, opts: SolveOptions = {}): Timetable 
     book(s.assignment, s.section, s.teacher.id, placement)
     placements.push(placement)
     placedBy.set(placement, s)
-    // Only sessions sharing this teacher, section or room can have changed options.
+    // Only sessions sharing this teacher, section or room can have changed options. With anyRoom almost every
+    // session could use almost every room, so there a room-sharer is re-scored only when its cached best choice
+    // sits in this room at an overlapping time — every cached choice stays legal (never a clash); only its count
+    // of options may be a little stale, which affects the order, not correctness.
+    const overlaps = (b: Choice | null, len: number) =>
+      !!b && b.room.id === c.room.id && b.day === c.day && b.period < c.period + s.length && c.period < b.period + len
     for (const x of remaining) {
-      if (x.teacher.id === s.teacher.id || x.section.id === s.section.id || x.rooms.includes(c.room)) cache.delete(x)
+      const sharesPerson = x.teacher.id === s.teacher.id || x.section.id === s.section.id
+      const sharesRoom = opts.anyRoom ? overlaps(cache.get(x)?.best ?? null, x.length) : x.rooms.includes(c.room)
+      if (sharesPerson || sharesRoom) cache.delete(x)
     }
     return placement
   }

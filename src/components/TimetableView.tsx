@@ -4,9 +4,9 @@ import { matches, type Filters } from '../lib/filters'
 import { buildGrid, listEntities, type GridCell, type GridView } from '../lib/gridModel'
 import { semesterSummary, shortDate } from '../lib/semester'
 import { viewToSearch } from '../lib/viewUrl'
-import type { SolveResult } from '../solver/best'
+import type { BestOptions, SolveResult } from '../solver/best'
 import { runSolver } from '../solver/runSolver'
-import type { CollegeData, Id } from '../types'
+import type { CollegeData, Id, Placement } from '../types'
 import { ClashCourt } from './ClashCourt'
 import { CommandPalette, type PaletteChoice } from './CommandPalette'
 import { FilterBar } from './FilterBar'
@@ -34,10 +34,14 @@ type Props = {
   notice?: string
   /** HOD: pickers list only this department (its sections, teachers, own / shared / lent rooms). */
   scopeDeptId?: Id
+  /** Extra solver options for "Generate another" (College Admin: `anyRoom`). */
+  solveOptions?: BestOptions
+  /** College Admin: move a class to another room from Clash Court. */
+  onMoveRoom?: (placement: Placement, roomId: Id) => string | null
 }
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice, scopeDeptId }: Props) {
+export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice, scopeDeptId, solveOptions, onMoveRoom }: Props) {
   const [view, setView] = useState<GridView>(initial?.view ?? 'section')
   const groups = useMemo(() => listEntities(college, view, scopeDeptId), [college, view, scopeDeptId])
   const firstId = groups[0]?.items[0]?.id ?? ''
@@ -122,7 +126,7 @@ export function TimetableView({ college, result, onBack, onResult, initial, read
     setSelected(null)
     try {
       // a fresh block of seeds → a different, equally valid timetable
-      const next = await runSolver(college, { attempts: ATTEMPTS, baseSeed: 1 + round * ATTEMPTS })
+      const next = await runSolver(college, { ...solveOptions, attempts: ATTEMPTS, baseSeed: 1 + round * ATTEMPTS })
       captureGrid()
       setRound((r) => r + 1)
       onResult(next)
@@ -361,6 +365,7 @@ export function TimetableView({ college, result, onBack, onResult, initial, read
           cell={selected.cell}
           anchor={selected.anchor}
           onClose={() => setSelected(null)}
+          onMoveRoom={onMoveRoom}
         />
       )}
     </section>

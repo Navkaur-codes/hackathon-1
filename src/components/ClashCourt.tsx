@@ -4,7 +4,8 @@ import { CELL_INK, subjectColor } from '../lib/colors'
 import { explainPlacement } from '../lib/explain'
 import type { GridCell } from '../lib/gridModel'
 import { periodTimes } from '../lib/structure'
-import type { CollegeData, Timetable } from '../types'
+import { roomOptions } from '../lib/allocation'
+import type { CollegeData, Id, Placement, Timetable } from '../types'
 
 type Props = {
   college: CollegeData
@@ -12,12 +13,17 @@ type Props = {
   cell: GridCell
   anchor: HTMLElement
   onClose: () => void
+  /** College Admin: move this class to another room (returns the refusal reason, or null when done). */
+  onMoveRoom?: (placement: Placement, roomId: Id) => string | null
 }
 
 const WIDTH = 352 // px, ~22rem
 
 /** "Why here?" — the hard-rule checklist for one class, as a popover (bottom sheet on phones). */
-export function ClashCourt({ college, timetable, cell, anchor, onClose }: Props) {
+export function ClashCourt({ college, timetable, cell, anchor, onClose, onMoveRoom }: Props) {
+  const [moveTo, setMoveTo] = useState('')
+  const [moveError, setMoveError] = useState<string | null>(null)
+  const options = onMoveRoom ? roomOptions(college, cell.placement).filter((o) => !o.current) : []
   const panel = useRef<HTMLDivElement>(null)
   // latest onClose without re-running the focus effect on every render
   const onCloseRef = useRef(onClose)
@@ -122,6 +128,46 @@ export function ClashCourt({ college, timetable, cell, anchor, onClose }: Props)
       <p className="border-t border-rule px-4 py-3 text-[12px] text-muted">
         {allOk ? 'Every hard rule holds for this class.' : 'This class breaks a hard rule — regenerate to fix it.'}
       </p>
+      {onMoveRoom && (
+        <div className="border-t border-rule px-4 py-3">
+          <p className="font-mono text-[11px] tracking-[0.15em] text-muted uppercase">Move to another room</p>
+          {options.length === 0 ? (
+            <p className="mt-1 text-[12px] text-muted">No other room of this type and size is free for the whole class.</p>
+          ) : (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">Room to move to</span>
+                <select value={moveTo} onChange={(e) => setMoveTo(e.target.value)} className="w-full rounded-lg border border-rule bg-paper px-2 py-1.5 text-[13px]">
+                  <option value="">Choose a free room…</option>
+                  {options.map((o) => (
+                    <option key={o.room.id} value={o.room.id}>
+                      {o.room.name} · {o.room.capacity} seats ·{' '}
+                      {o.usable === 'own' ? 'own department' : o.usable === 'shared' ? 'shared' : o.usable === 'loan' ? 'on loan' : `${college.departments.find((d) => d.id === o.room.owner)?.code} — will be allocated`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={!moveTo}
+                onClick={() => {
+                  const reason = onMoveRoom(cell.placement, moveTo)
+                  if (reason) setMoveError(reason)
+                  else onClose()
+                }}
+                className="rounded-full bg-ink px-3 py-1.5 text-[13px] font-medium text-paper disabled:opacity-40"
+              >
+                Move
+              </button>
+            </div>
+          )}
+          {moveError && (
+            <p role="alert" className="mt-1 text-[12px] text-vermilion">
+              {moveError}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

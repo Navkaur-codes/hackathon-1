@@ -226,8 +226,11 @@ export type Grant = {
   toDeptId: Id
   slots: SlotKey[] | 'all'
   status: 'offered' | 'requested' | 'approved' | 'rejected' | 'revoked'
-  /** Who started it: the borrower asked (`request`) or the owner offered (`offer`). */
-  kind?: 'request' | 'offer'
+  /**
+   * Who started it: the borrower asked (`request`), the owner offered (`offer`), or the College Admin's timetable
+   * put a class in the room for the semester (`allocation` — derived by `lib/allocation.ts`, not revocable by HODs).
+   */
+  kind?: 'request' | 'offer' | 'allocation'
   note?: string
   /** ISO timestamps. */
   createdAt?: string

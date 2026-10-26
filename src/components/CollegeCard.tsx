@@ -1,7 +1,7 @@
 import { CalendarRange, Clock, Coffee, DoorOpen } from 'lucide-react'
 import { summarizeCollege } from '../lib/structure'
 import type { CollegeData } from '../types'
-import type { SolveResult } from '../solver/best'
+import type { BestOptions, SolveResult } from '../solver/best'
 import { GeneratePanel } from './GeneratePanel'
 
 const shortDate = (iso: string) =>
@@ -13,9 +13,11 @@ type Props = {
   result?: SolveResult
   onResult?: (r: SolveResult) => void
   onView?: (r: SolveResult) => void
+  /** Extra solver options (College Admin: `anyRoom`). */
+  solveOptions?: BestOptions
 }
 
-export function CollegeCard({ data, result, onResult, onView }: Props) {
+export function CollegeCard({ data, result, onResult, onView, solveOptions }: Props) {
   const s = summarizeCollege(data)
   const stats = [
     { label: 'Departments', value: s.departments.length },
@@ -78,7 +80,7 @@ export function CollegeCard({ data, result, onResult, onView }: Props) {
         </li>
       </ul>
 
-      <GeneratePanel college={data} initial={result} onResult={onResult} onView={onView} />
+      <GeneratePanel college={data} initial={result} onResult={onResult} onView={onView} solveOptions={solveOptions} />
     </article>
   )
 }

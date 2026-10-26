@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ArrowRight, CalendarDays, RotateCcw } from 'lucide-react'
 import { runSolver } from '../solver/runSolver'
-import type { SolveResult } from '../solver/best'
+import type { BestOptions, SolveResult } from '../solver/best'
 import type { CollegeData } from '../types'
 import { VerifiedStamp } from './VerifiedStamp'
 import { Wheel } from './Wheel'
@@ -17,11 +17,13 @@ type Props = {
   college: CollegeData
   /** A result generated earlier (kept by the parent so it survives navigation). */
   initial?: SolveResult
+  /** Extra solver options (College Admin's whole-college generate: `anyRoom`). */
+  solveOptions?: BestOptions
   onResult?: (r: SolveResult) => void
   onView?: (r: SolveResult) => void
 }
 
-export function GeneratePanel({ college, initial, onResult, onView }: Props) {
+export function GeneratePanel({ college, initial, onResult, onView, solveOptions }: Props) {
   const [state, setState] = useState<State>(initial ? { kind: 'done', result: initial } : { kind: 'idle' })
   const [round, setRound] = useState(initial ? 1 : 0)
   const root = useRef<HTMLDivElement>(null)
@@ -30,7 +32,7 @@ export function GeneratePanel({ college, initial, onResult, onView }: Props) {
     setState({ kind: 'solving' })
     try {
       // each regenerate explores a fresh block of seeds → a different, equally valid timetable
-      const result = await runSolver(college, { attempts: ATTEMPTS, baseSeed: 1 + round * ATTEMPTS })
+      const result = await runSolver(college, { ...solveOptions, attempts: ATTEMPTS, baseSeed: 1 + round * ATTEMPTS })
       setRound((r) => r + 1)
       setState({ kind: 'done', result })
       onResult?.(result)

@@ -162,6 +162,7 @@ export function affectedBy(c: CollegeData, grantId: Id): Placement[] {
 export function revoke(c: CollegeData, grantId: Id, actingDeptId: Id, at: string): ExchangeOutcome {
   const g = c.grants.find((x) => x.id === grantId)
   if (!g) return fail('That loan no longer exists.')
+  if (g.kind === 'allocation') return fail('This room was allocated for the semester by the College Admin — ask them to move the class.')
   if (g.status !== 'approved') return fail('Only an approved loan can be revoked.')
   if (actingDeptId !== g.fromDeptId) return fail('Only the department that owns the room can revoke the loan.')
   return { ok: true, college: decide(c, grantId, 'revoked', at) }

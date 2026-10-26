@@ -61,7 +61,16 @@ export function explainPlacement(college: CollegeData, timetable: Timetable, p: 
           (g) => g.status === 'approved' && g.roomId === room.id && g.toDeptId === section.deptId && (g.slots === 'all' || g.slots.includes(slotKey(p.day, period))),
         ),
       )
-      add('H11', granted, granted ? `${room.name} is borrowed from ${deptName(room.owner)} through an approved grant.` : `${room.name} belongs to ${deptName(room.owner)} and has not been lent to ${deptName(section.deptId)}.`)
+      const allocated = college.grants.some((g) => g.kind === 'allocation' && g.status === 'approved' && g.roomId === room.id && g.toDeptId === section.deptId)
+      add(
+        'H11',
+        granted,
+        !granted
+          ? `${room.name} belongs to ${deptName(room.owner)} and has not been lent to ${deptName(section.deptId)}.`
+          : allocated
+            ? `${room.name} belongs to ${deptName(room.owner)}; the College Admin allocated it to ${deptName(section.deptId)} for the semester.`
+            : `${room.name} is borrowed from ${deptName(room.owner)} through an approved loan.`,
+      )
     }
   } else {
     add('H12', false, 'This class is in a room that no longer exists.')

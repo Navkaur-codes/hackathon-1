@@ -23,8 +23,8 @@
 | Role | Scope | Can |
 |---|---|---|
 | `superAdmin` | all colleges | create / edit / archive / clone colleges; **Structure Builder** (calendar: days, periods, timings, lunch, lab block length; departments; programmes/years; number of sections; students per section → sections generated; **subject catalogue per programme**: code, name, theory/lab, periods per week, room type); assign College Admins; read-only view of every college's status. **No direct timetable edits.** |
-| `collegeAdmin` | own college | adjust structure within Super Admin's setup (rename sections, strength, blocked slots), **shared rooms**, generate whole college, lock slots, Conflict Center, publish/unpublish, all leave, export |
-| `deptAdmin` (HOD) | own department | CRUD own teachers/sections/subjects/dept rooms, **assign a teacher to each section × subject**, dept generate (against global ledger), mark Draft→Ready, Room Exchange (offer/request/approve), leave approval + substitutes for own dept |
+| `collegeAdmin` | own college | adjust structure within Super Admin's setup (rename sections, strength, blocked slots), **shared rooms**, generate whole college, **allocate any department's room for the semester** (automatically while generating, or by moving a class to another room), lock slots, Conflict Center, publish/unpublish, all leave, export |
+| `deptAdmin` (HOD) | own department | CRUD own teachers/sections/subjects/dept rooms, **assign a teacher to each section × subject**, dept generate (against global ledger), mark Draft→Ready, Room Exchange (offer/request/approve weekly loans; **request a room for a single date**, approved by the room's HOD — shared rooms by the College Admin), leave approval + substitutes for own dept |
 | `teacher` | own classes (+ read own dept) | view My Week/Today/load/substitution duties, request leave, request unavailable slots, set office hours, accept / propose / decline **meeting requests** |
 | `student` | own section | read-only published section timetable, Now/Next, substitute notices, print, share link, **request a meeting** with a teacher of own section/dept and track status |
 - Teacher & Student read **only the published version**; drafts never leak.
@@ -45,7 +45,7 @@
 | H8 | A **lab** occupies `blockLength` (default from calendar) **consecutive** periods on the same day, same room, never crossing that section's break slot or the day end. |
 | H9 | Teacher **max periods/day** and **max periods/week** are respected. |
 | H10 | **Locked** placements never move or disappear. |
-| H11 | A section may use a room only if the room is owned by its dept, is `shared`, or an **approved grant** covers that slot. |
+| H11 | A section may use a room only if the room is owned by its dept, is `shared`, or an **approved grant** covers that slot. The College Admin may allocate another department's room for the semester; every such use is recorded as an approved **allocation** grant, so the rule still holds. *(semester allocation added at the user's request in v0.5)* |
 | H12 | Every placement references existing entities and lies inside the configured days/periods. |
 | H13 | Nothing crosses colleges: a placement's section, teacher and room all belong to the same college as the timetable. |
 | H14 | **Teacher break:** on every day a teacher teaches, at least `teacherMinFreeInLunchWindow` (default 1) of the college's `lunchWindow` slots stay free for them — so staggered breaks across departments never leave a shared teacher without lunch. |

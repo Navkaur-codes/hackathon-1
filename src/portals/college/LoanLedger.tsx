@@ -18,16 +18,18 @@ export function LoanLedger({ college }: { college: CollegeData }) {
   return (
     <section aria-labelledby="ledger-h" className="rounded-xl border border-rule bg-card p-5">
       <h2 id="ledger-h" className="font-display text-base font-semibold">
-        Room Exchange
+        Rooms across departments
       </h2>
       <p className="text-[12px] text-muted">
-        {loans.length === 0 ? 'No room loans between departments yet — HODs arrange them on their desks.' : `${live} on loan now · ${loans.length} in total. HODs arrange loans; you see them all.`}
+        {loans.length === 0
+          ? 'No room used across departments yet. Your whole-college generate may allocate any department’s room for the semester; HODs arrange weekly loans.'
+          : `${live} in use now (your semester allocations + HOD loans) · ${loans.length} in total.`}
       </p>
       {loans.length > 0 && (
         <ul className="mt-2 divide-y divide-rule">
           {loans.map((g) => (
             <li key={g.id} className="flex flex-wrap gap-x-3 py-1.5 text-[13px]">
-              <span className="w-20 font-mono text-[11px] text-muted uppercase">{STATUS[g.status]}</span>
+              <span className="w-20 font-mono text-[11px] text-muted uppercase">{g.kind === 'allocation' ? 'allocated' : STATUS[g.status]}</span>
               <span className="min-w-0 flex-1">
                 {room(g.roomId)} · {code(g.fromDeptId)} → {code(g.toDeptId)} · {describeSlots(college, g.slots)}
               </span>
