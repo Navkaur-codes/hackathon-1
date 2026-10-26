@@ -377,6 +377,13 @@ export default function App() {
             onName={setStudentName}
             page={asStudentPage(subPath[0])}
             onPage={(p) => go({ page: 'portal', portal: 'student', ...(p === 'today' ? {} : { path: [p] }) })}
+            act={(fn) => {
+              // apply to the college as it is now (another tab may have changed it)
+              const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
+              const r = fn(current)
+              if (r.ok) updateCollege(home.college.id, () => r.college)
+              return r.ok ? null : r.reason
+            }}
           />
         ) : inPortal && session.role === 'student' ? (
           <p className="py-16 text-muted">This college has no sections yet, or it is archived — pick another college above.</p>

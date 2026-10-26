@@ -3,6 +3,7 @@
 
 import { score } from '../solver/score'
 import { bookingsAfterPublish } from './bookings'
+import { meetingsAfterPublish } from './meetings'
 import { coverage } from './deptPlan'
 import { validate } from '../solver/validate'
 import type { CollegeData, Timetable } from '../types'
@@ -57,14 +58,15 @@ export function publish(c: CollegeData, at: string, opts: { acceptUnplaced?: boo
   // single-date bookings whose periods the new version needs for a class get flagged "needs a new room"
   return {
     ok: true,
-    college: bookingsAfterPublish({
+    // … and accepted meetings whose slot now holds a class become "needs reschedule" (meetings never block teaching)
+    college: meetingsAfterPublish(bookingsAfterPublish({
       ...c,
       published: { timetable: draft, version, at },
       publishLog: [
         ...log,
         { version, at, score: score(c, draft).total, periods: draft.placements.reduce((s, p) => s + p.length, 0), unplaced: check.unplaced },
       ],
-    }),
+    })),
   }
 }
 

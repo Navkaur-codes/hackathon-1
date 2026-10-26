@@ -305,19 +305,32 @@ export type OfficeHours = {
   accepting: boolean
 }
 
+/**
+ * Meet-a-Teacher: a student asks for one slot on a real date when both are free in the published timetable.
+ * Flow: pending → accepted (optionally with a room) / proposed (another time; the student takes it or not) /
+ * declined · withdrawn by the student · needsReschedule when a newer published version puts a class there.
+ * Meetings never block teaching.
+ */
 export type MeetingRequest = {
   id: Id
   collegeId: Id
   studentName: string
   sectionId: Id
   teacherId: Id
+  /** ISO date and its pattern day. */
+  date: string
   day: number
   period: number
   topic: string
   note: string
-  status: 'pending' | 'accepted' | 'proposed' | 'declined' | 'needsReschedule'
+  status: 'pending' | 'accepted' | 'proposed' | 'declined' | 'withdrawn' | 'needsReschedule'
   roomId?: Id
-  proposedSlot?: SlotKey
+  /** The teacher's other time, while `proposed`. */
+  proposed?: { date: string; period: number }
+  /** The teacher's answer. */
+  reply?: string
+  createdAt: string
+  decidedAt?: string
 }
 
 export type Session = {

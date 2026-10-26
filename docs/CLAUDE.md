@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.6 Teacher & Student portals — P0.6-a pushed, P0.6-b built (awaiting push), P0.6-c next** · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.6 complete — P0.6-c built (awaiting push); v0.7 design next** · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`; P0.6-b Student desk built (338 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
+> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher built (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
 >
-> **Next:** the user commits & pushes P0.6-b (`feat(student): student desk with now-next, notices and share link`). Then **P0.6-c** Meet-a-Teacher (`lib/meetings.ts`; office hours are already stored by the teacher desk, the student's name is in the session), then fill v0.6 *Built* / *Open issues* and write the v0.7 design.
+> **Next:** the user commits & pushes P0.6-c (`feat(meet): meet-a-teacher requests and inbox`). Then write the **v0.7 design** (Ops & insights, `docs/PLAN.md`: HOD leave inbox + substitute swap on the v0.2 engine — teachers already request leave, students already see substitute notices; lock & regenerate; Conflict Center; dashboard + shared-resource ledger) and show the 5-line summary before coding.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -435,9 +435,17 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 ### Built
 - **P0.6-a** — **Teacher desk** `#/teacher[/week|leave|hours]`: `lib/myDay.ts` (published-only `dayFor`, `nowNext`, `weekLoad`, `teachingSlots`, leave request / take back, office hours), `teacherScope` + teacher picker in the header, tabs Today (real dates, holiday banner, substitution duty / covered tags, Now / Next, load bars) · My week (published grid, one-page print) · Leave · Office hours. Decided: single-date room bookings belong to a department, not a teacher, so they are not shown on the teacher's Today.
 - **P0.6-b** — **Student desk** `#/student[/week|share]` (phone first): section picker + name, Now / Next card, today with substitute notices and breaks, the week + one-page print, **share link** (`lib/share.ts`: the published week compressed into `?s=…`, ~1.2 k characters for DIET) opening a read-only `SharedWeek` on any device; broken links refused. Decided: a saved session without a valid teacher / section lands on the first one of its college; after the last class Now says "Done for today".
+- **P0.6-c** — **Meet-a-Teacher**: `lib/meetings.ts` (bookable = `finder.commonFree` on the published day minus that date's leave, duties, accepted meetings and past slots; request with max open per student; accept with a free room / another time / decline with a reply; student takes a new time or withdraws; `meetingsAfterPublish` in `publish` → *needs reschedule*; HOD counts only). Student **Meet a teacher** tab, teacher **Meetings** inbox, HOD **Student meetings** card.
+- Done-when met on DIET: after publishing, a teacher sees today (and the Diwali banner), the week and load and asks for leave; a CSE-Y2-A student on a 375 px phone sees Now / Next and the week, shares a link that opens the week read-only, asks Dr. Kaur for a free slot; she accepts it with a room and the student sees "accepted"; publishing a regenerated version 2 that needs a meeting's slot marks it *needs a new time*; teachers and students never see a draft. 350 tests green.
 
 ### Open issues
-_(fill after v0.6)_
+- Identity is still a picker + typed name (stand-in until **v0.9** auth): a student's requests are matched by section + name, so two students with the same name in a section share a list.
+- Leave requests wait for the HOD screens (**v0.7**); teacher-requested unavailable slots also come with v0.7.
+- Single-date room bookings are not shown on teacher / student Today (they belong to a department).
+- Share links are snapshots: a newer published version needs a fresh link (the page says so).
+- "Now" uses the device clock and time zone.
+- Teacher tab row scrolls inside its box at 375 px when both badges show (the page never scrolls sideways).
+- Bundle 671 kB > 500 kB — code-split the desks before v1.0; M8 / M10 hand checks still open.
 
 ---
 

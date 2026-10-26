@@ -1,4 +1,6 @@
+import type { MeetOutcome } from '../../lib/meetings'
 import type { SelfOutcome } from '../../lib/myDay'
+import { MeetingsTab } from './MeetingsTab'
 import type { CollegeData, Id } from '../../types'
 import { PortalTitle } from '../PortalTitle'
 import { HoursTab } from './HoursTab'
@@ -13,12 +15,13 @@ type Props = {
   page: TeacherPage
   onPage: (p: TeacherPage) => void
   /** Present only when this session is this teacher (lib/access.ts). */
-  act?: (fn: (c: CollegeData) => SelfOutcome) => string | null
+  act?: (fn: (c: CollegeData) => SelfOutcome | MeetOutcome) => string | null
 }
 
 const TABS: [TeacherPage, string][] = [
   ['today', 'Today'],
-  ['week', 'My week'],
+  ['week', 'Week'],
+  ['meetings', 'Meetings'],
   ['leave', 'Leave'],
   ['hours', 'Office hours'],
 ]
@@ -28,6 +31,7 @@ export function TeacherPortal({ college, teacherId, page, onPage, act }: Props) 
   const teacher = college.teachers.find((t) => t.id === teacherId)!
   const dept = college.departments.find((d) => d.id === teacher.deptId)
   const pending = college.leaves.filter((l) => l.teacherId === teacherId && l.status === 'pending').length
+  const asks = college.meetings.filter((m) => m.teacherId === teacherId && (m.status === 'pending' || m.status === 'needsReschedule')).length
 
   return (
     <section className="py-8">
@@ -48,7 +52,7 @@ export function TeacherPortal({ college, teacherId, page, onPage, act }: Props) 
         </div>
       ) : (
         <>
-          <div role="tablist" aria-label="Teacher desk" className="no-print mt-5 flex gap-3.5 overflow-x-auto sm:gap-5 border-b border-rule">
+          <div role="tablist" aria-label="Teacher desk" className="no-print mt-5 flex gap-3 overflow-x-auto sm:gap-5 border-b border-rule">
             {TABS.map(([id, label]) => (
               <button
                 key={id}
@@ -61,8 +65,13 @@ export function TeacherPortal({ college, teacherId, page, onPage, act }: Props) 
                 }`}
               >
                 {label}
+                {id === 'meetings' && asks > 0 && (
+                  <span className="ml-1 rounded-full bg-plum px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper" title={`${asks} to answer`}>
+                    {asks}
+                  </span>
+                )}
                 {id === 'leave' && pending > 0 && (
-                  <span className="ml-2 rounded-full bg-plum px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper" title={`${pending} waiting for your HOD`}>{pending}</span>
+                  <span className="ml-1 rounded-full bg-plum px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper" title={`${pending} waiting for your HOD`}>{pending}</span>
                 )}
               </button>
             ))}
@@ -70,6 +79,8 @@ export function TeacherPortal({ college, teacherId, page, onPage, act }: Props) 
           <div className="mt-6">
             {page === 'week' ? (
               <WeekTab college={college} teacherId={teacherId} />
+            ) : page === 'meetings' && act ? (
+              <MeetingsTab college={college} teacherId={teacherId} act={act} />
             ) : page === 'leave' && act ? (
               <LeaveTab college={college} teacherId={teacherId} act={act} />
             ) : page === 'hours' && act ? (

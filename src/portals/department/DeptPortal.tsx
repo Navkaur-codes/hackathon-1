@@ -1,5 +1,6 @@
 import { ArrowRight, CircleCheck, CircleDashed, Eye } from 'lucide-react'
 import { bookingsToDecide } from '../../lib/bookings'
+import { meetingCounts } from '../../lib/meetings'
 import { readiness, type ReadinessItem } from '../../lib/deptPlan'
 import { assignedLoad } from '../../lib/edit'
 import type { CollegeData, Id } from '../../types'
@@ -67,6 +68,33 @@ function LoadChart({ college, deptId }: { college: CollegeData; deptId: Id }) {
         )
       })}
     </ul>
+  )
+}
+
+/** Meet-a-Teacher for the department's teachers — counts only, never who asked or about what (root §3). */
+function MeetingCounts({ college, deptId }: { college: CollegeData; deptId: Id }) {
+  const n = meetingCounts(college, deptId)
+  return (
+    <section aria-labelledby="meet-h" className="rounded-xl border border-rule bg-card p-5">
+      <h2 id="meet-h" className="font-display text-base font-semibold">
+        Student meetings
+      </h2>
+      <p className="text-[12px] text-muted">Your teachers’ meeting requests — counts only; each teacher answers their own.</p>
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+        {(
+          [
+            ['Waiting', n.pending],
+            ['Fixed', n.accepted],
+            ['To re-time', n.needsReschedule],
+          ] as const
+        ).map(([label, v]) => (
+          <div key={label} className="rounded-lg bg-paper py-2">
+            <dt className="font-mono text-[10px] tracking-wider text-muted uppercase">{label}</dt>
+            <dd className="font-display text-xl font-semibold tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }
 
@@ -196,6 +224,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
             </div>
           </section>
           </div>
+          <div className="space-y-6">
           <section aria-labelledby="load-h" className="rounded-xl border border-rule bg-card p-5">
             <h2 id="load-h" className="font-display text-base font-semibold">
               Teacher load
@@ -203,6 +232,8 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
             <p className="mb-3 text-[12px] text-muted">Periods a week given / weekly limit</p>
             <LoadChart college={college} deptId={deptId} />
           </section>
+          <MeetingCounts college={college} deptId={deptId} />
+          </div>
         </div>
       )}
     </section>

@@ -1,4 +1,6 @@
+import type { MeetOutcome } from '../../lib/meetings'
 import type { CollegeData, Id } from '../../types'
+import { MeetTab } from './MeetTab'
 import { PortalTitle } from '../PortalTitle'
 import { NowTab } from './NowTab'
 import { ShareTab } from './ShareTab'
@@ -12,16 +14,19 @@ type Props = {
   onName: (name: string) => void
   page: StudentPage
   onPage: (p: StudentPage) => void
+  /** Present only when this session is a student of this section (lib/access.ts). */
+  act?: (fn: (c: CollegeData) => MeetOutcome) => string | null
 }
 
 const TABS: [StudentPage, string][] = [
-  ['today', 'Now & today'],
-  ['week', 'This week'],
+  ['today', 'Today'],
+  ['week', 'Week'],
+  ['meet', 'Meet a teacher'],
   ['share', 'Share'],
 ]
 
 /** Student desk (phone first): Now / Next, today with substitute notices, the week, a share link — published only. */
-export function StudentPortal({ college, sectionId, studentName, onName, page, onPage }: Props) {
+export function StudentPortal({ college, sectionId, studentName, onName, page, onPage, act }: Props) {
   const section = college.sections.find((s) => s.id === sectionId)!
   const programme = college.programmes.find((p) => p.id === section.programmeId)
 
@@ -68,6 +73,8 @@ export function StudentPortal({ college, sectionId, studentName, onName, page, o
           <div className="mt-5">
             {page === 'week' ? (
               <WeekTab college={college} sectionId={sectionId} />
+            ) : page === 'meet' && act ? (
+              <MeetTab college={college} sectionId={sectionId} studentName={studentName} act={act} />
             ) : page === 'share' ? (
               <ShareTab college={college} sectionId={sectionId} />
             ) : (
