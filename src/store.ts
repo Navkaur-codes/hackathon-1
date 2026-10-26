@@ -19,6 +19,9 @@ export type KaalState = {
   switchDept: (deptId: Id) => void
   /** A Teacher session picks which teacher it is (within its college). */
   switchTeacher: (teacherId: Id) => void
+  /** A Student session picks its section (within its college) and types its name. */
+  switchSection: (sectionId: Id) => void
+  setStudentName: (name: string) => void
   signOut: () => void
   /** Add a college built by `lib/edit.ts` (new from template or clone); ignored if its id is taken. */
   addCollege: (c: CollegeData) => void
@@ -60,6 +63,13 @@ export function createKaalStore(storage?: StateStorage) {
               ? { session: { ...s.session, teacherId } }
               : s,
           ),
+        switchSection: (sectionId) =>
+          set((s) =>
+            s.session?.role === 'student' && s.colleges.find((c) => c.college.id === s.session!.collegeId)?.sections.some((x) => x.id === sectionId)
+              ? { session: { ...s.session, sectionId } }
+              : s,
+          ),
+        setStudentName: (name) => set((s) => (s.session?.role === 'student' ? { session: { ...s.session, studentName: name.slice(0, 60) } } : s)),
         signOut: () => set({ session: null }),
         addCollege: (c) =>
           set((s) => (s.colleges.some((x) => x.college.id === c.college.id) ? s : { colleges: [...s.colleges, c] })),

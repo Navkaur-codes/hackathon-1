@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildDemoColleges } from '../demoData'
 import type { CollegeData, Role, Session } from '../types'
-import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
+import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, studentScope, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
@@ -140,6 +140,25 @@ describe('T6.2 teacher identity', () => {
     expect(teacherScope({ role: 'teacher', collegeId: diet.college.id, teacherId: dcas.teachers[0].id }, colleges)).toBeUndefined()
     expect(teacherScope({ role: 'teacher', collegeId: diet.college.id, teacherId: 'diet-t-gone' }, colleges)).toBeUndefined()
     expect(teacherScope({ role: 'deptAdmin', collegeId: diet.college.id, teacherId: diet.teachers[0].id }, colleges)).toBeUndefined()
+  })
+})
+
+describe('T6.2 student scope', () => {
+  it('entering as Student picks a section of the college and keeps it (and the name) across switches', () => {
+    const s = sessionFor('student', colleges, null)
+    expect(studentScope(s, colleges)).toBe(diet.sections[0].id)
+    const chosen = { ...s, sectionId: diet.sections[2].id, studentName: 'Simran' }
+    const back = sessionFor('student', colleges, sessionFor('teacher', colleges, chosen))
+    expect(back).toMatchObject({ sectionId: diet.sections[2].id, studentName: 'Simran' })
+    expect(sessionFor('student', colleges, { ...chosen, collegeId: dcas.college.id }).sectionId).toBe(dcas.sections[0].id)
+  })
+
+  it("a student reads only the published version; another college's or a stale section is nobody", () => {
+    const s: Session = { role: 'student', collegeId: diet.college.id, sectionId: diet.sections[0].id }
+    expect(ACTIONS.filter((a) => can(s, a, diet.college.id, colleges))).toEqual(['viewPublished'])
+    expect(studentScope({ ...s, sectionId: dcas.sections[0].id }, colleges)).toBeUndefined()
+    expect(studentScope({ ...s, sectionId: 'gone' }, colleges)).toBeUndefined()
+    expect(studentScope({ ...s, role: 'teacher' }, colleges)).toBeUndefined()
   })
 })
 

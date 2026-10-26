@@ -3,11 +3,14 @@ import { LogOut } from 'lucide-react'
 import { CollegeSwitcher } from './components/CollegeSwitcher'
 import { DeptSwitcher } from './components/DeptSwitcher'
 import { TeacherSwitcher } from './components/TeacherSwitcher'
+import { SectionSwitcher } from './components/SectionSwitcher'
+import { SharedWeek } from './components/SharedWeek'
+import { decodeShare } from './lib/share'
 import { Landing } from './components/Landing'
 import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { can, canDept, collegeFor, deptScope, switchableColleges, teacherScope } from './lib/access'
+import { can, canDept, collegeFor, deptScope, studentScope, switchableColleges, teacherScope } from './lib/access'
 import { deptEdit, deptSolveOptions, markReady, mergeDept, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
@@ -15,6 +18,8 @@ import { ComingSoon } from './portals/ComingSoon'
 import { DeptPortal } from './portals/department/DeptPortal'
 import { TeacherPortal } from './portals/teacher/TeacherPortal'
 import { asTeacherPage } from './portals/teacher/pages'
+import { StudentPortal } from './portals/student/StudentPortal'
+import { asStudentPage } from './portals/student/pages'
 import { CollegePortal } from './portals/college/CollegePortal'
 import { SuperPortal } from './portals/super/SuperPortal'
 import { StructureBuilder } from './portals/super/structure/StructureBuilder'
@@ -33,6 +38,9 @@ const shared = (() => {
   return s && switchableColleges(appStore.getState().colleges).some((c) => c.college.id === s.collegeId) ? s : null
 })()
 
+// A shared section week (?s=…) carries the timetable itself (lib/share.ts); null = a broken link.
+const sharedWeekParam = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('s')
+
 export default function App() {
   const colleges = useKaal((s) => s.colleges)
   const session = useKaal((s) => s.session)
@@ -40,11 +48,14 @@ export default function App() {
   const switchCollege = useKaal((s) => s.switchCollege)
   const switchDept = useKaal((s) => s.switchDept)
   const switchTeacher = useKaal((s) => s.switchTeacher)
+  const switchSection = useKaal((s) => s.switchSection)
+  const setStudentName = useKaal((s) => s.setStudentName)
   const signOut = useKaal((s) => s.signOut)
   const resetDemo = useKaal((s) => s.resetDemo)
   const updateCollege = useKaal((s) => s.updateCollege)
   const active = switchableColleges(colleges)
 
+  const [sharedWeek, setSharedWeek] = useState(() => (sharedWeekParam === null ? undefined : decodeShare(sharedWeekParam)))
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash))
   useEffect(() => {
     const onHash = () => setRoute(parseRoute(window.location.hash))
@@ -52,6 +63,11 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
   const go = (r: Route) => {
+    // any navigation leaves a shared week (?s=…)
+    if (sharedWeek !== undefined) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`)
+      setSharedWeek(undefined)
+    }
     const hash = formatRoute(r)
     if (window.location.hash !== hash) window.location.hash = hash
     setRoute(r)
@@ -132,6 +148,14 @@ export default function App() {
   const hodDept = deptScope(session, colleges)
   // the teacher a Teacher session is (access.ts decides)
   const self = teacherScope(session, colleges)
+  const mySection = studentScope(session, colleges)
+  // a saved session from before, or one whose teacher / section was removed, sits at the first one of its college
+  const roleKind = session?.role
+  useEffect(() => {
+    if (!home) return
+    if (roleKind === 'teacher' && !self && home.teachers[0]) switchTeacher(home.teachers[0].id)
+    if (roleKind === 'student' && !mySection && home.sections[0]) switchSection(home.sections[0].id)
+  }, [home, roleKind, self, mySection, switchTeacher, switchSection])
   // #/super/<collegeId>/structure[/<tab>] — only for a session allowed to shape that college
   const subPath = route.page === 'portal' ? (route.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
@@ -175,6 +199,9 @@ export default function App() {
             {session.role === 'teacher' && home && home.teachers.length > 0 && (
               <TeacherSwitcher college={home} teacherId={self} onTeacher={switchTeacher} />
             )}
+            {session.role === 'student' && home && home.sections.length > 0 && (
+              <SectionSwitcher college={home} sectionId={mySection} onSection={switchSection} />
+            )}
             {!inPortal && (
               <button
                 type="button"
@@ -202,7 +229,15 @@ export default function App() {
       </header>
 
       <main className="flex-1">
-        {openCollege && openResult ? (
+        {sharedWeek !== undefined ? (
+          <SharedWeek
+            snap={sharedWeek}
+            onLeave={() => {
+              window.history.replaceState(null, '', window.location.pathname)
+              setSharedWeek(undefined)
+            }}
+          />
+        ) : openCollege && openResult ? (
           <TimetableView
             college={openCollege}
             result={openResult}
@@ -333,6 +368,18 @@ export default function App() {
               return r.ok ? null : r.reason
             }}
           />
+        ) : inPortal && session.role === 'student' && home && mySection ? (
+          <StudentPortal
+            key={`${home.college.id}/${mySection}`}
+            college={home}
+            sectionId={mySection}
+            studentName={session.studentName ?? ''}
+            onName={setStudentName}
+            page={asStudentPage(subPath[0])}
+            onPage={(p) => go({ page: 'portal', portal: 'student', ...(p === 'today' ? {} : { path: [p] }) })}
+          />
+        ) : inPortal && session.role === 'student' ? (
+          <p className="py-16 text-muted">This college has no sections yet, or it is archived — pick another college above.</p>
         ) : inPortal && session.role === 'teacher' ? (
           <p className="py-16 text-muted">This college has no teachers yet, or it is archived — pick another college above.</p>
         ) : inPortal ? (

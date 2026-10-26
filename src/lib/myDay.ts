@@ -147,7 +147,8 @@ export function nowNext(c: CollegeData, at: Date, who: Who): NowNext | undefined
   if (cls) return { day, now: { kind: 'class', cls, until: cls.end }, next }
   const label = day.breaks.get(period)
   if (label) return { day, now: { kind: 'break', label, until: times[period].end }, next }
-  return { day, now: { kind: 'free' }, next }
+  // a free slot with nothing left today means the day is over for this person
+  return next ? { day, now: { kind: 'free' }, next } : { day, now: { kind: 'after' } }
 }
 
 export type WeekLoad = { perDay: number[]; week: number; maxPerDay: number; maxPerWeek: number }

@@ -123,6 +123,12 @@ describe('T6.3 now / next', () => {
     expect(r.now).toMatchObject({ kind: 'break', label })
   })
 
+  it('a free slot after the last class of the day → after (done for today), not "free"', () => {
+    const last = d.classes.at(-1)!
+    const later = times.find((t) => t.index >= last.placement.period + last.placement.length && !d.breaks.has(t.index))
+    if (later) expect(nowNext(live, at(MON, later.start), who)!.now.kind).toBe('after')
+  })
+
   it('after the last slot → after; on a holiday → no classes', () => {
     expect(nowNext(live, at(MON, '20:00'), who)!.now.kind).toBe('after')
     expect(nowNext(live, at('2026-11-09', '10:00'), who)!.now.kind).toBe('noClasses')
@@ -178,5 +184,32 @@ describe('leave requests and office hours', () => {
     const off = ok(setAccepting(c, kaur.id, false))
     expect(off.officeHours.find((o) => o.teacherId === kaur.id)).toMatchObject({ slots: [free], accepting: false })
     expect(ok(toggleOfficeHour(off, kaur.id, free)).officeHours.find((o) => o.teacherId === kaur.id)!.slots).toEqual([])
+  })
+})
+
+describe('T6.2 student scope (section day)', () => {
+  it("a section's day = only its own classes; notices for a substitute or a class without a teacher", () => {
+    const own = dayFor(live, MON, { kind: 'section', id: section.id })!
+    expect(own.classes.every((x) => x.section.id === section.id && x.kind === 'own')).toBe(true)
+    const first = own.classes[0]
+    const sub = (status: 'suggested' | 'uncovered', substituteTeacherId: string | null) => ({
+      id: 's1',
+      collegeId: diet.college.id,
+      date: MON,
+      assignmentId: first.placement.assignmentId,
+      day: monDay,
+      period: first.placement.period,
+      originalTeacherId: first.regular!.id,
+      substituteTeacherId,
+      status,
+      note: '',
+    })
+    const other = diet.teachers.find((t) => t.id !== first.regular!.id)!
+    const covered = dayFor({ ...live, substitutions: [sub('suggested', other.id)] }, MON, { kind: 'section', id: section.id })!.classes[0]
+    expect(covered).toMatchObject({ kind: 'covered' })
+    expect(covered.teacher?.id).toBe(other.id)
+    const none = dayFor({ ...live, substitutions: [sub('uncovered', null)] }, MON, { kind: 'section', id: section.id })!.classes[0]
+    expect(none.kind).toBe('uncovered')
+    expect(none.teacher).toBeUndefined()
   })
 })

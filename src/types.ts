@@ -326,6 +326,8 @@ export type Session = {
   deptId?: Id
   teacherId?: Id
   sectionId?: Id
+  /** A student types their name once (meeting requests); real accounts arrive in v0.9. */
+  studentName?: string
 }
 
 /** Everything that belongs to one college. */

@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.6 Teacher & Student portals — P0.6-a built (awaiting push), P0.6-b next** · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.6 Teacher & Student portals — P0.6-a pushed, P0.6-b built (awaiting push), P0.6-c next** · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk built (329 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
+> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`; P0.6-b Student desk built (338 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
 >
-> **Next:** the user commits & pushes P0.6-a (`feat(teacher): teacher desk with today, week, load, leave and office hours`). Then **P0.6-b** Student desk (section + name picker, Now / Next via `lib/myDay.ts` `nowNext` with `{ kind: 'section' }`, Today with substitute notices, week + print, `lib/share.ts` share link + read-only shared view), then **P0.6-c** Meet-a-Teacher (office hours are already stored by the teacher desk).
+> **Next:** the user commits & pushes P0.6-b (`feat(student): student desk with now-next, notices and share link`). Then **P0.6-c** Meet-a-Teacher (`lib/meetings.ts`; office hours are already stored by the teacher desk, the student's name is in the session), then fill v0.6 *Built* / *Open issues* and write the v0.7 design.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -434,6 +434,7 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 
 ### Built
 - **P0.6-a** — **Teacher desk** `#/teacher[/week|leave|hours]`: `lib/myDay.ts` (published-only `dayFor`, `nowNext`, `weekLoad`, `teachingSlots`, leave request / take back, office hours), `teacherScope` + teacher picker in the header, tabs Today (real dates, holiday banner, substitution duty / covered tags, Now / Next, load bars) · My week (published grid, one-page print) · Leave · Office hours. Decided: single-date room bookings belong to a department, not a teacher, so they are not shown on the teacher's Today.
+- **P0.6-b** — **Student desk** `#/student[/week|share]` (phone first): section picker + name, Now / Next card, today with substitute notices and breaks, the week + one-page print, **share link** (`lib/share.ts`: the published week compressed into `?s=…`, ~1.2 k characters for DIET) opening a read-only `SharedWeek` on any device; broken links refused. Decided: a saved session without a valid teacher / section lands on the first one of its college; after the last class Now says "Done for today".
 
 ### Open issues
 _(fill after v0.6)_
