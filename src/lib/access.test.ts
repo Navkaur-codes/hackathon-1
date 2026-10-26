@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildDemoColleges } from '../demoData'
 import type { CollegeData, Role, Session } from '../types'
-import { can, collegeFor, sessionFor, switchableColleges, visibleColleges, type Action } from './access'
+import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, visibleColleges, type Action, type DeptAction } from './access'
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
@@ -56,17 +56,66 @@ describe('T4.6 super admin scope and college isolation', () => {
     }
   })
 
-  it('HOD, teacher and student read only the published version (until v0.5 / v0.6)', () => {
-    for (const role of ['deptAdmin', 'teacher', 'student'] as Role[]) {
+  it('teacher and student read only the published version; an HOD also reads the draft, never publishes', () => {
+    for (const role of ['teacher', 'student'] as Role[]) {
       const s: Session = { role, collegeId: diet.college.id }
       expect(ACTIONS.filter((a) => can(s, a, diet.college.id, colleges))).toEqual(['viewPublished'])
     }
+    const hod: Session = { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-cse' }
+    expect(ACTIONS.filter((a) => can(hod, a, diet.college.id, colleges))).toEqual(['viewDraft', 'viewPublished'])
   })
 
   it('no session, unknown college → nothing', () => {
     expect(visibleColleges(null, colleges)).toEqual([])
     expect(can(null, 'viewPublished', diet.college.id, colleges)).toBe(false)
     expect(can({ role: 'collegeAdmin', collegeId: 'nope' }, 'viewPublished', 'nope', colleges)).toBe(false)
+  })
+})
+
+describe('T5.1 HOD scope', () => {
+  const DEPT_ACTIONS: DeptAction[] = ['editDept', 'generateDept', 'markReady', 'exchange']
+  const hod: Session = { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-cse' }
+
+  it('an HOD acts only on their own department', () => {
+    expect(deptScope(hod, colleges)).toBe('diet-cse')
+    for (const a of DEPT_ACTIONS) {
+      expect(canDept(hod, a, 'diet-cse', colleges)).toBe(true)
+      expect(canDept(hod, a, 'diet-ece', colleges)).toBe(false)
+      expect(canDept(hod, a, dcas.departments[0].id, colleges)).toBe(false) // another college
+    }
+    // never the college-wide actions
+    for (const a of ['editSetup', 'generate', 'publish', 'export', 'editStructure'] as Action[]) expect(can(hod, a, diet.college.id, colleges)).toBe(false)
+  })
+
+  it('the College Admin may edit and generate any department of their college; Ready and loans stay with HODs', () => {
+    const admin: Session = { role: 'collegeAdmin', collegeId: diet.college.id }
+    expect(deptScope(admin, colleges)).toBeUndefined()
+    for (const d of diet.departments) {
+      expect(canDept(admin, 'editDept', d.id, colleges)).toBe(true)
+      expect(canDept(admin, 'generateDept', d.id, colleges)).toBe(true)
+      expect(canDept(admin, 'markReady', d.id, colleges)).toBe(false)
+      expect(canDept(admin, 'exchange', d.id, colleges)).toBe(false)
+    }
+    expect(canDept(admin, 'editDept', dcas.departments[0].id, colleges)).toBe(false)
+  })
+
+  it('teachers, students, super admin, no session or a stale department → nothing', () => {
+    for (const s of [
+      { role: 'teacher', collegeId: diet.college.id, deptId: 'diet-cse' },
+      { role: 'student', collegeId: diet.college.id },
+      { role: 'superAdmin' },
+      null,
+    ] as (Session | null)[])
+      for (const a of DEPT_ACTIONS) expect(canDept(s, a, 'diet-cse', colleges)).toBe(false)
+    const stale: Session = { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-gone' }
+    expect(deptScope(stale, colleges)).toBeUndefined()
+    expect(canDept(stale, 'editDept', 'diet-gone', colleges)).toBe(false)
+  })
+
+  it('entering as HOD picks a department of the college; switching college picks one of the new college', () => {
+    expect(sessionFor('deptAdmin', colleges, null)).toEqual({ role: 'deptAdmin', collegeId: diet.college.id, deptId: diet.departments[0].id })
+    expect(sessionFor('deptAdmin', colleges, { role: 'collegeAdmin', collegeId: diet.college.id, deptId: 'diet-me' }).deptId).toBe('diet-me')
+    expect(sessionFor('deptAdmin', colleges, { role: 'deptAdmin', collegeId: dcas.college.id, deptId: 'diet-me' }).deptId).toBe(dcas.departments[0].id)
   })
 })
 

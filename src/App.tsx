@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LogOut } from 'lucide-react'
 import { CollegeSwitcher } from './components/CollegeSwitcher'
+import { DeptSwitcher } from './components/DeptSwitcher'
 import { Landing } from './components/Landing'
 import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { can, collegeFor, switchableColleges } from './lib/access'
+import { can, canDept, collegeFor, deptScope, switchableColleges } from './lib/access'
+import { deptEdit, markReady, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
 import { ComingSoon } from './portals/ComingSoon'
+import { DeptPortal } from './portals/department/DeptPortal'
 import { CollegePortal } from './portals/college/CollegePortal'
 import { SuperPortal } from './portals/super/SuperPortal'
 import { StructureBuilder } from './portals/super/structure/StructureBuilder'
@@ -31,6 +34,7 @@ export default function App() {
   const session = useKaal((s) => s.session)
   const enterAs = useKaal((s) => s.enterAs)
   const switchCollege = useKaal((s) => s.switchCollege)
+  const switchDept = useKaal((s) => s.switchDept)
   const signOut = useKaal((s) => s.signOut)
   const resetDemo = useKaal((s) => s.resetDemo)
   const updateCollege = useKaal((s) => s.updateCollege)
@@ -116,6 +120,8 @@ export default function App() {
   }
 
   const home = session ? collegeFor(session, colleges, session.collegeId) : undefined
+  // the department an HOD sits at (access.ts decides; undefined for every other role)
+  const hodDept = deptScope(session, colleges)
   // #/super/<collegeId>/structure[/<tab>] — only for a session allowed to shape that college
   const subPath = route.page === 'portal' ? (route.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
@@ -142,6 +148,16 @@ export default function App() {
                 collegeId={session.collegeId}
                 onCollege={(id) => {
                   switchCollege(id)
+                  setOpen(null)
+                }}
+              />
+            )}
+            {hodDept && home && (
+              <DeptSwitcher
+                college={home}
+                deptId={hodDept}
+                onDept={(id) => {
+                  switchDept(id)
                   setOpen(null)
                 }}
               />
@@ -221,6 +237,24 @@ export default function App() {
           />
         ) : inPortal && session.role === 'collegeAdmin' ? (
           <p className="py-16 text-muted">This college is archived or no longer exists — pick another college above.</p>
+        ) : inPortal && session.role === 'deptAdmin' && home && hodDept ? (
+          <DeptPortal
+            key={`${home.college.id}/${hodDept}`}
+            college={home}
+            deptId={hodDept}
+            page={subPath[0] === 'setup' ? 'setup' : 'overview'}
+            setupTab={asSetupTab(subPath[1], true)}
+            onPage={(page, tab) => go({ page: 'portal', portal: 'dept', ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1], true)] } : {}) })}
+            edit={canDept(session, 'editDept', hodDept, colleges) ? (fn) => editOf(home.college.id)(deptEdit(hodDept, fn)) : undefined}
+            onReady={
+              canDept(session, 'markReady', hodDept, colleges)
+                ? (ready) => updateCollege(home.college.id, (c) => (ready ? markReady(c, hodDept) : setDeptStatus(c, hodDept, 'draft')))
+                : undefined
+            }
+            onView={can(session, 'viewDraft', home.college.id, colleges) ? () => view(home.college.id) : undefined}
+          />
+        ) : inPortal && session.role === 'deptAdmin' ? (
+          <p className="py-16 text-muted">This college has no departments yet, or it is archived — pick another college above.</p>
         ) : inPortal ? (
           <ComingSoon role={session.role} college={home} onRole={enter} />
         ) : (

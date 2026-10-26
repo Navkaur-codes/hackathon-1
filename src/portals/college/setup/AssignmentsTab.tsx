@@ -5,23 +5,27 @@ import type { Edit } from './tabs'
 
 const field = 'rounded-lg border border-rule bg-paper px-2 py-1.5 text-[14px]'
 
-/** Section × subject → teacher (rule G5). Teachers of the section's department are listed first. */
-export function AssignmentsTab({ college, edit }: { college: CollegeData; edit: Edit }) {
-  const [sectionId, setSectionId] = useState<Id>(college.sections[0]?.id ?? '')
+/** Section × subject → teacher (rule G5). Teachers of the section's department are listed first. On an HOD desk only
+ *  the department's sections are shown, but any teacher of the college may be chosen (shared faculty). */
+export function AssignmentsTab({ college, edit, deptId }: { college: CollegeData; edit: Edit; deptId?: Id }) {
+  const sections = deptId ? college.sections.filter((s) => s.deptId === deptId) : college.sections
+  const [sectionId, setSectionId] = useState<Id>(sections[0]?.id ?? '')
   const [onlyOpen, setOnlyOpen] = useState(false)
-  const section = college.sections.find((s) => s.id === sectionId) ?? college.sections[0]
+  const section = sections.find((s) => s.id === sectionId) ?? sections[0]
   if (!section) return <p className="text-[14px] text-muted">No sections yet — the Super Admin adds programmes and sections in the Structure Builder.</p>
 
   const load = assignedLoad(college)
   const subjects = new Map(college.subjects.map((s) => [s.id, s]))
   const deptName = new Map(college.departments.map((d) => [d.id, d.code]))
-  const total = college.assignments.length
-  const done = college.assignments.filter((a) => a.teacherId).length
+  const inScope = new Set(sections.map((s) => s.id))
+  const scoped = college.assignments.filter((a) => inScope.has(a.sectionId))
+  const total = scoped.length
+  const done = scoped.filter((a) => a.teacherId).length
   const openBySection = new Map<Id, number>()
-  for (const a of college.assignments) if (!a.teacherId) openBySection.set(a.sectionId, (openBySection.get(a.sectionId) ?? 0) + 1)
+  for (const a of scoped) if (!a.teacherId) openBySection.set(a.sectionId, (openBySection.get(a.sectionId) ?? 0) + 1)
   const rows = college.assignments.filter((a) => a.sectionId === section.id && (!onlyOpen || !a.teacherId))
   const ownFirst = [...college.teachers].sort((x, y) => Number(y.deptId === section.deptId) - Number(x.deptId === section.deptId) || x.name.localeCompare(y.name))
-  const nextOpen = college.sections.find((s) => (openBySection.get(s.id) ?? 0) > 0)
+  const nextOpen = sections.find((s) => (openBySection.get(s.id) ?? 0) > 0)
 
   return (
     <div className="space-y-3">
@@ -29,9 +33,11 @@ export function AssignmentsTab({ college, edit }: { college: CollegeData; edit: 
         <label className="flex items-center gap-2 text-[14px]">
           <span className="font-mono text-[11px] tracking-[0.15em] text-muted uppercase">Section</span>
           <select value={section.id} onChange={(e) => setSectionId(e.target.value)} className={field}>
-            {college.departments.map((d) => (
+            {college.departments
+              .filter((d) => !deptId || d.id === deptId)
+              .map((d) => (
               <optgroup key={d.id} label={d.name}>
-                {college.sections
+                {sections
                   .filter((s) => s.deptId === d.id)
                   .map((s) => (
                     <option key={s.id} value={s.id}>

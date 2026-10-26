@@ -4,7 +4,12 @@ import { NumberField, TextField } from '../../../components/fields'
 import { addSubject, removeSubject, subjectProblem, updateSubject } from '../../../lib/edit'
 import type { CollegeData, Id, RoomType, SubjectKind } from '../../../types'
 
-type Props = { college: CollegeData; edit: (fn: (c: CollegeData) => CollegeData) => void }
+type Props = {
+  college: CollegeData
+  edit: (fn: (c: CollegeData) => CollegeData) => void
+  /** HOD desk: only this department's programmes. */
+  deptId?: Id
+}
 
 const ROOM_TYPES: { value: RoomType; label: string }[] = [
   { value: 'lecture', label: 'Lecture room' },
@@ -14,9 +19,10 @@ const ROOM_TYPES: { value: RoomType; label: string }[] = [
 const field = 'rounded-lg border border-rule bg-paper px-2 py-1.5 text-[14px]'
 
 /** The curriculum of each programme (rule G5): every section of the programme takes these subjects. */
-export function SubjectsTab({ college, edit }: Props) {
-  const [programmeId, setProgrammeId] = useState<Id>(college.programmes[0]?.id ?? '')
-  const programme = college.programmes.find((p) => p.id === programmeId) ?? college.programmes[0]
+export function SubjectsTab({ college, edit, deptId }: Props) {
+  const programmes = deptId ? college.programmes.filter((p) => p.deptId === deptId) : college.programmes
+  const [programmeId, setProgrammeId] = useState<Id>(programmes[0]?.id ?? '')
+  const programme = programmes.find((p) => p.id === programmeId) ?? programmes[0]
   const [draft, setDraft] = useState({ code: '', name: '', kind: 'theory' as SubjectKind, periods: '4' })
   const [tried, setTried] = useState(false)
   if (!programme) return <p className="text-[14px] text-muted">Add a department and a programme first (Departments tab).</p>
@@ -30,9 +36,11 @@ export function SubjectsTab({ college, edit }: Props) {
       <label className="flex flex-wrap items-center gap-2 text-[14px]">
         <span className="font-mono text-[11px] tracking-[0.15em] text-muted uppercase">Programme</span>
         <select value={programme.id} onChange={(e) => setProgrammeId(e.target.value)} className={`${field} min-w-0`}>
-          {college.departments.map((d) => (
+          {college.departments
+            .filter((d) => !deptId || d.id === deptId)
+            .map((d) => (
             <optgroup key={d.id} label={d.name}>
-              {college.programmes
+              {programmes
                 .filter((p) => p.deptId === d.id)
                 .map((p) => (
                   <option key={p.id} value={p.id}>

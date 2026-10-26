@@ -18,6 +18,19 @@ export type Action =
 
 const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished']
 const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished']
+/** An HOD works on the college draft (their own department's part of it) — never publishes. */
+const DEPT_ADMIN: Action[] = ['viewDraft', 'viewPublished']
+
+/** What an HOD may do — only for their own department (root §2). */
+export type DeptAction =
+  /** Teachers of the dept, its sections' names / strength / breaks, subjects of its programmes, rooms it owns, who teaches its sections. */
+  | 'editDept'
+  /** Generate only this department against the rest of the college (v0.5-b). */
+  | 'generateDept'
+  /** Mark the department Ready / back to Draft. */
+  | 'markReady'
+  /** Offer / request / approve / revoke room loans where the dept is owner or borrower (v0.5-c). */
+  | 'exchange'
 
 const isActive = (c: CollegeData) => c.college.status === 'active'
 
@@ -38,8 +51,29 @@ export function can(session: Session | null, action: Action, collegeId: Id | und
   if (!session || !college) return false
   if (session.role === 'superAdmin') return SUPER_ADMIN.includes(action)
   if (session.role === 'collegeAdmin') return COLLEGE_ADMIN.includes(action)
-  // HOD, teacher and student read the published version only; v0.5 / v0.6 widen this
+  if (session.role === 'deptAdmin') return DEPT_ADMIN.includes(action)
+  // teacher and student read the published version only; v0.6 widens this
   return action === 'viewPublished'
+}
+
+/** The department an HOD session works on (in its own college), or undefined for every other session. */
+export function deptScope(session: Session | null, colleges: CollegeData[]): Id | undefined {
+  if (session?.role !== 'deptAdmin') return undefined
+  const college = collegeFor(session, colleges, session.collegeId)
+  return college?.departments.some((d) => d.id === session.deptId) ? session.deptId : undefined
+}
+
+/**
+ * May this session act on department `deptId`? An HOD only on their own department; the College Admin on any
+ * department of their college for edits and department generate (Ready and room loans are the HODs' own).
+ */
+export function canDept(session: Session | null, action: DeptAction, deptId: Id | undefined, colleges: CollegeData[]): boolean {
+  if (!session || !deptId) return false
+  const college = collegeFor(session, colleges, session.collegeId)
+  if (!college?.departments.some((d) => d.id === deptId)) return false
+  if (session.role === 'deptAdmin') return session.deptId === deptId
+  if (session.role === 'collegeAdmin') return action === 'editDept' || action === 'generateDept'
+  return false
 }
 
 /** Colleges a role can be switched into (the stand-in for logging in): every active one. */
@@ -54,6 +88,9 @@ export function switchableColleges(colleges: CollegeData[]): CollegeData[] {
 export function sessionFor(role: Role, colleges: CollegeData[], current: Session | null): Session {
   if (role === 'superAdmin') return current?.collegeId ? { role, collegeId: current.collegeId } : { role }
   const options = switchableColleges(colleges)
-  const keep = options.find((c) => c.college.id === current?.collegeId)
-  return { role, collegeId: (keep ?? options[0])?.college.id }
+  const college = options.find((c) => c.college.id === current?.collegeId) ?? options[0]
+  if (role !== 'deptAdmin' || !college) return { role, collegeId: college?.college.id }
+  // an HOD sits at one department: keep the current one if it belongs to this college, else the first
+  const dept = college.departments.find((d) => d.id === current?.deptId) ?? college.departments[0]
+  return { role, collegeId: college.college.id, ...(dept ? { deptId: dept.id } : {}) }
 }

@@ -1,18 +1,18 @@
 import { BreakEditor } from '../../../components/BreakEditor'
 import { NumberField, TextField } from '../../../components/fields'
 import { setBreaks, updateSection } from '../../../lib/edit'
-import type { CollegeData } from '../../../types'
+import type { CollegeData, Id } from '../../../types'
 import type { Edit } from './tabs'
 
 /** Rename sections, adjust their strength and give a section its own breaks (within the Super Admin's structure). */
-export function SectionsTab({ college, edit }: { college: CollegeData; edit: Edit }) {
+export function SectionsTab({ college, edit, deptId }: { college: CollegeData; edit: Edit; deptId?: Id }) {
   const prog = new Map(college.programmes.map((p) => [p.id, p]))
   return (
     <div className="space-y-3">
       <p className="text-[13px] text-muted">
         How many sections a year has is set by the Super Admin; here you name them, set how many students each has, and give one its own breaks.
       </p>
-      {college.departments.map((d) => (
+      {college.departments.filter((d) => !deptId || d.id === deptId).map((d) => (
         <section key={d.id} aria-label={d.name}>
           <h3 className="mb-2 font-display text-base font-semibold">{d.name}</h3>
           <ul className="space-y-2">

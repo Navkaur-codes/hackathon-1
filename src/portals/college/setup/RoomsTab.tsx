@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { NumberField, TextField } from '../../../components/fields'
 import { addRoom, removeRoom, roomProblem, updateRoom } from '../../../lib/edit'
-import type { CollegeData, RoomType } from '../../../types'
+import type { CollegeData, Id, RoomType } from '../../../types'
 import type { Edit } from './tabs'
 
 const TYPES: { value: RoomType; label: string }[] = [
@@ -29,18 +29,21 @@ function OwnerSelect({ college, value, onChange, label }: { college: CollegeData
   )
 }
 
-/** Department rooms and shared rooms (the College Admin owns shared rooms, root §2). */
-export function RoomsTab({ college, edit }: { college: CollegeData; edit: Edit }) {
-  const [draft, setDraft] = useState({ name: '', type: 'lecture' as RoomType, capacity: '60', owner: 'shared' })
+/** Department rooms and shared rooms (the College Admin owns shared rooms, root §2). On an HOD desk: the department's own rooms. */
+export function RoomsTab({ college, edit, deptId }: { college: CollegeData; edit: Edit; deptId?: Id }) {
+  const [draft, setDraft] = useState({ name: '', type: 'lecture' as RoomType, capacity: '60', owner: deptId ?? 'shared' })
+  const rooms = deptId ? college.rooms.filter((r) => r.owner === deptId) : college.rooms
   const [tried, setTried] = useState(false)
   const problem = roomProblem(college, draft.name)
   return (
     <div className="space-y-3">
       <p className="text-[13px] text-muted">
-        A section may use its own department's rooms and shared rooms. Another department's room needs a grant (Room Exchange, v0.5).
+        {deptId
+          ? 'Rooms your department owns. Shared rooms are set up by the College Admin; another department\u2019s room can be borrowed through Room Exchange.'
+          : 'A section may use its own department\u2019s rooms and shared rooms. Another department\u2019s room needs a loan through Room Exchange.'}
       </p>
       <ul className="space-y-2">
-        {college.rooms.map((r) => (
+        {rooms.map((r) => (
           <li key={r.id} className="flex flex-wrap items-end gap-3 rounded-lg border border-rule p-3">
             <TextField
               label="Room"
@@ -59,7 +62,7 @@ export function RoomsTab({ college, edit }: { college: CollegeData; edit: Edit }
               </select>
             </label>
             <NumberField label="Seats" value={r.capacity} min={1} max={2000} onCommit={(n) => edit((c) => updateRoom(c, r.id, { capacity: n ?? 1 }))} />
-            <OwnerSelect college={college} label="Used by" value={r.owner} onChange={(owner) => edit((c) => updateRoom(c, r.id, { owner }))} />
+            {!deptId && <OwnerSelect college={college} label="Used by" value={r.owner} onChange={(owner) => edit((c) => updateRoom(c, r.id, { owner }))} />}
             <button
               type="button"
               aria-label={`Remove ${r.name}`}
@@ -70,7 +73,7 @@ export function RoomsTab({ college, edit }: { college: CollegeData; edit: Edit }
             </button>
           </li>
         ))}
-        {college.rooms.length === 0 && <li className="text-[13px] text-muted">No rooms yet.</li>}
+        {rooms.length === 0 && <li className="text-[13px] text-muted">No rooms yet.</li>}
       </ul>
       <form
         aria-label="Add a room"
@@ -102,7 +105,7 @@ export function RoomsTab({ college, edit }: { college: CollegeData; edit: Edit }
           <span className={small}>Seats</span>
           <input type="number" min={1} value={draft.capacity} onChange={(e) => setDraft({ ...draft, capacity: e.target.value })} className={`${field} w-20`} />
         </label>
-        <OwnerSelect college={college} label="Used by" value={draft.owner} onChange={(owner) => setDraft({ ...draft, owner })} />
+        {!deptId && <OwnerSelect college={college} label="Used by" value={draft.owner} onChange={(owner) => setDraft({ ...draft, owner })} />}
         <button type="submit" className="inline-flex items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[13px] font-medium text-paper">
           <Plus size={14} aria-hidden /> Add room
         </button>

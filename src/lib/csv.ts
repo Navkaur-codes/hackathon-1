@@ -98,6 +98,40 @@ export function parseAssignments(text: string, c: CollegeData): Parsed<Assignmen
   return out
 }
 
+/**
+ * An HOD pastes for their own department only (root §2): rows for another department — or a shared room,
+ * which belongs to the College Admin — move to the errors with the reason.
+ */
+export function limitToDept<T extends TeacherInput | RoomInput | AssignmentRow>(
+  kind: 'teachers' | 'rooms' | 'assignments',
+  parsed: Parsed<T>,
+  c: CollegeData,
+  deptId: Id,
+): Parsed<T> {
+  const code = (id: Id) => c.departments.find((d) => d.id === id)?.code ?? id
+  const mine = code(deptId)
+  const out: Parsed<T> = { rows: [], errors: [...parsed.errors] }
+  for (const r of parsed.rows) {
+    let why: string | null = null
+    if (kind === 'teachers') {
+      const t = r.value as TeacherInput
+      if (t.deptId !== deptId) why = `${t.name} is in ${code(t.deptId)} — you can add teachers of ${mine} only.`
+    } else if (kind === 'rooms') {
+      const room = r.value as RoomInput
+      if (room.owner === 'shared') why = `Shared rooms are set up by the College Admin — give ${room.name} to ${mine} or ask them.`
+      else if (room.owner !== deptId) why = `${room.name} would belong to ${code(room.owner)} — you can add rooms of ${mine} only.`
+    } else {
+      const a = c.assignments.find((x) => x.id === (r.value as AssignmentRow).assignmentId)
+      const section = c.sections.find((s) => s.id === a?.sectionId)
+      if (section?.deptId !== deptId) why = `${section?.name ?? 'That section'} is in ${code(section?.deptId ?? '')} — you can assign teachers to ${mine} sections only.`
+    }
+    if (why) out.errors.push({ line: r.line, message: why })
+    else out.rows.push(r)
+  }
+  out.errors.sort((a, b) => a.line - b.line)
+  return out
+}
+
 export const applyTeachers = (c: CollegeData, rows: TeacherInput[]) => rows.reduce(addTeacher, c)
 export const applyRooms = (c: CollegeData, rows: RoomInput[]) => rows.reduce(addRoom, c)
 export const applyAssignments = (c: CollegeData, rows: AssignmentRow[]) => rows.reduce((x, r) => setAssignmentTeacher(x, r.assignmentId, r.teacherId), c)

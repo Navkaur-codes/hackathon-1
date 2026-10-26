@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { CircleAlert, ClipboardPaste, Upload } from 'lucide-react'
 import { Chips } from '../../../components/fields'
-import { applyAssignments, applyRooms, applyTeachers, parseAssignments, parseRooms, parseTeachers } from '../../../lib/csv'
-import type { CollegeData } from '../../../types'
+import { applyAssignments, applyRooms, applyTeachers, limitToDept, parseAssignments, parseRooms, parseTeachers } from '../../../lib/csv'
+import type { CollegeData, Id } from '../../../types'
 import type { Edit } from './tabs'
 
 type Kind = 'teachers' | 'rooms' | 'assignments'
@@ -14,11 +14,15 @@ const COLUMNS: Record<Kind, string> = {
 }
 
 /** An example built from this college's own departments, sections and subjects (never hard-coded, rule G2). */
-function example(kind: Kind, c: CollegeData): string {
-  const d = c.departments[0]?.code ?? 'DEPT'
+function example(kind: Kind, c: CollegeData, deptId?: Id): string {
+  const d = c.departments.find((x) => x.id === deptId)?.code ?? c.departments[0]?.code ?? 'DEPT'
   if (kind === 'teachers') return `Name\tDepartment\tMax/day\tMax/week\nDr. Example Teacher\t${d}\t4\t16\nProf. Second Teacher\t${d}\t3\t12`
-  if (kind === 'rooms') return `Room\tType\tSeats\tUsed by\nLT-901\tlecture\t60\t${d}\nLab-901\tlab\t60\t\nHall-9\tseminar\t150\tshared`
-  const rows = c.assignments.slice(0, 3).map((a) => {
+  if (kind === 'rooms')
+    return deptId
+      ? `Room\tType\tSeats\tUsed by\nLT-901\tlecture\t60\t${d}\nLab-901\tlab\t60\t${d}`
+      : `Room\tType\tSeats\tUsed by\nLT-901\tlecture\t60\t${d}\nLab-901\tlab\t60\t\nHall-9\tseminar\t150\tshared`
+  const inDept = new Set(c.sections.filter((s) => !deptId || s.deptId === deptId).map((s) => s.id))
+  const rows = c.assignments.filter((a) => inDept.has(a.sectionId)).slice(0, 3).map((a) => {
     const s = c.sections.find((x) => x.id === a.sectionId)
     const sub = c.subjects.find((x) => x.id === a.subjectId)
     const t = c.teachers.find((x) => x.id === a.teacherId) ?? c.teachers[0]
@@ -28,16 +32,24 @@ function example(kind: Kind, c: CollegeData): string {
 }
 
 /** Paste rows copied from Excel / Google Sheets (or CSV): preview good rows and errors, then import. */
-export function PasteTab({ college, edit }: { college: CollegeData; edit: Edit }) {
+export function PasteTab({ college, edit, deptId }: { college: CollegeData; edit: Edit; deptId?: Id }) {
   const [kind, setKind] = useState<Kind>('teachers')
   const [text, setText] = useState('')
   const [done, setDone] = useState<string | null>(null)
+  // on an HOD desk, rows for another department move to the problems (root §2)
   const parsed = useMemo(() => {
     if (!text.trim()) return null
-    if (kind === 'teachers') return { kind, ...parseTeachers(text, college) }
-    if (kind === 'rooms') return { kind, ...parseRooms(text, college) }
-    return { kind, ...parseAssignments(text, college) }
-  }, [kind, text, college])
+    if (kind === 'teachers') {
+      const p = parseTeachers(text, college)
+      return { kind, ...(deptId ? limitToDept(kind, p, college, deptId) : p) }
+    }
+    if (kind === 'rooms') {
+      const p = parseRooms(text, college)
+      return { kind, ...(deptId ? limitToDept(kind, p, college, deptId) : p) }
+    }
+    const p = parseAssignments(text, college)
+    return { kind, ...(deptId ? limitToDept(kind, p, college, deptId) : p) }
+  }, [kind, text, college, deptId])
 
   const describe = (row: unknown): string => {
     if (kind === 'teachers') {
@@ -77,7 +89,7 @@ export function PasteTab({ college, edit }: { college: CollegeData; edit: Edit }
             setDone(null)
           }}
         />
-        <button type="button" onClick={() => setText(example(kind, college))} className="text-[13px] text-muted underline-offset-2 hover:text-ink hover:underline">
+        <button type="button" onClick={() => setText(example(kind, college, deptId))} className="text-[13px] text-muted underline-offset-2 hover:text-ink hover:underline">
           Fill an example
         </button>
       </div>

@@ -15,6 +15,8 @@ export type KaalState = {
   /** Switch role (stand-in for logging in until v0.9). */
   enterAs: (role: Role) => void
   switchCollege: (collegeId: Id) => void
+  /** An HOD changes department (within their college). */
+  switchDept: (deptId: Id) => void
   signOut: () => void
   /** Add a college built by `lib/edit.ts` (new from template or clone); ignored if its id is taken. */
   addCollege: (c: CollegeData) => void
@@ -39,7 +41,17 @@ export function createKaalStore(storage?: StateStorage) {
         ...seed(),
         enterAs: (role) => set((s) => ({ session: sessionFor(role, s.colleges, s.session) })),
         switchCollege: (collegeId) =>
-          set((s) => (s.session && s.colleges.some((c) => c.college.id === collegeId) ? { session: { role: s.session.role, collegeId } } : s)),
+          set((s) =>
+            s.session && s.colleges.some((c) => c.college.id === collegeId)
+              ? { session: sessionFor(s.session.role, s.colleges, { role: s.session.role, collegeId }) }
+              : s,
+          ),
+        switchDept: (deptId) =>
+          set((s) =>
+            s.session?.role === 'deptAdmin' && s.colleges.find((c) => c.college.id === s.session!.collegeId)?.departments.some((d) => d.id === deptId)
+              ? { session: { ...s.session, deptId } }
+              : s,
+          ),
         signOut: () => set({ session: null }),
         addCollege: (c) =>
           set((s) => (s.colleges.some((x) => x.college.id === c.college.id) ? s : { colleges: [...s.colleges, c] })),

@@ -76,6 +76,18 @@ describe('T4.2 store persists across a reload', () => {
     expect(c.college.name).toBe('Renamed')
   })
 
+  it('HOD: switching department stays inside the college; switching college picks a department of it', () => {
+    const store = createKaalStore(memoryStorage())
+    store.getState().enterAs('deptAdmin')
+    expect(store.getState().session).toEqual({ role: 'deptAdmin', collegeId: diet.college.id, deptId: diet.departments[0].id })
+    store.getState().switchDept('diet-me')
+    expect(store.getState().session?.deptId).toBe('diet-me')
+    store.getState().switchDept(dcas.departments[0].id) // another college's department → ignored
+    expect(store.getState().session?.deptId).toBe('diet-me')
+    store.getState().switchCollege(dcas.college.id)
+    expect(store.getState().session).toEqual({ role: 'deptAdmin', collegeId: dcas.college.id, deptId: dcas.departments[0].id })
+  })
+
   it('switching to an unknown college is ignored; sign out clears the session', () => {
     const store = createKaalStore(memoryStorage())
     store.getState().enterAs('teacher')

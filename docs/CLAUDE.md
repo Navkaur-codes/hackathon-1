@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.4 built (P0.4-e awaiting push) — next: v0.5 design (HOD + Room Exchange)** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.5 HOD portal + Room Exchange — design approved, P0.5-a built (awaiting push), P0.5-b next** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.4 is built** — P0.4-a `7f63b9c`, P0.4-b `f8bc701`, P0.4-x flexible lunch `28e20c7`, P0.4-c `4280341`, P0.4-d `cf0274d` are pushed; **P0.4-e** (stored draft, publish / versions, export / import; 274 tests) is built — the user commits & pushes it (`feat(college): generate, publish and versions`). Check `git log -1` first. Live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
+> **▶ RESUME HERE (new chat):** **v0.4 is complete and pushed** — P0.4-a `7f63b9c`, P0.4-b `f8bc701`, P0.4-x flexible lunch `28e20c7`, P0.4-c `4280341`, P0.4-d `cf0274d`, P0.4-e `13cdba3`; 274 tests green. Check `git log -1` first. Live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
 >
-> **Next:** write the **v0.5 design** below (HOD portal + Room Exchange: department-scoped teachers / sections / subjects / dept rooms and who-teaches-what through `access.ts`; department generate against the college's other placements as fixed bookings (no second algorithm); Draft → Ready; Room Exchange offer / request / approve / revoke **slot grants** — the user asked for lending a department room for one class on a given day; engine already honours grants (H11); tests T5.1–T5.5 in `docs/TEST.md`). Show the user a 5-line summary and wait for approval before coding.
+> **Next:** the v0.5 design below is **approved** (2026-10-26). **P0.5-a** HOD desk (`portals/department/DeptPortal.tsx`, `lib/deptPlan.ts`, HOD rules in `lib/access.ts`, scoped setup tabs, `limitToDept`; 285 tests) is built — the user commits & pushes it (`feat(dept): hod desk with department setup and ready status`). Then **P0.5-b** (Generate my department: `solveBest` with `assignmentIds` = the department, `fixed` = other departments' draft placements, merged back; decide per-department staleness — today one department's edit marks the whole college draft stale) → **P0.5-c** Room Exchange.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -314,3 +314,51 @@
 - Still to hand-check: Chrome's Ctrl+P on the live URL (M8) and the OS reduced-motion setting (M10).
 
 ---
+
+## v0.5 HOD portal + Room Exchange
+
+### Design
+**Goal:** departments plan in parallel without ever clashing. A **Head of Department (HOD)** keeps their own department ready — teachers, who teaches what, subjects, sections, department rooms — generates **only their department** against everything the rest of the college has already booked, and marks it **Ready**. Idle department rooms can be **lent**: one HOD offers or another requests a room for chosen weekly slots, the owner approves, the borrower's timetable may then use exactly those slots. All scoping goes through `access.ts` (root §2: HOD writes only their own department).
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `types.ts` | `Grant` gains `kind: 'offer' \| 'request'`, `note?`, `createdAt`, `decidedAt?` (status flow `offered → approved` when the borrower takes it · `requested → approved / rejected` by the owner · `approved → revoked` by the owner). `Department.status` (`draft` / `ready`) is finally used. `Session.deptId` set for HODs. |
+| `lib/access.ts` | HOD actions on **own department only**: `editDept` (teachers of the dept, its sections' names / strength / breaks, subjects of its programmes, rooms it owns, who teaches its sections — any teacher of the college may be chosen), `generateDept`, `markReady`, `exchange` (offer / request / approve / revoke grants where the dept is owner or borrower). Read: own department's grids + shared rooms + rooms granted to it. `deptScope(session)` gives the department id or none. College Admin keeps everything it has; Super Admin unchanged. `sessionFor('deptAdmin')` picks the first department of the college; a **department switcher** appears for HODs. |
+| `lib/deptPlan.ts` | `generateDept(college, deptId, opts)` options for `solveBest`: `assignmentIds` = the department's assignments, `fixed` = every **other** department's placements from the college draft (the global ledger) — no second algorithm (root §5). `mergeDept(college, deptId, result)` → new college draft: other departments' placements untouched, this department's replaced, other departments' unplaced kept. `readiness(college, deptId)` → checklist (every class has a teacher · no pre-flight error for the dept · the dept is in the draft with nothing unplaced · draft not stale). `markReady` / back to `draft` on any edit of the dept. |
+| `lib/exchange.ts` | `requestRoom(college, borrowerDeptId, roomId, slots, note)` · `offerRoom(college, ownerDeptId, roomId, slots, toDeptId, note)` · `accept(college, grantId)` (borrower takes an offer) · `approve` / `reject` (owner decides a request) · `revoke` (owner) · `affectedBy(college, grantId)` → borrower placements that would lose their room · `freeSlotsOf(college, roomId)` from the draft (via `finder.weekStrip`). Every change marks the draft stale when it can change what is legal. |
+
+**Screens**
+- **HOD desk** `#/dept` (accent terracotta): header with the department (switcher), **status chip** Draft / Ready.
+  - **Overview:** readiness checklist with links to fix each item · **Generate my department** (worker, 20 tries, against the rest of the college) → result strip (0 clashes · score · unplaced) → saved into the college draft → **View timetable** (sections, teachers and rooms of this dept; shared and borrowed rooms; read-only for other departments) · **Mark Ready** (enabled when the checklist is green) · **teacher load chart** (periods given vs weekly limit per teacher, bars from the curriculum).
+  - **Setup** `#/dept/setup/<tab>`: the College Admin setup tabs reused with a **department scope** — Teachers (own), Who teaches what (own sections), Subjects (own programmes), Sections (own), Rooms (own), Paste from Excel (rows outside the dept refused with a reason).
+  - **Room Exchange** `#/dept/exchange`: *My rooms* (each with its free slots this week and incoming requests → Approve / Reject; Offer idle slots to a department; approved loans → Revoke with "N classes will lose this room") · *Borrow a room* (find a free room of a type and size, pick weekly slots on its free-slot grid, add a note → Request; open offers → Accept) · history.
+- **College Admin desk:** a **Departments** strip — each department's status (Draft / Ready) and unplaced count; Room Exchange ledger (read-only list of all grants). Publishing still needs only a clean draft; departments not Ready show a warning, not a block.
+- **Super Admin:** unchanged.
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.5-a | HOD session + department switcher, `access.ts` HOD rules, HOD desk with department-scoped Setup (reused tabs), teacher load chart, readiness checklist + Mark Ready (any edit → Draft) | T5.1 HOD sees / edits only own department (+ shared and granted rooms read) · readiness rules · scoped paste refuses other departments | `feat(dept): hod desk with department setup and ready status` |
+| P0.5-b | Generate my department against the global ledger → merged into the college draft; HOD timetable view scoped to the dept; College Admin departments strip | T5.2 dept A then dept B → 0 global conflicts · merge leaves other departments' placements and unplaced identical · stale and fixed placements respected | `feat(dept): department generate against the college ledger` |
+| P0.5-c | Room Exchange: offer / request / accept / approve / reject / revoke weekly slot grants; free-slot picker; revoke warns and the draft goes stale; College Admin ledger | T5.3 no grant → another department's room never used · T5.4 approved grant → borrower uses only the granted slots · T5.5 revoke → affected placements listed and the validator flags them (H11) · every transition is legal only for the right HOD | `feat(dept): room exchange between departments` |
+
+**Decisions**
+- **One ledger, one algorithm.** The college draft is the global booking ledger; a department generate is `solveBest` with the other departments' placements as fixed bookings, merged back. The College Admin's "Generate whole college" stays and simply replaces everything.
+- **Grants are weekly slots** ("Lab-2, every Thursday P3–P4"), because the timetable is a weekly pattern. The user's ask — *lend a department room for one class on a particular day* — is met for a weekday slot that repeats every week. A **one-off loan for a single date** (e.g. only 26 Oct) belongs with date-specific changes (leave cover, adjusted timetables) in **v0.7**.
+- **HOD edits stay inside the structure the Super Admin set:** no new programmes or section counts, but subjects of the department's programmes are theirs (root §2). Shared rooms remain the College Admin's.
+- **Ready is a signal, not a lock:** any edit to the department returns it to Draft; College Admin can publish with departments not Ready (warned).
+- Leave approval and substitutes on the HOD desk are **v0.7** (screens on the engine built in v0.2).
+- If time runs short: the load chart and the College Admin ledger list are the first to drop; the offer flow can drop before the request flow.
+- **Decided in P0.5-a:** the College Admin may also edit and generate any department (it runs the whole college), but **Ready** and **room loans** belong to HODs. Readiness counts only the department's own pre-flight *errors* (a missing teacher is a warning and has its own checklist line). An HOD chooses teachers from the whole college for their sections (shared faculty), but adds teachers and rooms only to their own department; shared rooms stay with the College Admin. Subjects of the department's programmes are editable on the HOD desk (root §2), programmes and section counts stay with the Super Admin.
+
+**Done when:** an HOD of DIET CSE fixes their setup, generates CSE against the rest, and marks it Ready; the ECE HOD requests CSE's lab for Thursday P3–P4, the CSE HOD approves, ECE re-generates and uses that lab only then; revoking it lists the affected class and blocks publishing until ECE re-generates; nothing ever clashes across departments; and an HOD can never edit another department.
+
+### Built
+_(fill after v0.5)_
+
+### Open issues
+_(fill after v0.5)_
+
+---
+

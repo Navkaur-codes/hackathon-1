@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildDemoColleges } from '../demoData'
 import { solve } from '../solver/solve'
 import { validate } from '../solver/validate'
-import { applyAssignments, applyRooms, applyTeachers, parseAssignments, parseRooms, parseTeachers } from './csv'
+import { applyAssignments, applyRooms, applyTeachers, limitToDept, parseAssignments, parseRooms, parseTeachers } from './csv'
 import { addDepartment, addProgramme, addSubject, newCollege } from './edit'
 
 const [diet, dcas] = buildDemoColleges()
@@ -54,6 +54,23 @@ describe('T4.1 paste from Excel', () => {
     expect(r.errors.map((e) => e.line)).toEqual([2, 3, 4])
     const applied = applyAssignments(diet, r.rows.map((x) => x.value))
     expect(applied.assignments.find((a) => a.sectionId === section.id && a.subjectId === subject.id)!.teacherId).toBe(teacher.id)
+  })
+
+  it('an HOD paste keeps only rows of their own department', () => {
+    const t = limitToDept('teachers', parseTeachers('A One\tCSE\nB Two\tECE\nC Three\tCSE', diet), diet, 'diet-cse')
+    expect(t.rows.map((r) => r.value.name)).toEqual(['A One', 'C Three'])
+    expect(t.errors).toEqual([{ line: 2, message: 'B Two is in ECE — you can add teachers of CSE only.' }])
+    const r = limitToDept('rooms', parseRooms('R1\tlecture\t60\tCSE\nR2\tlecture\t60\t\nR3\tlab\t30\tME', diet), diet, 'diet-cse')
+    expect(r.rows.map((x) => x.value.name)).toEqual(['R1'])
+    expect(r.errors.map((e) => e.line)).toEqual([2, 3])
+    expect(r.errors[0].message).toMatch(/Shared rooms are set up by the College Admin/)
+    const cse = diet.sections.find((s) => s.deptId === 'diet-cse')!
+    const ece = diet.sections.find((s) => s.deptId === 'diet-ece')!
+    const sub = (s: typeof cse) => diet.subjects.find((x) => x.programmeId === s.programmeId)!.code
+    const who = parseAssignments(`${cse.name}\t${sub(cse)}\t${diet.teachers[0].name}\n${ece.name}\t${sub(ece)}\t${diet.teachers[0].name}`, diet)
+    const a = limitToDept('assignments', who, diet, 'diet-cse')
+    expect(a.rows).toHaveLength(1)
+    expect(a.errors[0]).toMatchObject({ line: 2, message: expect.stringMatching(/is in ECE/) })
   })
 
   it('end to end: a blank college shaped and filled only by pasting generates with 0 clashes', () => {
