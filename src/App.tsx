@@ -251,6 +251,16 @@ export default function App() {
             canPublish={can(session, 'publish', home.college.id, colleges)}
             canExport={can(session, 'export', home.college.id, colleges)}
             solveOptions={designerOptions(home.college.id)}
+            actBookings={
+              can(session, 'roomBookings', home.college.id, colleges)
+                ? (fn) => {
+                    const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
+                    const r = fn(current)
+                    if (r.ok) updateCollege(home.college.id, () => r.college)
+                    return r.ok ? null : r.reason
+                  }
+                : undefined
+            }
           />
         ) : inPortal && session.role === 'collegeAdmin' ? (
           <p className="py-16 text-muted">This college is archived or no longer exists — pick another college above.</p>

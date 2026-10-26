@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeftRight, Check, Undo2, X } from 'lucide-react'
 import { SlotGrid } from '../../components/SlotGrid'
+import { DayBookings } from './DayBookings'
 import { affectedBy, approve, describeSlots, loansOf, offerRoom, reject, requestRoom, revoke, unavailableSlots, type ExchangeOutcome } from '../../lib/exchange'
 import type { CollegeData, Grant, Id, SlotKey } from '../../types'
 
@@ -57,7 +58,7 @@ function SlotPicker({
       <h3 className="font-display text-base font-semibold">{title}</h3>
       <p className="text-[13px] text-muted">{hint}</p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1">
+        <label className="flex min-w-0 max-w-full flex-col gap-1">
           <span className={small}>Room</span>
           <select
             value={room.id}
@@ -66,7 +67,7 @@ function SlotPicker({
               setSlots([])
               setMsg(null)
             }}
-            className={field}
+            className={`${field} max-w-full`}
           >
             {rooms.map((r) => (
               <option key={r.id} value={r.id}>
@@ -76,9 +77,9 @@ function SlotPicker({
           </select>
         </label>
         {targets && (
-          <label className="flex flex-col gap-1">
+          <label className="flex min-w-0 max-w-full flex-col gap-1">
             <span className={small}>Offer to</span>
-            <select value={to} onChange={(e) => setTo(e.target.value)} className={field}>
+            <select value={to} onChange={(e) => setTo(e.target.value)} className={`${field} max-w-full`}>
               {targets.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.code} · {d.name}
@@ -184,6 +185,8 @@ export function ExchangeTab({ college, deptId, act }: Props) {
           </ul>
         )}
       </section>
+
+      <DayBookings college={college} deptId={deptId} act={act} />
 
       {others.length > 0 && (
         <SlotPicker

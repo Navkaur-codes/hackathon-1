@@ -5,6 +5,8 @@ import type { CollegeData } from '../../types'
 import { PortalTitle } from '../PortalTitle'
 import { DeptStrip } from './DeptStrip'
 import { LoanLedger } from './LoanLedger'
+import { BookingsPanel } from './BookingsPanel'
+import type { BookingOutcome } from '../../lib/bookings'
 import { PublishPanel } from './PublishPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
@@ -24,10 +26,12 @@ type Props = {
   canExport: boolean
   /** Whole-college generate options: the College Admin may use any department's room (allocated for the semester). */
   solveOptions?: BestOptions
+  /** Present only when this session may decide shared-room day bookings. */
+  actBookings?: (fn: (c: CollegeData) => BookingOutcome) => string | null
 }
 
 /** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions }: Props) {
+export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings }: Props) {
   // the stored draft, described against the college as it is now
   const draft = college.draft
   const result = useMemo(() => (draft ? describeTimetable(college, draft) : undefined), [college, draft])
@@ -92,6 +96,9 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
           </div>
           <div className="mt-4">
             <LoanLedger college={college} />
+          </div>
+          <div className="mt-4">
+            <BookingsPanel college={college} act={actBookings} />
           </div>
         </div>
       )}

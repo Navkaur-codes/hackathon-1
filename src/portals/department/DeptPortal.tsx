@@ -1,4 +1,5 @@
 import { ArrowRight, CircleCheck, CircleDashed, Eye } from 'lucide-react'
+import { bookingsToDecide } from '../../lib/bookings'
 import { readiness, type ReadinessItem } from '../../lib/deptPlan'
 import { assignedLoad } from '../../lib/edit'
 import type { CollegeData, Id } from '../../types'
@@ -71,7 +72,9 @@ function LoadChart({ college, deptId }: { college: CollegeData; deptId: Id }) {
 
 /** HOD desk: keep one department ready — setup, readiness checklist, Ready status, teacher load. */
 export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onReady, onView, onGenerate, act }: Props) {
-  const waiting = college.grants.filter((g) => (g.status === 'requested' && g.fromDeptId === deptId) || (g.status === 'offered' && g.toDeptId === deptId)).length
+  const waiting =
+    college.grants.filter((g) => (g.status === 'requested' && g.fromDeptId === deptId) || (g.status === 'offered' && g.toDeptId === deptId)).length +
+    bookingsToDecide(college, deptId).length
   const dept = college.departments.find((d) => d.id === deptId)!
   const check = readiness(college, deptId)
   const isReady = dept.status === 'ready'

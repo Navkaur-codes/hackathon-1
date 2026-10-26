@@ -2,6 +2,7 @@
 // Pure: the caller passes the time, so versions are reproducible in tests.
 
 import { score } from '../solver/score'
+import { bookingsAfterPublish } from './bookings'
 import { coverage } from './deptPlan'
 import { validate } from '../solver/validate'
 import type { CollegeData, Timetable } from '../types'
@@ -53,16 +54,17 @@ export function publish(c: CollegeData, at: string, opts: { acceptUnplaced?: boo
   const draft = c.draft!
   const log = c.publishLog ?? []
   const version = (log.at(-1)?.version ?? 0) + 1
+  // single-date bookings whose periods the new version needs for a class get flagged "needs a new room"
   return {
     ok: true,
-    college: {
+    college: bookingsAfterPublish({
       ...c,
       published: { timetable: draft, version, at },
       publishLog: [
         ...log,
         { version, at, score: score(c, draft).total, periods: draft.placements.reduce((s, p) => s + p.length, 0), unplaced: check.unplaced },
       ],
-    },
+    }),
   }
 }
 

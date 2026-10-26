@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.5 room rework — P0.5-d built (awaiting push), P0.5-e next; v0.6 design written, on hold** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.5 room rework — P0.5-d pushed, P0.5-e built (awaiting push); v0.6 design written, awaiting approval** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.5 is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`; 299 tests green. v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
+> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e (awaiting push); 313 tests green. v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
 >
-> **Next:** room rework approved (2026-10-26; root H11 + §2 updated). **P0.5-d** (`lib/allocation.ts`, solver `anyRoom`, Clash Court Move to another room; 307 tests) is built — the user commits & pushes it (`feat(rooms): college admin allocates rooms for the semester`). Then **P0.5-e** single-date room requests (`lib/bookings.ts`, see the added design under v0.5), then ask approval for the v0.6 design (written below) and build P0.6-a/b/c.
+> **Next:** the user commits & pushes P0.5-e (`feat(rooms): single-date room requests`). Then ask approval for the **v0.6 design** (written below: Teacher desk, Student desk + share link, Meet-a-Teacher) and build P0.6-a/b/c. v0.6 *Today* views should also show single-date room bookings.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -355,7 +355,7 @@
 
 **Done when:** an HOD of DIET CSE fixes their setup, generates CSE against the rest, and marks it Ready; the ECE HOD requests CSE's lab for Thursday P3–P4, the CSE HOD approves, ECE re-generates and uses that lab only then; revoking it lists the affected class and blocks publishing until ECE re-generates; nothing ever clashes across departments; and an HOD can never edit another department.
 
-### Added design — semester room allocation + single-date room requests (user request before v0.6, 2026-10-26) · *approved; P0.5-d built*
+### Added design — semester room allocation + single-date room requests (user request before v0.6, 2026-10-26) · *approved; P0.5-d and P0.5-e built*
 **Request:** the timetable is one weekly pattern for the whole semester, so a room another department uses is in effect theirs for the semester — the person who designs the timetable (the **College Admin**) should assign rooms, including other departments' rooms. Keep requesting, for when someone needs a specific room **on a particular day**. User's choices: allocation **automatic + hand edits**; requests **single dates, keep the weekly HOD loans**; a single-date request is approved by **the HOD who owns the room** (shared rooms → College Admin).
 This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**; built as **P0.5-d** and **P0.5-e** before v0.6.
 
@@ -379,10 +379,13 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 - **P0.5-a** `74d652a` — **HOD desk** `#/dept`: HOD rules in `lib/access.ts` (`DeptAction`, `canDept`, `deptScope`; session `deptId` + department switcher), `lib/deptPlan.ts` readiness checklist + Ready / Draft (`markReady`, `deptEdit`), teacher load bars, department-scoped Setup reusing the College Admin tabs (+ Subjects) and scoped paste (`limitToDept`).
 - **P0.5-b** `6171526` — **Generate my department**: `deptSolveOptions` (other departments' placements as fixed bookings — same `solveBest`), `mergeDept`, `coverage`; per-department staleness (judged by coverage + the independent clash check); department-scoped timetable pickers; College Admin **Departments** strip; department remembered across role switches.
 - **P0.5-c** — **Room Exchange**: weekly slot loans (`lib/exchange.ts`: request / offer / approve / reject / revoke / `affectedBy` / `unavailableSlots` / `describeSlots`), HOD Room Exchange tab with slot picker and "N waiting" badge, revoke warns with the affected classes, College Admin ledger. No engine change: approved grants were already honoured by the solver, validator (H11), pre-flight and finder.
+- **P0.5-d** `d64f465` — **College Admin allocates rooms for the semester** (user request): solver option `anyRoom` for whole-college generate (other departments' rooms only when they help), `lib/allocation.ts` (`syncAllocations` → approved `allocation` grants from the draft + published version, so H11 holds; `roomOptions`, `moveToRoom`), Clash Court **Move to another room**, ledger "Rooms across departments"; all-rooms solve sped up from 7.3 s to ~0.5 s.
+- **P0.5-e** — **Single-date room requests** (user request, from v0.7): `RoomBooking` + `lib/bookings.ts` (free periods from the published day of that date, owning HOD or College Admin for shared rooms decides, own rooms booked at once, `needsNewRoom` after a re-publish); HOD **Book a room for a day** + requests to decide; College Admin **Day bookings** panel. The weekly pattern never changes.
 - Done-when met on DIET: an HOD fixes the department, generates it against the rest and marks it Ready; ECE (labs squeezed) requests the CSE lab for Thursday / Friday slots, CSE approves, ECE re-generates into exactly those slots; taking it back lists the 2 affected classes and blocks publishing (H11) until ECE re-generates; no cross-department clash at any point; an HOD can never edit or decide for another department. 299 tests green.
 
 ### Open issues
-- Loans are **weekly** slots; a one-off loan for a single date belongs with date-specific changes (**v0.7**).
+- ~~Loans are weekly only~~ → single-date bookings built in P0.5-e. Teachers / students do not see bookings yet — show them on *Today* in **v0.6**.
+- A `needsNewRoom` booking only gets a label; the HOD books another room by hand (no automatic re-booking).
 - The finder (Who's free?) and the timetable's "Who's free" tab are still college-wide for every role — role scoping comes with the Teacher / Student portals (**v0.6**).
 - A college-wide change (blocked slot, calendar) holds back every department with a class there; each must re-generate (or the College Admin generates the whole college).
 - Leave approval and substitute screens on the HOD desk are **v0.7** (engine since v0.2).

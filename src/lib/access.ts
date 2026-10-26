@@ -15,8 +15,10 @@ export type Action =
   | 'viewDraft'
   /** The published version everyone in the college follows. */
   | 'viewPublished'
+  /** Decide single-date bookings of shared rooms (owned rooms are decided by their HOD). */
+  | 'roomBookings'
 
-const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished']
+const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings']
 const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished']
 /** An HOD works on the college draft (their own department's part of it) — never publishes. */
 const DEPT_ADMIN: Action[] = ['viewDraft', 'viewPublished']

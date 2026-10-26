@@ -237,6 +237,27 @@ export type Grant = {
   decidedAt?: string
 }
 
+/**
+ * A room for ONE date (extra class, seminar, test) — it never changes the weekly pattern. Approved by the HOD who
+ * owns the room (shared rooms: the College Admin); a department's own room is approved at once.
+ */
+export type RoomBooking = {
+  id: Id
+  collegeId: Id
+  roomId: Id
+  /** The department asking. */
+  deptId: Id
+  /** ISO date. */
+  date: string
+  /** Slot indexes on that date. */
+  periods: number[]
+  purpose: string
+  /** `needsNewRoom`: a later published version needs one of these periods for a class. */
+  status: 'requested' | 'approved' | 'declined' | 'withdrawn' | 'needsNewRoom'
+  createdAt: string
+  decidedAt?: string
+}
+
 /** Leave is for one calendar date; it never changes the weekly master timetable (see docs/CLAUDE.md). */
 export type LeaveRequest = {
   id: Id
@@ -330,6 +351,8 @@ export type CollegeData = {
   published?: Published
   /** Every version ever published, newest last (missing = none yet). */
   publishLog?: PublishEntry[]
+  /** Single-date room bookings (missing = none yet). */
+  bookings?: RoomBooking[]
 }
 
 export type Platform = {
