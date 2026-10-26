@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { LogOut } from 'lucide-react'
-import { CollegeSwitcher } from './components/CollegeSwitcher'
-import { DeptSwitcher } from './components/DeptSwitcher'
-import { TeacherSwitcher } from './components/TeacherSwitcher'
-import { SectionSwitcher } from './components/SectionSwitcher'
+import { AccountMenu, ChangePasswordDialog } from './components/AccountMenu'
+import { LoginPage } from './components/LoginPage'
+import { DEMO_PASSWORD } from './demoAccounts'
 import { SharedWeek } from './components/SharedWeek'
 import { ChatDrawer } from './components/ChatDrawer'
 import { roleMeta } from './components/roles'
@@ -11,10 +9,9 @@ import { requestMeeting } from './lib/meetings'
 import { localIso } from './lib/myDay'
 import { decodeShare } from './lib/share'
 import { Landing } from './components/Landing'
-import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { assistantScope, can, canDept, canLock, collegeFor, deptScope, studentScope, switchableColleges, teacherScope } from './lib/access'
+import { assistantScope, can, canDept, canLock, collegeFor, deptScope, guard, studentScope, switchableColleges, teacherScope } from './lib/access'
 import { deptEdit, deptSolveOptions, markReady, mergeDept, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
@@ -51,11 +48,12 @@ const sharedWeekParam = typeof window === 'undefined' ? null : new URLSearchPara
 export default function App() {
   const colleges = useKaal((s) => s.colleges)
   const session = useKaal((s) => s.session)
-  const enterAs = useKaal((s) => s.enterAs)
-  const switchCollege = useKaal((s) => s.switchCollege)
-  const switchDept = useKaal((s) => s.switchDept)
-  const switchTeacher = useKaal((s) => s.switchTeacher)
-  const switchSection = useKaal((s) => s.switchSection)
+  const users = useKaal((s) => s.users)
+  const userId = useKaal((s) => s.userId)
+  const signIn = useKaal((s) => s.signIn)
+  const setUsers = useKaal((s) => s.setUsers)
+  const me = users.find((u) => u.id === userId)
+  const [changingPassword, setChangingPassword] = useState(false)
   const setStudentName = useKaal((s) => s.setStudentName)
   const signOut = useKaal((s) => s.signOut)
   const resetDemo = useKaal((s) => s.resetDemo)
@@ -81,14 +79,17 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }
 
-  // a portal page is shown only with a session, and always the session's own portal; the URL follows
-  const inPortal = route.page === 'portal' && session !== null
+  // v0.9: a session counts only with a signed-in account (a switcher session saved before accounts is signed out)
   useEffect(() => {
-    if (route.page !== 'portal') return
-    const own = session && route.portal === portalOf(session.role)
-    const want = formatRoute(own ? route : session ? { page: 'portal', portal: portalOf(session.role) } : { page: 'landing' })
-    if (window.location.hash !== want) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${want}`)
-  }, [route, session])
+    if (session && !me) signOut()
+  }, [session, me, signOut])
+  // route protection (access.ts `guard`): portals need a signed-in account and are always its own; the URL follows
+  const shown = guard(me ? session : null, route)
+  useEffect(() => {
+    const want = formatRoute(shown)
+    if (route.page !== 'landing' && window.location.hash !== want) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${want}`)
+  }, [shown, route.page])
+  const inPortal = shown.page === 'portal' && session !== null
 
   // Public landing previews per college (in memory only — the desks store a real draft instead).
   const [results, setResults] = useState<Record<string, SolveResult>>({})
@@ -131,16 +132,20 @@ export default function App() {
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`)
     if (!inPortal) requestAnimationFrame(() => document.getElementById('colleges')?.scrollIntoView())
   }
+  /** "Sign in as …" on the landing page: the login page, pointing at that role's demo accounts. */
   const enter = (role: Role) => {
-    enterAs(role)
     setOpen(null)
-    go({ page: 'portal', portal: portalOf(role) })
+    go(session && me ? { page: 'portal', portal: portalOf(session.role) } : { page: 'login', portal: portalOf(role) })
   }
-  const openAsAdmin = (collegeId: string) => {
-    enterAs('collegeAdmin')
-    switchCollege(collegeId)
-    setOpen(null)
-    go({ page: 'portal', portal: 'college' })
+  const doSignIn = async (username: string, password: string) => {
+    const why = await signIn(username, password)
+    if (!why) {
+      const s = appStore.getState().session!
+      setOpen(null)
+      setInitial(null)
+      go({ page: 'portal', portal: portalOf(s.role) })
+    }
+    return why
   }
   const exit = () => {
     signOut()
@@ -161,15 +166,8 @@ export default function App() {
   // the teacher a Teacher session is (access.ts decides)
   const self = teacherScope(session, colleges)
   const mySection = studentScope(session, colleges)
-  // a saved session from before, or one whose teacher / section was removed, sits at the first one of its college
-  const roleKind = session?.role
-  useEffect(() => {
-    if (!home) return
-    if (roleKind === 'teacher' && !self && home.teachers[0]) switchTeacher(home.teachers[0].id)
-    if (roleKind === 'student' && !mySection && home.sections[0]) switchSection(home.sections[0].id)
-  }, [home, roleKind, self, mySection, switchTeacher, switchSection])
   // #/super/<collegeId>/structure[/<tab>] — only for a session allowed to shape that college
-  const subPath = route.page === 'portal' ? (route.path ?? []) : []
+  const subPath = shown.page === 'portal' ? (shown.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
   const building = target && can(session, 'editStructure', target.college.id, colleges) ? target : undefined
   // #/super/<collegeId>/insights — the read-only dashboard
@@ -236,35 +234,8 @@ export default function App() {
           <Wheel size={28} spokes={8} />
           <span className="font-display text-xl font-semibold tracking-tight">Kaalchakra</span>
         </button>
-        {session ? (
+        {session && me ? (
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <RoleSwitcher role={session.role} onRole={enter} />
-            {session.role !== 'superAdmin' && (
-              <CollegeSwitcher
-                colleges={active}
-                collegeId={session.collegeId}
-                onCollege={(id) => {
-                  switchCollege(id)
-                  setOpen(null)
-                }}
-              />
-            )}
-            {hodDept && home && (
-              <DeptSwitcher
-                college={home}
-                deptId={hodDept}
-                onDept={(id) => {
-                  switchDept(id)
-                  setOpen(null)
-                }}
-              />
-            )}
-            {session.role === 'teacher' && home && home.teachers.length > 0 && (
-              <TeacherSwitcher college={home} teacherId={self} onTeacher={switchTeacher} />
-            )}
-            {session.role === 'student' && home && home.sections.length > 0 && (
-              <SectionSwitcher college={home} sectionId={mySection} onSection={switchSection} />
-            )}
             {!inPortal && (
               <button
                 type="button"
@@ -274,20 +245,18 @@ export default function App() {
                 My desk
               </button>
             )}
-            <button
-              type="button"
-              onClick={exit}
-              aria-label="Leave this desk"
-              title="Leave this desk"
-              className="rounded-full p-2 text-muted transition hover:bg-ink/5 hover:text-ink"
-            >
-              <LogOut size={16} aria-hidden />
-            </button>
+            <AccountMenu user={me} college={home} onChangePassword={() => setChangingPassword(true)} onSignOut={exit} />
           </div>
+        ) : shown.page === 'login' ? (
+          <span className="hidden font-mono text-[11px] tracking-[0.2em] text-muted uppercase sm:block">College timetables · any college</span>
         ) : (
-          <span className="hidden font-mono text-[11px] tracking-[0.2em] text-muted uppercase sm:block">
-            College timetables · any college
-          </span>
+          <button
+            type="button"
+            onClick={() => go({ page: 'login' })}
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-1.5 text-[13px] font-medium text-paper transition hover:opacity-90"
+          >
+            Sign in
+          </button>
         )}
       </header>
 
@@ -300,6 +269,8 @@ export default function App() {
               setSharedWeek(undefined)
             }}
           />
+        ) : shown.page === 'login' ? (
+          <LoginPage users={users} colleges={colleges} hint={shown.portal} demoPassword={DEMO_PASSWORD} onSignIn={doSignIn} />
         ) : openCollege && openResult ? (
           <TimetableView
             key={`${openCollege.college.id}:${initial?.collegeId === openCollege.college.id ? `${initial.view}:${initial.entityId}` : ''}`}
@@ -356,7 +327,6 @@ export default function App() {
             colleges={colleges}
             onView={view}
             onInsights={(id) => go({ page: 'portal', portal: 'super', path: [id, 'insights'] })}
-            onOpenAsAdmin={openAsAdmin}
             onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
           />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
@@ -489,6 +459,10 @@ export default function App() {
           <Landing colleges={active} results={results} onResult={(id, r) => keep(id)(r)} onView={view} onEnter={enter} />
         )}
       </main>
+
+      {me && (changingPassword || me.mustChange) && (
+        <ChangePasswordDialog user={me} users={users} forced={!!me.mustChange} onSaved={setUsers} onClose={() => setChangingPassword(false)} />
+      )}
 
       {askScope && askCollege && session && (
         <ChatDrawer

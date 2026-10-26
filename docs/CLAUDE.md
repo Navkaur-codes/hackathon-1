@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.9 Authentication — P0.9-a built (awaiting push), P0.9-b next** · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.9 Authentication — P0.9-a pushed, P0.9-b built (awaiting push), P0.9-c next** · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
 > **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first. v0.7 complete: P0.7-a `f658fa7`, P0.7-b `e186e9c`, P0.7-c `2d14471` (375 tests).
 >
-> **Next:** the user commits & pushes P0.9-a (`feat(auth): accounts with salted password hashes`). Then **P0.9-b** — the login window, built beautifully as the user asked (see the P0.9-b screen notes: editorial left panel with the turning wheel, form card, one-click demo account chips, GSAP rise / shake under reduced-motion guard, light + dark, 375 px), header user menu + change password, `guard` route protection (landing and `?s=` links public), switchers removed; the store already has `signIn` / `signOut` / `ensureAccounts`. Demo password: `kaalchakra`. v0.8 complete: P0.8-a `6dc6f54`, P0.8-b `8129e81`.
+> **Next:** the user commits & pushes P0.9-b (`feat(auth): login screen and route guards`). Then **P0.9-c** account management: Super Admin card → College Admin accounts (add with a temporary password → `mustChange`, reset, disable / enable — `lib/auth.ts` already has `createUser`, `resetPassword`, `setDisabled`, `usersOf`, `mayManage`); College Admin Setup → **People** tab (HOD / teacher / section accounts, create missing section accounts). The forced password change after a reset is already wired (`ChangePasswordDialog forced`). Demo password: `kaalchakra`. The old switcher components (`RoleSwitcher`, `CollegeSwitcher`, `DeptSwitcher`, `TeacherSwitcher`, `SectionSwitcher`) are no longer used — remove them in P0.9-c. v0.8 complete: P0.8-a `6dc6f54`, P0.8-b `8129e81`.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -597,6 +597,7 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 
 ### Built
 - **P0.9-a** — **accounts**: `lib/auth.ts` (salted SHA-256 via Web Crypto, create / verify / session / change / reset / disable, generic error), `demoAccounts.ts` (36 accounts on the two demos, one demo password), store v2 with `users` + `signIn` + migrate. Decided: account ids derive from the username (`u-<username>`); demo accounts are re-seeded from whatever colleges exist when the store has none; the plain password lives only inside `createUser` / `verifyLogin` / `changePassword` calls.
+- **P0.9-b** — **login window + route guards**: `LoginPage` (editorial panel + form card + one-click demo chips, GSAP under reduced-motion guard, phones form-first, dark mode), `guard` in `access.ts`, `#/login[/<portal>]`, `AccountMenu` + `ChangePasswordDialog` in the header, every switcher removed. Decided: a session without a signed-in account is signed out on load (old switcher sessions); a landing "Sign in as <role>" opens the login page showing every account of that role; the Super Admin no longer opens a college "as" its admin (no impersonation with real accounts).
 
 ### Open issues
 _(fill after v0.9)_

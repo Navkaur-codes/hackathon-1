@@ -21,6 +21,13 @@ describe('hash routes', () => {
     expect(parseRoute('#/super/gndec/structure/')).toEqual(r)
   })
 
+  it('login, with an optional role hint', () => {
+    expect(parseRoute('#/login')).toEqual({ page: 'login' })
+    expect(parseRoute('#/login/teacher')).toEqual({ page: 'login', portal: 'teacher' })
+    expect(parseRoute('#/login/nope')).toEqual({ page: 'login' })
+    expect(formatRoute({ page: 'login', portal: 'student' })).toBe('#/login/student')
+  })
+
   it('each role has its own portal', () => {
     expect(portalOf('superAdmin')).toBe('super')
     expect(portalOf('deptAdmin')).toBe('dept')

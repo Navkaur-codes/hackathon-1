@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildDemoColleges } from '../demoData'
 import type { CollegeData, Role, Session } from '../types'
-import { can, canDept, canLock, collegeFor, deptScope, sessionFor, switchableColleges, studentScope, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
+import { can, canDept, canLock, collegeFor, deptScope, guard, sessionFor, switchableColleges, studentScope, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
@@ -190,5 +190,20 @@ describe('switching role and college', () => {
     const withArchived = [archive(diet), dcas]
     expect(ids(switchableColleges(withArchived))).toEqual([dcas.college.id])
     expect(sessionFor('collegeAdmin', withArchived, { role: 'collegeAdmin', collegeId: diet.college.id }).collegeId).toBe(dcas.college.id)
+  })
+})
+
+describe('T9.4 route guard', () => {
+  const hod: Session = { role: 'deptAdmin', collegeId: 'diet', deptId: 'diet-cse' }
+  it('no session → login (remembering the desk asked for); landing stays public', () => {
+    expect(guard(null, { page: 'portal', portal: 'college', path: ['setup'] })).toEqual({ page: 'login', portal: 'college' })
+    expect(guard(null, { page: 'login' })).toEqual({ page: 'login' })
+    expect(guard(null, { page: 'landing' })).toEqual({ page: 'landing' })
+    expect(guard(hod, { page: 'landing' })).toEqual({ page: 'landing' })
+  })
+  it("signed in → own desk; another role's portal → own portal; login → own desk", () => {
+    expect(guard(hod, { page: 'portal', portal: 'dept', path: ['leave'] })).toEqual({ page: 'portal', portal: 'dept', path: ['leave'] })
+    expect(guard(hod, { page: 'portal', portal: 'college' })).toEqual({ page: 'portal', portal: 'dept' })
+    expect(guard(hod, { page: 'login' })).toEqual({ page: 'portal', portal: 'dept' })
   })
 })

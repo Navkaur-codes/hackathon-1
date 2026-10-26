@@ -14,7 +14,8 @@ type Props = {
   /** Read-only college dashboard. */
   onInsights?: (collegeId: Id) => void
   /** Step into a college as its College Admin. */
-  onOpenAsAdmin: (collegeId: Id) => void
+  /** Until v0.9 the Super Admin could switch into a College Admin; with accounts there is no impersonation. */
+  onOpenAsAdmin?: (collegeId: Id) => void
   onOpenStructure: (collegeId: Id) => void
 }
 
@@ -120,9 +121,11 @@ export function SuperPortal({ colleges, onView, onInsights, onOpenAsAdmin, onOpe
             <button type="button" onClick={() => onOpenStructure(created.college.id)} className={`${btn} border-ink bg-ink text-paper hover:opacity-90`}>
               <Shapes size={14} aria-hidden /> Shape its structure
             </button>
-            <button type="button" onClick={() => onOpenAsAdmin(created.college.id)} className={`${btn} border-ink hover:bg-ink hover:text-paper`}>
-              Open as its College Admin <ArrowRight size={14} aria-hidden />
-            </button>
+            {onOpenAsAdmin && (
+              <button type="button" onClick={() => onOpenAsAdmin(created.college.id)} className={`${btn} border-ink hover:bg-ink hover:text-paper`}>
+                Open as its College Admin <ArrowRight size={14} aria-hidden />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -182,7 +185,7 @@ export function SuperPortal({ colleges, onView, onInsights, onOpenAsAdmin, onOpe
                     Insights
                   </button>
                 )}
-                {!archived && (
+                {!archived && onOpenAsAdmin && (
                   <button type="button" onClick={() => onOpenAsAdmin(c.college.id)} className={`${btn} border-rule hover:border-ink`}>
                     Open as College Admin <ArrowRight size={14} aria-hidden />
                   </button>

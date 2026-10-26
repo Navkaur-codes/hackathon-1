@@ -2,6 +2,7 @@
 // Until auth (v0.9) the session comes from the role + college switcher; only how it is set will change.
 
 import type { CollegeData, Id, Role, Session } from '../types'
+import { portalOf, type Route } from './route'
 
 export type Action =
   /** Structure Builder: calendar, departments, programmes, sections count, subjects. */
@@ -142,6 +143,18 @@ export function assistantScope(session: Session | null, colleges: CollegeData[],
   const sid = studentScope(session, colleges)
   const s = college.sections.find((x) => x.id === sid)
   return s ? { role: 'student', collegeId: cid, sectionId: s.id, deptId: s.deptId } : undefined
+}
+
+/**
+ * Route protection (v0.9). The landing page and shared links (`?s=…`, handled before routing) are public. A portal
+ * needs a signed-in session and is always the session's own portal; the login page sends a signed-in user to
+ * their desk.
+ */
+export function guard(session: Session | null, route: Route): Route {
+  if (route.page === 'landing') return route
+  if (!session) return route.page === 'login' ? route : { page: 'login', portal: route.portal }
+  if (route.page === 'login') return { page: 'portal', portal: portalOf(session.role) }
+  return route.portal === portalOf(session.role) ? route : { page: 'portal', portal: portalOf(session.role) }
 }
 
 /** Colleges a role can be switched into (the stand-in for logging in): every active one. */

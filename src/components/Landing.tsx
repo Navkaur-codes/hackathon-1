@@ -22,7 +22,7 @@ type Props = {
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 
-/** Public landing: hero, the colleges on the platform (try-it demo) and "Enter as …" for each role. */
+/** Public landing: hero, the colleges on the platform (try-it demo) and "Sign in as …" for each role (v0.9: to the login page). */
 export function Landing({ colleges, results, onResult, onView, onEnter }: Props) {
   const root = useRef<HTMLDivElement>(null)
 
@@ -76,7 +76,7 @@ export function Landing({ colleges, results, onResult, onView, onEnter }: Props)
               onClick={() => scrollTo('roles')}
               className="inline-flex items-center gap-2 rounded-full border border-ink px-5 py-2.5 text-sm font-medium transition hover:bg-ink hover:text-paper"
             >
-              Enter as…
+              Sign in as…
             </button>
           </div>
         </div>
@@ -135,7 +135,7 @@ export function Landing({ colleges, results, onResult, onView, onEnter }: Props)
                 onClick={() => onEnter(role)}
                 className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full border border-ink px-3 py-1.5 text-[13px] font-medium transition hover:bg-ink hover:text-paper"
               >
-                Enter<span className="sr-only"> as {name}</span> <ArrowRight size={14} aria-hidden />
+                Sign in<span className="sr-only"> as {name}</span> <ArrowRight size={14} aria-hidden />
               </button>
             </article>
           ))}
