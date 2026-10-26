@@ -111,6 +111,39 @@ export function canLock(session: Session | null, deptId: Id | undefined, college
   return session.role === 'deptAdmin' && canDept(session, 'generateDept', deptId, colleges)
 }
 
+/** Who is asking the Kaal Assistant, and what they may ask about (v0.8; root §2). */
+export type AssistantScope =
+  | { role: 'student'; collegeId: Id; sectionId: Id; deptId: Id }
+  | { role: 'teacher'; collegeId: Id; teacherId: Id; deptId: Id }
+  | { role: 'hod'; collegeId: Id; deptId: Id }
+  | { role: 'admin'; collegeId: Id }
+  | { role: 'super'; collegeId: Id }
+
+/**
+ * The assistant's scope for this session in college `collegeId`, or undefined when it may not ask about it.
+ * Students: their own section; teachers: their classes and department; HODs: their department; College Admin: the
+ * whole college; Super Admin: any college, read-only. Teachers, students and HODs read only the published version.
+ */
+export function assistantScope(session: Session | null, colleges: CollegeData[], collegeId: Id | undefined): AssistantScope | undefined {
+  const college = collegeFor(session, colleges, collegeId)
+  if (!session || !college) return undefined
+  const cid = college.college.id
+  if (session.role === 'superAdmin') return { role: 'super', collegeId: cid }
+  if (session.role === 'collegeAdmin') return { role: 'admin', collegeId: cid }
+  if (session.role === 'deptAdmin') {
+    const deptId = deptScope(session, colleges)
+    return deptId ? { role: 'hod', collegeId: cid, deptId } : undefined
+  }
+  if (session.role === 'teacher') {
+    const id = teacherScope(session, colleges)
+    const t = college.teachers.find((x) => x.id === id)
+    return t ? { role: 'teacher', collegeId: cid, teacherId: t.id, deptId: t.deptId } : undefined
+  }
+  const sid = studentScope(session, colleges)
+  const s = college.sections.find((x) => x.id === sid)
+  return s ? { role: 'student', collegeId: cid, sectionId: s.id, deptId: s.deptId } : undefined
+}
+
 /** Colleges a role can be switched into (the stand-in for logging in): every active one. */
 export function switchableColleges(colleges: CollegeData[]): CollegeData[] {
   return colleges.filter(isActive)

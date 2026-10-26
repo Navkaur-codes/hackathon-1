@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.7 complete — P0.7-c built (awaiting push); v0.8 design next** · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.8 Kaal Assistant — design approved; P0.8-a built (awaiting push), P0.8-b next** · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
+> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first. v0.7 complete: P0.7-a `f658fa7`, P0.7-b `e186e9c`, P0.7-c `2d14471` (375 tests).
 >
-> **Next:** the user commits & pushes P0.7-c (`feat(insights): college dashboard and shared-resource ledger`). Then write the **v0.8 design** — Kaal Assistant (`docs/PLAN.md`: chat drawer on every desk, rule-based intent parser, offline and deterministic, over `finder.ts` / `myDay.ts` / the published timetable, role-scoped through `access.ts`, answers that jump to the right grid) — and show the 5-line summary before coding.
+> **Next:** the user commits & pushes P0.8-a (`feat(assistant): rule-based kaal assistant`). Then **P0.8-b** ChatDrawer on every desk: `Ask Kaal` button + Ctrl/⌘+J, chips from `suggestions`, answer cards with `jumps` (admins / HOD → timetable page; teacher → My week; student → Week), `open` links (Leave, Conflicts, Meetings), student Request actions through `requestMeeting`, follow-ups via the returned `AskContext`.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -504,5 +504,46 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 - An approved unavailability request marks the whole draft out of date (same as any setup edit) — the College Admin or the HOD generates again.
 - Insights read the published version (draft only when nothing is published); the heatmap counts rooms per teachable slot, not per section break.
 - Bundle 723 kB > 500 kB — code-split the desks before v1.0; M8 / M10 hand checks still open.
+
+---
+
+## v0.8 Kaal Assistant
+
+### Design
+**Goal:** anyone can ask the timetable a plain question — *"Is Dr. Kaur free on Tuesday 3rd period?"*, *"Where is CSE-Y2-A now?"*, *"Which labs are free Friday after lunch?"*, *"Can I meet Prof. Bedi tomorrow?"* — and get a short, correct answer with a button that jumps to the right timetable. It is **rule-based, offline and deterministic** (no API key, no network, root §1: fully client-side), it reuses the existing pure logic (`finder`, `myDay`, `meetings`, `leave`, `conflicts`, `semester`), and it answers **only what the asker's role may see** (`access.ts`, root §2).
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `lib/askParse.ts` | `parseQuestion(college, text, now)` → `{ intent, teacher?, section?, room?, subject?, roomType?, minSeats?, date?, day?, periods?, self? }`. Entities matched against **this college's** names with the existing fuzzy matcher (`lib/fuzzy.ts`): teachers by full name or surname ("Kaur", "prof bedi"), sections ("cse y2 a", "CSE-Y2-A"), rooms ("seminar hall", "LT-101"), subjects by code or name ("DBMS", "data structures"), room types ("lab", "lecture room"). Time words from the calendar (rule G2/G4 — never hard-coded): day labels and full weekday names, "today / tomorrow / now / next", "3rd period / P3 / period 3", a clock time ("11:30") → its slot, "after lunch / before lunch / morning" via the lunch window; a real date ("2 Nov", "2026-11-02") → its pattern day. "my / me / I" → the asker (`self`). |
+| `lib/assistant.ts` | `ask(college, session, text, now) → Answer { text, lines?, links?: Jump[], actions?: MeetAction[], chips?: string[], refused?: true }`. Intents (first match wins, keyword + entity rules): **help** · **is X free** (teacher / room / section at a time → yes / no + what it is doing + next free, `finder.weekStrip` / `nextFree`; dated questions use that date's leave and substitutions) · **when is X free** (free slots that day) · **where is <section> / <teacher> now** and **my next class / my day** (`myDay.nowNext` / `dayFor`, holidays and substitutes included) · **free rooms / labs** (when, type, seats — `finder.freeRooms` with usable own / shared / needs a grant) · **who teaches <subject> (to <section>)** · **load** ("how many periods does X have this week") · **who is substituting today / on <date>** · **is <room> booked <day>** (classes + single-date bookings) · **can I meet <teacher> <day>** (student — `meetings.bookableSlots`, office hours starred, a *Request* action) · **any meeting requests** (teacher — own inbox counts) · **any clashes** (College Admin — `conflictReport` summary) · **why is <subject / section> not placed** (admins — the unplaced reason + fix) · **holidays** ("is Monday a holiday", "next holiday"). Unknown → a friendly fallback with 3 example questions for that role. |
+| `lib/access.ts` | `assistantScope(session, colleges)` → which timetable the role reads (Teacher, Student, HOD: **published only**; College Admin: published, or the draft when nothing is published — said in the answer; Super Admin: read-only) and what it may ask: a **student** only about their own section, teachers of their section / department, holidays and meetings — never free rooms, other sections, loads, clashes or unplaced; a **teacher** about their own classes, duties, requests and teachers / rooms of their department; an **HOD** about their department (plus shared rooms); the **College Admin** everything in their college. Anything outside the scope is refused politely ("Students can ask about their own section — try: …"), never answered with hidden data. |
+
+**Screens**
+- **Ask Kaal** button on every desk (bottom-right, role accent; also opens with **Ctrl / ⌘ + J**) → **ChatDrawer**: side drawer on desktop, bottom sheet on phones (375 px). Messages (question bubble → answer card), an input, and **suggested-question chips** for the role, built from the college's real data (e.g. the student's own section and a teacher of theirs). Esc closes, focus returns to the button, keyboard reachable; GSAP slide-in, off under reduced motion.
+- **Answer card:** one or two short sentences, optional lines (slots, rooms, substitutes), and buttons: **Show in timetable** (admins / HOD → the timetable page on that section / teacher / room; teacher → My week; student → Week), **Open** (Leave, Conflicts, Meetings) and, for a student's meet question, **Request <time>** (prefilled `requestMeeting`; confirms in the card).
+- **Follow-ups:** the drawer remembers the last teacher / section / room and day, so "and on Friday?" or "what about tomorrow?" work.
+- Conversation lives in memory only (cleared on reload) — nothing is stored.
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.8-a | `askParse.ts` + `assistant.ts` intents + `assistantScope` | T8.1 is X free at day / period → right yes / no + next free · T8.2 where is <section> now / my next class → right room & subject (holiday, after hours) · T8.3 free labs Friday after lunch → exactly the finder's list · T8.4 unknown → fallback with examples · T8.5 a student asking for free rooms, clashes or another section → refused, no data leaked · T8.6 can I meet <teacher> tomorrow → the bookable slots + request action · T8.7 parsing: names / surnames / typos, day words, "3rd period", "11:30", "after lunch", dates, on DIET **and** DCAS · T8.8 every suggested chip of every role gets a real answer (no fallback) | `feat(assistant): rule-based kaal assistant` |
+| P0.8-b | ChatDrawer on every desk + chips + jump links + follow-ups + meet action | manual M7: three sample questions per role, jump to the right grid, phone bottom sheet, keyboard only | `feat(assistant): chat drawer on every desk` |
+
+**Decisions**
+- **No LLM, no network.** The brief asks for small queries; a rule-based parser over the real data is instant, offline, deterministic and testable. An LLM upgrade (Claude through a Vercel function, using the finder functions as tools) goes in the README as future work.
+- **One source of truth:** every answer comes from the same pure functions the screens use, so the assistant can never disagree with a grid.
+- **Role scope first:** the scope check runs before any lookup; refusals name what the role *can* ask.
+- **Dates are real** (rule G6): "today", "tomorrow" and dates use the semester calendar — holidays say so, substitutions show the substitute.
+- **Drop order if time runs short:** follow-ups → meet *Request* action (keep the slot list) → Super Admin drawer → Ctrl+J shortcut.
+
+**Done when:** on DIET, a student asks "what's my next class?", "can I meet Dr. Kaur tomorrow?" (and requests a slot from the answer) and is refused "which labs are free?"; a teacher asks "where am I teaching now?" and "any meeting requests?"; the College Admin asks "is Prof. Bedi free Tuesday 3rd period?", "which labs are free Friday after lunch?" and "any clashes?" — each answer correct, each with a working jump; the same questions work on DCAS; unknown questions get helpful examples.
+
+### Built
+- **P0.8-a** — **assistant logic**: `lib/askParse.ts`, `lib/assistant.ts` (14 intents + fallback + follow-ups + role chips), `assistantScope` in `access.ts`. Decided: entities match by whole words against this college's names (one typo only for words of 5+ letters, so "will" never becomes "Gill"); "classes / schedule / my day" lists the day, "now / next" answers Now / Next; free-room lists say who owns each room and whether it needs its HOD.
+
+### Open issues
+_(fill after v0.8)_
 
 ---
