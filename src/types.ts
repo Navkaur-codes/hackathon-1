@@ -212,6 +212,12 @@ export type PublishEntry = {
 
 // ── Workflows ─────────────────────────────────────────────────────────
 
+/**
+ * A room loan between departments (Room Exchange): `fromDeptId` owns the room, `toDeptId` may use it in `slots`
+ * once `approved`. Weekly slots — the loan repeats every week of the semester.
+ * Flow: request → approved / rejected (owner decides) · offer → approved / rejected (borrower decides) ·
+ * approved → revoked (owner).
+ */
 export type Grant = {
   id: Id
   collegeId: Id
@@ -220,6 +226,12 @@ export type Grant = {
   toDeptId: Id
   slots: SlotKey[] | 'all'
   status: 'offered' | 'requested' | 'approved' | 'rejected' | 'revoked'
+  /** Who started it: the borrower asked (`request`) or the owner offered (`offer`). */
+  kind?: 'request' | 'offer'
+  note?: string
+  /** ISO timestamps. */
+  createdAt?: string
+  decidedAt?: string
 }
 
 /** Leave is for one calendar date; it never changes the weekly master timetable (see docs/CLAUDE.md). */

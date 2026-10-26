@@ -6,13 +6,15 @@ import { SetupView } from '../college/setup/SetupView'
 import type { Edit, SetupTab } from '../college/setup/tabs'
 import { PortalTitle } from '../PortalTitle'
 import { DeptGenerate } from './DeptGenerate'
+import { ExchangeTab } from './ExchangeTab'
+import type { ExchangeOutcome } from '../../lib/exchange'
 
 type Props = {
   college: CollegeData
   deptId: Id
-  page: 'overview' | 'setup'
+  page: 'overview' | 'setup' | 'exchange'
   setupTab: SetupTab
-  onPage: (page: 'overview' | 'setup', tab?: SetupTab) => void
+  onPage: (page: 'overview' | 'setup' | 'exchange', tab?: SetupTab) => void
   /** Present only when this session may edit the department (lib/access.ts). */
   edit?: Edit
   /** Present only when this session may mark the department Ready. */
@@ -21,6 +23,8 @@ type Props = {
   onView?: () => void
   /** Present only when this session may generate the department (lib/access.ts). */
   onGenerate?: (round: number) => Promise<void>
+  /** Present only when this session may use Room Exchange for the department. */
+  act?: (fn: (c: CollegeData) => ExchangeOutcome) => string | null
 }
 
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition disabled:opacity-40'
@@ -66,7 +70,8 @@ function LoadChart({ college, deptId }: { college: CollegeData; deptId: Id }) {
 }
 
 /** HOD desk: keep one department ready — setup, readiness checklist, Ready status, teacher load. */
-export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onReady, onView, onGenerate }: Props) {
+export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onReady, onView, onGenerate, act }: Props) {
+  const waiting = college.grants.filter((g) => (g.status === 'requested' && g.fromDeptId === deptId) || (g.status === 'offered' && g.toDeptId === deptId)).length
   const dept = college.departments.find((d) => d.id === deptId)!
   const check = readiness(college, deptId)
   const isReady = dept.status === 'ready'
@@ -106,6 +111,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
           [
             ['overview', 'Overview'],
             ['setup', 'Setup'],
+            ['exchange', 'Room Exchange'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -122,11 +128,18 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
             {id === 'setup' && open > 0 && (
               <span className="ml-2 rounded-full bg-terracotta px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{open} to assign</span>
             )}
+            {id === 'exchange' && waiting > 0 && (
+              <span className="ml-2 rounded-full bg-terracotta px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{waiting} waiting</span>
+            )}
           </button>
         ))}
       </div>
 
-      {page === 'setup' && edit ? (
+      {page === 'exchange' && act ? (
+        <div className="mt-6">
+          <ExchangeTab college={college} deptId={deptId} act={act} />
+        </div>
+      ) : page === 'setup' && edit ? (
         <div className="mt-6">
           <SetupView college={college} tab={setupTab} onTab={(t) => onPage('setup', t)} edit={edit} deptId={deptId} accent="terracotta" />
         </div>

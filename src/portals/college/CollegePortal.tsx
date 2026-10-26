@@ -4,6 +4,7 @@ import { describeTimetable, type SolveResult } from '../../solver/best'
 import type { CollegeData } from '../../types'
 import { PortalTitle } from '../PortalTitle'
 import { DeptStrip } from './DeptStrip'
+import { LoanLedger } from './LoanLedger'
 import { PublishPanel } from './PublishPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
@@ -86,6 +87,9 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
           </div>
           <div className="mt-4">
             <DeptStrip college={college} />
+          </div>
+          <div className="mt-4">
+            <LoanLedger college={college} />
           </div>
         </div>
       )}

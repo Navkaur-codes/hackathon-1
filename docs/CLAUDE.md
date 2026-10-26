@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.5 HOD portal + Room Exchange — P0.5-a pushed, P0.5-b built (awaiting push), P0.5-c next** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.5 built (P0.5-c awaiting push) — next: v0.6 design (Teacher & Student portals + Meet-a-Teacher)** · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.4 is complete and pushed** — P0.4-a `7f63b9c`, P0.4-b `f8bc701`, P0.4-x flexible lunch `28e20c7`, P0.4-c `4280341`, P0.4-d `cf0274d`, P0.4-e `13cdba3`; 274 tests green. Check `git log -1` first. Live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
+> **▶ RESUME HERE (new chat):** **v0.5 is built** — P0.5-a `74d652a`, P0.5-b `6171526` pushed; **P0.5-c** Room Exchange (`lib/exchange.ts`, `portals/department/ExchangeTab.tsx`, `portals/college/LoanLedger.tsx`; 299 tests) is built — the user commits & pushes it (`feat(dept): room exchange between departments`). Check `git log -1` first. v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
 >
-> **Next:** the v0.5 design below is **approved** (2026-10-26). **P0.5-a** pushed (`74d652a`). **P0.5-b** Generate my department (`deptSolveOptions` / `mergeDept` / `coverage` in `lib/deptPlan.ts`, `portals/department/DeptGenerate.tsx`, scoped pickers, College Admin `DeptStrip`; 293 tests) is built — the user commits & pushes it (`feat(dept): department generate against the college ledger`). Then **P0.5-c** Room Exchange (`lib/exchange.ts`; tests T5.3–T5.5), then fill v0.5 *Built* / *Open issues* and write the v0.6 design.
+> **Next:** write the **v0.6 design** (Teacher & Student portals + Meet-a-Teacher — root §2 rows for `teacher` / `student`, meeting rules in root §3; tests T6.1–T6.8 in `docs/TEST.md`): teachers and students read **only the published version** (never a draft), Today / Now-Next with that date's substitutions (`lib/semester.classesOn`), finder role scoping (students never see free rooms), share link of a published section timetable (`lz-string`), Meet-a-Teacher on `finder.commonFree`. Show the user a 5-line summary and wait for approval before coding.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -356,10 +356,17 @@
 **Done when:** an HOD of DIET CSE fixes their setup, generates CSE against the rest, and marks it Ready; the ECE HOD requests CSE's lab for Thursday P3–P4, the CSE HOD approves, ECE re-generates and uses that lab only then; revoking it lists the affected class and blocks publishing until ECE re-generates; nothing ever clashes across departments; and an HOD can never edit another department.
 
 ### Built
-_(fill after v0.5)_
+- **P0.5-a** `74d652a` — **HOD desk** `#/dept`: HOD rules in `lib/access.ts` (`DeptAction`, `canDept`, `deptScope`; session `deptId` + department switcher), `lib/deptPlan.ts` readiness checklist + Ready / Draft (`markReady`, `deptEdit`), teacher load bars, department-scoped Setup reusing the College Admin tabs (+ Subjects) and scoped paste (`limitToDept`).
+- **P0.5-b** `6171526` — **Generate my department**: `deptSolveOptions` (other departments' placements as fixed bookings — same `solveBest`), `mergeDept`, `coverage`; per-department staleness (judged by coverage + the independent clash check); department-scoped timetable pickers; College Admin **Departments** strip; department remembered across role switches.
+- **P0.5-c** — **Room Exchange**: weekly slot loans (`lib/exchange.ts`: request / offer / approve / reject / revoke / `affectedBy` / `unavailableSlots` / `describeSlots`), HOD Room Exchange tab with slot picker and "N waiting" badge, revoke warns with the affected classes, College Admin ledger. No engine change: approved grants were already honoured by the solver, validator (H11), pre-flight and finder.
+- Done-when met on DIET: an HOD fixes the department, generates it against the rest and marks it Ready; ECE (labs squeezed) requests the CSE lab for Thursday / Friday slots, CSE approves, ECE re-generates into exactly those slots; taking it back lists the 2 affected classes and blocks publishing (H11) until ECE re-generates; no cross-department clash at any point; an HOD can never edit or decide for another department. 299 tests green.
 
 ### Open issues
-_(fill after v0.5)_
+- Loans are **weekly** slots; a one-off loan for a single date belongs with date-specific changes (**v0.7**).
+- The finder (Who's free?) and the timetable's "Who's free" tab are still college-wide for every role — role scoping comes with the Teacher / Student portals (**v0.6**).
+- A college-wide change (blocked slot, calendar) holds back every department with a class there; each must re-generate (or the College Admin generates the whole college).
+- Leave approval and substitute screens on the HOD desk are **v0.7** (engine since v0.2).
+- Bundle > 500 kB (code-split the desks before v1.0); M8 / M10 hand checks still open.
 
 ---
 

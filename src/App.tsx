@@ -243,9 +243,15 @@ export default function App() {
             key={`${home.college.id}/${hodDept}`}
             college={home}
             deptId={hodDept}
-            page={subPath[0] === 'setup' ? 'setup' : 'overview'}
+            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'exchange' ? 'exchange' : 'overview'}
             setupTab={asSetupTab(subPath[1], true)}
-            onPage={(page, tab) => go({ page: 'portal', portal: 'dept', ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1], true)] } : {}) })}
+            onPage={(page, tab) =>
+              go({
+                page: 'portal',
+                portal: 'dept',
+                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1], true)] } : page === 'exchange' ? { path: ['exchange'] } : {}),
+              })
+            }
             edit={canDept(session, 'editDept', hodDept, colleges) ? (fn) => editOf(home.college.id)(deptEdit(hodDept, fn)) : undefined}
             onReady={
               canDept(session, 'markReady', hodDept, colleges)
@@ -260,6 +266,17 @@ export default function App() {
                     const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
                     const r = await runSolver(current, { attempts: 20, baseSeed: 1 + round * 20, ...deptSolveOptions(current, hodDept) })
                     updateCollege(home.college.id, (c) => mergeDept(c, hodDept, r.timetable))
+                  }
+                : undefined
+            }
+            act={
+              canDept(session, 'exchange', hodDept, colleges)
+                ? (fn) => {
+                    // decide against the college as it is now (another tab may have changed it)
+                    const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
+                    const r = fn(current)
+                    if (r.ok) updateCollege(home.college.id, () => r.college)
+                    return r.ok ? null : r.reason
                   }
                 : undefined
             }
