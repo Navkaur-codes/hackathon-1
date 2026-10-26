@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { LogOut } from 'lucide-react'
 import { CollegeSwitcher } from './components/CollegeSwitcher'
 import { Landing } from './components/Landing'
@@ -14,7 +14,8 @@ import { SuperPortal } from './portals/super/SuperPortal'
 import { StructureBuilder } from './portals/super/structure/StructureBuilder'
 import { asBuilderTab } from './portals/super/structure/tabs'
 import { asSetupTab } from './portals/college/setup/tabs'
-import type { SolveResult } from './solver/best'
+import { describeTimetable, type SolveResult } from './solver/best'
+import { setDraft } from './lib/publish'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
 import type { CollegeData, Role } from './types'
@@ -57,7 +58,7 @@ export default function App() {
     if (window.location.hash !== want) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${want}`)
   }, [route, session])
 
-  // Generated results per college (kept while navigating) and the timetable currently open.
+  // Public landing previews per college (in memory only — the desks store a real draft instead).
   const [results, setResults] = useState<Record<string, SolveResult>>({})
   const [open, setOpen] = useState<string | null>(shared?.collegeId ?? null)
   // the shared view applies only to the first opening
@@ -65,6 +66,14 @@ export default function App() {
   // landing = public demo of any active college; inside a portal only what access.ts allows
   const openCollege = open ? (inPortal ? collegeFor(session, colleges, open) : active.find((c) => c.college.id === open)) : undefined
   const keep = (collegeId: string) => (r: SolveResult) => setResults((prev) => ({ ...prev, [collegeId]: r }))
+  /** Inside a desk a generated timetable is saved as the college's draft. */
+  const saveDraft = (collegeId: string) => (r: SolveResult) => updateCollege(collegeId, (c) => setDraft(c, r.timetable))
+  // a stored draft is described against the college as it is now (score, clashes, pre-flight recomputed)
+  const openStored = useMemo(
+    () => (inPortal && openCollege?.draft ? describeTimetable(openCollege, openCollege.draft) : undefined),
+    [inPortal, openCollege],
+  )
+  const openResult = inPortal ? openStored : openCollege && results[openCollege.college.id]
 
   useEffect(() => {
     if (!shared) return
@@ -164,16 +173,21 @@ export default function App() {
       </header>
 
       <main className="flex-1">
-        {openCollege && results[openCollege.college.id] ? (
+        {openCollege && openResult ? (
           <TimetableView
             college={openCollege}
-            result={results[openCollege.college.id]}
+            result={openResult}
             onBack={back}
-            onResult={keep(openCollege.college.id)}
+            onResult={inPortal ? saveDraft(openCollege.college.id) : keep(openCollege.college.id)}
+            notice={
+              inPortal && openCollege.draftStale
+                ? 'This draft is out of date — the structure or setup changed after it was generated. Generate again before publishing.'
+                : undefined
+            }
             initial={initial?.collegeId === openCollege.college.id ? initial : undefined}
             readOnly={inPortal && !can(session, 'generate', openCollege.college.id, colleges)}
           />
-        ) : openCollege ? (
+        ) : openCollege && !inPortal ? (
           <div className="flex items-center gap-3 py-24 text-muted" role="status">
             <Wheel size={22} spokes={8} /> Opening the shared timetable…
           </div>
@@ -188,21 +202,22 @@ export default function App() {
         ) : inPortal && session.role === 'superAdmin' ? (
           <SuperPortal
             colleges={colleges}
-            results={results}
             onView={view}
             onOpenAsAdmin={openAsAdmin}
             onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
           />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
           <CollegePortal
+            key={home.college.id}
             college={home}
-            result={results[home.college.id]}
-            onResult={keep(home.college.id)}
+            onResult={saveDraft(home.college.id)}
             onView={() => view(home.college.id)}
             page={subPath[0] === 'setup' ? 'setup' : 'overview'}
             setupTab={asSetupTab(subPath[1])}
             onPage={(page, tab) => go({ page: 'portal', portal: 'college', ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : {}) })}
             edit={can(session, 'editSetup', home.college.id, colleges) ? editOf(home.college.id) : undefined}
+            canPublish={can(session, 'publish', home.college.id, colleges)}
+            canExport={can(session, 'export', home.college.id, colleges)}
           />
         ) : inPortal && session.role === 'collegeAdmin' ? (
           <p className="py-16 text-muted">This college is archived or no longer exists — pick another college above.</p>

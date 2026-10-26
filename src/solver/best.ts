@@ -2,7 +2,7 @@
 // fewest unplaced periods first, then the highest quality score. Also bundles everything the UI shows.
 
 import { semesterDelivery, semesterSummary } from '../lib/semester'
-import type { CollegeData, Timetable } from '../types'
+import type { CollegeData, Placement, Timetable } from '../types'
 import { preflight, type Warning } from './preflight'
 import { score, type Score } from './score'
 import { solve, type SolveOptions } from './solve'
@@ -43,19 +43,30 @@ export function solveBest(college: CollegeData, opts: BestOptions = {}): SolveRe
     if (!best || u < best.u || s.total > best.s.total) best = { t, s, u }
   }
 
-  const timetable = best!.t
+  return {
+    ...describeTimetable(college, best!.t, { mustKeep: opts.fixed?.filter((p) => p.locked) }),
+    attempts,
+    ms: Date.now() - started,
+  }
+}
+
+/**
+ * Everything the UI shows about a stored timetable, recomputed from the college as it is now — the store
+ * keeps only the `Timetable`, so score, clashes and pre-flight can never drift from the data.
+ */
+export function describeTimetable(college: CollegeData, timetable: Timetable, opts: { mustKeep?: Placement[] } = {}): SolveResult {
   const delivery = semesterDelivery(college, timetable)
   return {
     timetable,
-    score: best!.s,
-    conflicts: validate(college, timetable, { mustKeep: opts.fixed?.filter((p) => p.locked) }),
+    score: score(college, timetable),
+    conflicts: validate(college, timetable, opts),
     preflight: preflight(college),
-    attempts,
+    attempts: 1,
     bestSeed: timetable.seed,
-    unplacedPeriods: best!.u,
+    unplacedPeriods: unplacedOf(timetable),
     placedPeriods: timetable.placements.reduce((s, p) => s + p.length, 0),
     semesterHours: Math.round(delivery.reduce((s, d) => s + d.minutes, 0) / 60),
     teachingDays: semesterSummary(college).teachingDays,
-    ms: Date.now() - started,
+    ms: 0,
   }
 }

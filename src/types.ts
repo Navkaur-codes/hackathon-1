@@ -198,6 +198,18 @@ export type Published = {
   at: string
 }
 
+/** One line of a college's publish history (newest last). */
+export type PublishEntry = {
+  version: number
+  at: string
+  /** Quality score 0–100 of the version when it was published. */
+  score: number
+  periods: number
+  unplaced: number
+  /** Set when the version was later taken down. */
+  unpublishedAt?: string
+}
+
 // ── Workflows ─────────────────────────────────────────────────────────
 
 export type Grant = {
@@ -301,6 +313,8 @@ export type CollegeData = {
   draftStale?: boolean
   /** The weekly pattern everyone follows for the semester (with date-specific substitutions on top). */
   published?: Published
+  /** Every version ever published, newest last (missing = none yet). */
+  publishLog?: PublishEntry[]
 }
 
 export type Platform = {

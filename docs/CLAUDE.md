@@ -3,17 +3,13 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.4 Super Admin + College Admin portals — P0.4-a, b, x, c, d pushed, P0.4-e next (paused 2026-10-26)** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.4 built (P0.4-e awaiting push) — next: v0.5 design (HOD + Room Exchange)** · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat) — paused 2026-10-26 after P0.4-d.** Everything is committed and pushed; last commit `cf0274d feat(college): college setup and paste from excel`; 265 tests green; live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
+> **▶ RESUME HERE (new chat):** **v0.4 is built** — P0.4-a `7f63b9c`, P0.4-b `f8bc701`, P0.4-x flexible lunch `28e20c7`, P0.4-c `4280341`, P0.4-d `cf0274d` are pushed; **P0.4-e** (stored draft, publish / versions, export / import; 274 tests) is built — the user commits & pushes it (`feat(college): generate, publish and versions`). Check `git log -1` first. Live at https://kaalchakra-seven.vercel.app (auto-deploys on push).
 >
-> **Done in v0.4:** P0.4-a store + `access.ts` + role/college switcher + hash routes (`7f63b9c`) · P0.4-b Super Admin create / clone / archive (`f8bc701`) · P0.4-x flexible lunch, a user-requested engine change (`28e20c7`) · P0.4-c Structure Builder at `#/super/<id>/structure/<tab>` (`4280341`) · P0.4-d College Admin setup at `#/college/setup/<tab>` + paste from Excel + tab sync (`cf0274d`). Print-preview fix `ae19925`.
+> **Next:** write the **v0.5 design** below (HOD portal + Room Exchange: department-scoped teachers / sections / subjects / dept rooms and who-teaches-what through `access.ts`; department generate against the college's other placements as fixed bookings (no second algorithm); Draft → Ready; Room Exchange offer / request / approve / revoke **slot grants** — the user asked for lending a department room for one class on a given day; engine already honours grants (H11); tests T5.1–T5.5 in `docs/TEST.md`). Show the user a 5-line summary and wait for approval before coding.
 >
-> **Next — P0.4-e (last checkpoint of v0.4):** College Admin *Timetable* page → **Generate whole college** saves the result as `CollegeData.draft` (only the `Timetable`; add `describeTimetable(college, timetable)` to `solver/best.ts` to recompute score / conflicts / pre-flight / hours) → **Publish** via a pure `lib/publish.ts` (refuse when no draft, `draftStale`, or any validator conflict; confirm when periods are unplaced; `published = { timetable, version: n+1, at }` + `publishLog`) → **Unpublish** · version history · **Export / Import JSON** (validate ids, `collegeId`, refs). Then: Super Admin reads the stored draft read-only (today only in-memory results); shared links can use the stored draft / published version instead of the seed; App's in-memory `results` map can go. Tests T4.3 (export → import identical) and T4.8 (publish rules). Commit message: `feat(college): generate, publish and versions`.
->
-> **After P0.4-e:** fill v0.4 *Built* / *Open issues* below, tick v0.4 in `docs/PROGRESS.md`, then write the **v0.5 design** (HOD portal + Room Exchange — the user already asked that a department room can be lent for one class on a given day; engine supports slot grants) and show the 5-line summary before coding.
->
-> **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab or reload others before testing (tabs now sync, but a tab opened before a restart runs old code). Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues so far: bundle > 500 kB (code-split portals), M8 Ctrl+P on the live URL, M10 reduced motion by hand, saved browsers keep old demo data until "Reset demo data".
+> **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
 **Phase cycle per version:** D Design (this file) → B Build one feature → T Test → R Record → 🚀 push checkpoint (user commits & pushes) → next feature.
 
@@ -300,9 +296,21 @@
 - **Room lending for one class on one day** (asked at the same time) = Room Exchange, **v0.5 (P0.5-c)**; the engine already supports slot grants (H11).
 
 ### Built
-_(fill after v0.4)_
+- **P0.4-a** `7f63b9c` — `store.ts` (zustand persist, demo seed through `buildCollege`, reset, migrate / corrupt → seed), `lib/access.ts` (`visibleColleges`, `collegeFor`, `can`, `sessionFor`), hash routes `lib/route.ts`, RoleSwitcher / CollegeSwitcher, landing "Enter" per role, portal shells.
+- **P0.4-b** `f8bc701` — Super Admin colleges: new college from a blank template, clone (every id re-prefixed), archive / restore, College Admin names, read-only status.
+- **P0.4-x** `28e20c7` — **flexible lunch** (user request, engine change): `BreakRule.options`, solver keeps one option free per day, independent H7 check, resolved lunch in grid / Clash Court / Who's free / pre-flight; root H7 got one sentence (approved).
+- **P0.4-c** `4280341` — **Structure Builder** `#/super/<id>/structure/<tab>`: calendar (days, slots, times, slot lengths, lunch window, lab block, breaks incl. per-day and flexible), semester, departments & years (sections × students), subjects; live pre-flight; pure structure edits in `lib/edit.ts`.
+- **P0.4-d** `cf0274d` — **College Admin setup** `#/college/setup/<tab>`: teachers + availability grid, who teaches what, rooms (own / shared), sections, blocked slots, **paste from Excel** (`lib/csv.ts`); shared `SlotGrid`, `PreflightPanel`, `BreakEditor`; **tab sync** (an older tab no longer overwrites newer edits).
+- **P0.4-e** — the generated timetable is stored as the **draft** (`setDraft`, `describeTimetable`), **publish** rules in `lib/publish.ts` (blocked on no draft, stale draft or any clash; unplaced needs an OK; versions + history; unpublish), **export / import** in `lib/transfer.ts` (`checkCollege`), Publish panel on the College Admin desk, Super Admin reads drafts read-only.
+- Done-when met: a new college (PEC) shaped in the Structure Builder, filled by pasting from Excel, generated with 0 clashes (98/100); DIET published v1 → v2 → unpublished → v3 with history; everything survives a reload; DCAS's College Admin never sees another college. 274 tests green.
 
 ### Open issues
-_(fill after v0.4)_
+- **Bundle > 500 kB** after minification (papaparse + four desks) — code-split the portals with `import()` before v1.0.
+- Landing "Generate" is an in-memory preview (not saved) and shared links still carry the solver seed; links to a stored draft / published version can come with the Teacher / Student portals (v0.6).
+- Teachers and students don't see the published version yet — their desks are **v0.6**; HOD department screens and Room Exchange (incl. lending a room for one class on a given day, asked by the user) are **v0.5**.
+- Import replaces the whole college (with a confirm); there is no merge and no undo — export first is the advice in the UI.
+- Codes of departments / programmes / subjects are fixed once created (ids derive from them).
+- Browsers that saved data before P0.4-x keep the old demo breaks until "Reset demo data".
+- Still to hand-check: Chrome's Ctrl+P on the live URL (M8) and the OS reduced-motion setting (M10).
 
 ---

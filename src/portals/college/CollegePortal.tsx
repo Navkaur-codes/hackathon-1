@@ -1,13 +1,15 @@
+import { useMemo } from 'react'
 import { CollegeCard } from '../../components/CollegeCard'
-import type { SolveResult } from '../../solver/best'
+import { describeTimetable, type SolveResult } from '../../solver/best'
 import type { CollegeData } from '../../types'
 import { PortalTitle } from '../PortalTitle'
+import { PublishPanel } from './PublishPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
 
 type Props = {
   college: CollegeData
-  result?: SolveResult
+  /** A generated timetable — the caller saves it as the college's draft. */
   onResult: (r: SolveResult) => void
   onView: () => void
   /** `overview` = generate & view; `setup` = rooms, teachers, assignments… */
@@ -16,10 +18,15 @@ type Props = {
   onPage: (page: 'overview' | 'setup', tab?: SetupTab) => void
   /** Present only when this session may edit the setup (lib/access.ts). */
   edit?: Edit
+  canPublish: boolean
+  canExport: boolean
 }
 
 /** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, result, onResult, onView, page, setupTab, onPage, edit }: Props) {
+export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport }: Props) {
+  // the stored draft, described against the college as it is now
+  const draft = college.draft
+  const result = useMemo(() => (draft ? describeTimetable(college, draft) : undefined), [college, draft])
   const open = college.assignments.filter((a) => !a.teacherId).length
   return (
     <section className="py-8">
@@ -67,7 +74,15 @@ export function CollegePortal({ college, result, onResult, onView, page, setupTa
               .
             </p>
           )}
+          {college.draftStale && (
+            <p className="mb-4 rounded-lg border border-vermilion/40 bg-vermilion/5 p-3 text-[13px]">
+              The structure or setup changed after this draft was generated — generate again before publishing.
+            </p>
+          )}
           <CollegeCard data={college} result={result} onResult={onResult} onView={onView} />
+          <div className="mt-4">
+            <PublishPanel college={college} canPublish={canPublish} canExport={canExport} edit={edit} />
+          </div>
         </div>
       )}
     </section>

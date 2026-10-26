@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Archive, ArchiveRestore, ArrowRight, Eye, Plus, Shapes, UserCog } from 'lucide-react'
 import { setArchived, setCollegeAdmins } from '../../lib/edit'
 import { summarizeCollege } from '../../lib/structure'
-import type { SolveResult } from '../../solver/best'
+import { describeTimetable } from '../../solver/best'
 import { useKaal } from '../../store'
 import type { CollegeData, Id } from '../../types'
 import { PortalTitle } from '../PortalTitle'
@@ -10,8 +10,6 @@ import { NewCollegeForm } from './NewCollegeForm'
 
 type Props = {
   colleges: CollegeData[]
-  /** Timetables generated in this browser session (stored drafts arrive in P0.4-e). */
-  results: Record<string, SolveResult>
   onView: (collegeId: Id) => void
   /** Step into a college as its College Admin. */
   onOpenAsAdmin: (collegeId: Id) => void
@@ -76,7 +74,7 @@ function AdminNames({ college }: { college: CollegeData }) {
 }
 
 /** Super Admin: every college on the platform — create, clone, archive, admins and read-only status. */
-export function SuperPortal({ colleges, results, onView, onOpenAsAdmin, onOpenStructure }: Props) {
+export function SuperPortal({ colleges, onView, onOpenAsAdmin, onOpenStructure }: Props) {
   const addCollege = useKaal((s) => s.addCollege)
   const updateCollege = useKaal((s) => s.updateCollege)
   const [creating, setCreating] = useState(false)
@@ -131,7 +129,8 @@ export function SuperPortal({ colleges, results, onView, onOpenAsAdmin, onOpenSt
         {colleges.map((c) => {
           const s = summarizeCollege(c)
           const archived = c.college.status === 'archived'
-          const r = results[c.college.id]
+          // read-only status from the college's stored draft (recomputed, never trusted from storage)
+          const r = c.draft ? describeTimetable(c, c.draft) : undefined
           return (
             <li
               key={c.college.id}
@@ -162,7 +161,9 @@ export function SuperPortal({ colleges, results, onView, onOpenAsAdmin, onOpenSt
                 <span className="text-muted">Timetable: </span>
                 {c.published ? `published v${c.published.version}` : 'not published'}
                 {r
-                  ? ` · draft: ${r.conflicts.length === 0 ? '0 clashes' : `${r.conflicts.length} clashes`}, quality ${r.score.total}/100`
+                  ? ` · draft: ${r.conflicts.length === 0 ? '0 clashes' : `${r.conflicts.length} clashes`}, quality ${r.score.total}/100${
+                      r.unplacedPeriods ? `, ${r.unplacedPeriods} not placed` : ''
+                    }${c.draftStale ? ' (out of date)' : ''}`
                   : ' · no draft yet (the College Admin generates it)'}
               </p>
               <div className="mt-auto flex flex-wrap gap-2">

@@ -30,10 +30,12 @@ type Props = {
   initial?: { view: GridView; entityId: Id; filters: Filters; tab?: 'free' }
   /** No "Generate another" (Super Admin reads, never generates — root §2). */
   readOnly?: boolean
+  /** A warning shown above the result, e.g. "this draft is out of date". */
+  notice?: string
 }
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false }: Props) {
+export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice }: Props) {
   const [view, setView] = useState<GridView>(initial?.view ?? 'section')
   const groups = useMemo(() => listEntities(college, view), [college, view])
   const firstId = groups[0]?.items[0]?.id ?? ''
@@ -206,6 +208,11 @@ export function TimetableView({ college, result, onBack, onResult, initial, read
           </div>
         </header>
 
+        {notice && (
+          <p role="status" className="no-print mt-5 rounded-lg border border-vermilion/40 bg-vermilion/5 p-3 text-[13px]">
+            {notice}
+          </p>
+        )}
         <div className="no-print mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
           <VerifiedStamp conflicts={result.conflicts.length} />
           <span className="font-display text-xl font-semibold tabular-nums">
