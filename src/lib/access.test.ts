@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildDemoColleges } from '../demoData'
 import type { CollegeData, Role, Session } from '../types'
-import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, visibleColleges, type Action, type DeptAction } from './access'
+import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
@@ -120,6 +120,26 @@ describe('T5.1 HOD scope', () => {
     const admin = sessionFor('collegeAdmin', colleges, { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-me' })
     expect(can(admin, 'publish', diet.college.id, colleges)).toBe(true)
     expect(sessionFor('deptAdmin', colleges, admin).deptId).toBe('diet-me')
+  })
+})
+
+describe('T6.2 teacher identity', () => {
+  it('entering as Teacher picks a teacher of the college and keeps them across role switches', () => {
+    const t = sessionFor('teacher', colleges, null)
+    expect(t.teacherId).toBe(diet.teachers[0].id)
+    expect(teacherScope(t, colleges)).toBe(diet.teachers[0].id)
+    const chosen = { ...t, teacherId: diet.teachers[3].id }
+    const admin = sessionFor('collegeAdmin', colleges, chosen)
+    expect(teacherScope(admin, colleges)).toBeUndefined()
+    expect(sessionFor('teacher', colleges, admin).teacherId).toBe(diet.teachers[3].id)
+    // switching college picks a teacher of the new college
+    expect(sessionFor('teacher', colleges, { ...chosen, collegeId: dcas.college.id }).teacherId).toBe(dcas.teachers[0].id)
+  })
+
+  it('a teacher of another college, or a stale teacher, is nobody', () => {
+    expect(teacherScope({ role: 'teacher', collegeId: diet.college.id, teacherId: dcas.teachers[0].id }, colleges)).toBeUndefined()
+    expect(teacherScope({ role: 'teacher', collegeId: diet.college.id, teacherId: 'diet-t-gone' }, colleges)).toBeUndefined()
+    expect(teacherScope({ role: 'deptAdmin', collegeId: diet.college.id, teacherId: diet.teachers[0].id }, colleges)).toBeUndefined()
   })
 })
 

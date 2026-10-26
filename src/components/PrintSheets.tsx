@@ -54,13 +54,15 @@ type PreviewProps = {
   onMode: (m: PreviewMode) => void
   onPrint: () => void
   onClose: () => void
+  /** Offer "All sections" (admins); a teacher or student prints only their own timetable. */
+  allowAll?: boolean
 }
 
 /**
  * Kaalchakra's own print preview: exactly the A4 sheets that will print, before the browser's dialog opens.
  * Some browsers (in-app browsers, the Windows system dialog) show no preview of their own.
  */
-export function PrintPreview({ college, timetable, result, grid, mode, onMode, onPrint, onClose }: PreviewProps) {
+export function PrintPreview({ college, timetable, result, grid, mode, onMode, onPrint, onClose, allowAll = true }: PreviewProps) {
   const box = useRef<HTMLDivElement>(null)
   const printBtn = useRef<HTMLButtonElement>(null)
   const [scale, setScale] = useState(1)
@@ -99,7 +101,7 @@ export function PrintPreview({ college, timetable, result, grid, mode, onMode, o
     <div role="dialog" aria-modal="true" aria-label="Print preview" className="no-print fixed inset-0 z-50 flex flex-col bg-[#2b2925]">
       <div className="flex flex-wrap items-center gap-3 bg-card px-4 py-3 shadow">
         <p className="font-display text-base font-semibold">Print preview</p>
-        <div role="radiogroup" aria-label="What to print" className="inline-flex rounded-full border border-rule p-0.5">
+        {allowAll && <div role="radiogroup" aria-label="What to print" className="inline-flex rounded-full border border-rule p-0.5">
           {(
             [
               ['one', 'This timetable'],
@@ -117,7 +119,7 @@ export function PrintPreview({ college, timetable, result, grid, mode, onMode, o
               {text}
             </button>
           ))}
-        </div>
+        </div>}
         <span className="font-mono text-[11px] tracking-wider text-muted uppercase">
           A4 landscape · {grids.length} {grids.length === 1 ? 'page' : 'pages'}
         </span>

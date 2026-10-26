@@ -269,6 +269,8 @@ export type LeaveRequest = {
   day: number
   reason: string
   status: 'pending' | 'approved' | 'rejected'
+  /** ISO timestamp of the request. */
+  createdAt?: string
 }
 
 /**

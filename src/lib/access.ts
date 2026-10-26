@@ -65,6 +65,13 @@ export function deptScope(session: Session | null, colleges: CollegeData[]): Id 
   return college?.departments.some((d) => d.id === session.deptId) ? session.deptId : undefined
 }
 
+/** The teacher a Teacher session is (in its own college), or undefined for every other session. */
+export function teacherScope(session: Session | null, colleges: CollegeData[]): Id | undefined {
+  if (session?.role !== 'teacher') return undefined
+  const college = collegeFor(session, colleges, session.collegeId)
+  return college?.teachers.some((t) => t.id === session.teacherId) ? session.teacherId : undefined
+}
+
 /**
  * May this session act on department `deptId`? An HOD only on their own department; the College Admin on any
  * department of their college for edits and department generate (Ready and room loans are the HODs' own).
@@ -95,5 +102,7 @@ export function sessionFor(role: Role, colleges: CollegeData[], current: Session
   // remember the department across role switches (only an HOD's access uses it); an HOD always has one
   const kept = college.departments.find((d) => d.id === current?.deptId)
   const dept = kept ?? (role === 'deptAdmin' ? college.departments[0] : undefined)
-  return { role, collegeId: college.college.id, ...(dept ? { deptId: dept.id } : {}) }
+  // the same for the teacher a Teacher session is (stand-in for logging in until v0.9)
+  const teacher = college.teachers.find((t) => t.id === current?.teacherId) ?? (role === 'teacher' ? college.teachers[0] : undefined)
+  return { role, collegeId: college.college.id, ...(dept ? { deptId: dept.id } : {}), ...(teacher ? { teacherId: teacher.id } : {}) }
 }

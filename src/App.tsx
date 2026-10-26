@@ -2,16 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { LogOut } from 'lucide-react'
 import { CollegeSwitcher } from './components/CollegeSwitcher'
 import { DeptSwitcher } from './components/DeptSwitcher'
+import { TeacherSwitcher } from './components/TeacherSwitcher'
 import { Landing } from './components/Landing'
 import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { can, canDept, collegeFor, deptScope, switchableColleges } from './lib/access'
+import { can, canDept, collegeFor, deptScope, switchableColleges, teacherScope } from './lib/access'
 import { deptEdit, deptSolveOptions, markReady, mergeDept, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
 import { ComingSoon } from './portals/ComingSoon'
 import { DeptPortal } from './portals/department/DeptPortal'
+import { TeacherPortal } from './portals/teacher/TeacherPortal'
+import { asTeacherPage } from './portals/teacher/pages'
 import { CollegePortal } from './portals/college/CollegePortal'
 import { SuperPortal } from './portals/super/SuperPortal'
 import { StructureBuilder } from './portals/super/structure/StructureBuilder'
@@ -36,6 +39,7 @@ export default function App() {
   const enterAs = useKaal((s) => s.enterAs)
   const switchCollege = useKaal((s) => s.switchCollege)
   const switchDept = useKaal((s) => s.switchDept)
+  const switchTeacher = useKaal((s) => s.switchTeacher)
   const signOut = useKaal((s) => s.signOut)
   const resetDemo = useKaal((s) => s.resetDemo)
   const updateCollege = useKaal((s) => s.updateCollege)
@@ -126,6 +130,8 @@ export default function App() {
   const home = session ? collegeFor(session, colleges, session.collegeId) : undefined
   // the department an HOD sits at (access.ts decides; undefined for every other role)
   const hodDept = deptScope(session, colleges)
+  // the teacher a Teacher session is (access.ts decides)
+  const self = teacherScope(session, colleges)
   // #/super/<collegeId>/structure[/<tab>] — only for a session allowed to shape that college
   const subPath = route.page === 'portal' ? (route.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
@@ -165,6 +171,9 @@ export default function App() {
                   setOpen(null)
                 }}
               />
+            )}
+            {session.role === 'teacher' && home && home.teachers.length > 0 && (
+              <TeacherSwitcher college={home} teacherId={self} onTeacher={switchTeacher} />
             )}
             {!inPortal && (
               <button
@@ -309,6 +318,23 @@ export default function App() {
           />
         ) : inPortal && session.role === 'deptAdmin' ? (
           <p className="py-16 text-muted">This college has no departments yet, or it is archived — pick another college above.</p>
+        ) : inPortal && session.role === 'teacher' && home && self ? (
+          <TeacherPortal
+            key={`${home.college.id}/${self}`}
+            college={home}
+            teacherId={self}
+            page={asTeacherPage(subPath[0])}
+            onPage={(p) => go({ page: 'portal', portal: 'teacher', ...(p === 'today' ? {} : { path: [p] }) })}
+            act={(fn) => {
+              // apply to the college as it is now (another tab may have changed it)
+              const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
+              const r = fn(current)
+              if (r.ok) updateCollege(home.college.id, () => r.college)
+              return r.ok ? null : r.reason
+            }}
+          />
+        ) : inPortal && session.role === 'teacher' ? (
+          <p className="py-16 text-muted">This college has no teachers yet, or it is archived — pick another college above.</p>
         ) : inPortal ? (
           <ComingSoon role={session.role} college={home} onRole={enter} />
         ) : (
@@ -317,7 +343,7 @@ export default function App() {
       </main>
 
       <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
-        <span>Kaalchakra · v0.4 · saved in this browser</span>
+        <span>Kaalchakra · v0.6 · saved in this browser</span>
         <span className="flex items-center gap-3">
           <button type="button" onClick={reset} className="underline-offset-2 hover:text-ink hover:underline">
             Reset demo data

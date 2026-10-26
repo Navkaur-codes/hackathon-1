@@ -17,6 +17,8 @@ export type KaalState = {
   switchCollege: (collegeId: Id) => void
   /** An HOD changes department (within their college). */
   switchDept: (deptId: Id) => void
+  /** A Teacher session picks which teacher it is (within its college). */
+  switchTeacher: (teacherId: Id) => void
   signOut: () => void
   /** Add a college built by `lib/edit.ts` (new from template or clone); ignored if its id is taken. */
   addCollege: (c: CollegeData) => void
@@ -50,6 +52,12 @@ export function createKaalStore(storage?: StateStorage) {
           set((s) =>
             s.session?.role === 'deptAdmin' && s.colleges.find((c) => c.college.id === s.session!.collegeId)?.departments.some((d) => d.id === deptId)
               ? { session: { ...s.session, deptId } }
+              : s,
+          ),
+        switchTeacher: (teacherId) =>
+          set((s) =>
+            s.session?.role === 'teacher' && s.colleges.find((c) => c.college.id === s.session!.collegeId)?.teachers.some((t) => t.id === teacherId)
+              ? { session: { ...s.session, teacherId } }
               : s,
           ),
         signOut: () => set({ session: null }),
