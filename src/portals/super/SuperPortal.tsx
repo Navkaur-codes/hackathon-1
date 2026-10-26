@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Archive, ArchiveRestore, ArrowRight, Eye, Plus, Shapes, UserCog } from 'lucide-react'
-import { setArchived, setCollegeAdmins } from '../../lib/edit'
+import { setArchived } from '../../lib/edit'
 import { summarizeCollege } from '../../lib/structure'
 import { describeTimetable } from '../../solver/best'
 import { useKaal } from '../../store'
-import type { CollegeData, Id } from '../../types'
+import type { CollegeData, Id, User } from '../../types'
+import { AccountsPanel, type AccountActions } from '../../components/AccountsPanel'
 import { PortalTitle } from '../PortalTitle'
 import { NewCollegeForm } from './NewCollegeForm'
 
@@ -17,67 +18,44 @@ type Props = {
   /** Until v0.9 the Super Admin could switch into a College Admin; with accounts there is no impersonation. */
   onOpenAsAdmin?: (collegeId: Id) => void
   onOpenStructure: (collegeId: Id) => void
+  /** Sign-in accounts (v0.9) and what the Super Admin may do with a college's College Admin accounts. */
+  users?: User[]
+  accountActions?: (collegeId: Id) => AccountActions | undefined
 }
 
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition'
 
-function AdminNames({ college }: { college: CollegeData }) {
-  const updateCollege = useKaal((s) => s.updateCollege)
-  const [editing, setEditing] = useState(false)
-  const [text, setText] = useState('')
-  const names = college.college.collegeAdminIds
-  if (!editing)
-    return (
-      <p className="flex flex-wrap items-center gap-2 text-[13px]">
-        <span className="text-muted">College Admins:</span>
-        <span>{names.length ? names.join(', ') : <em className="text-muted">none yet</em>}</span>
-        <button
-          type="button"
-          onClick={() => {
-            setText(names.join(', '))
-            setEditing(true)
-          }}
-          className="inline-flex items-center gap-1 text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
-        >
-          <UserCog size={13} aria-hidden /> Edit
-        </button>
-      </p>
-    )
-  const save = () => {
-    updateCollege(college.college.id, (c) => setCollegeAdmins(c, text.split(',')))
-    setEditing(false)
-  }
+/** College Admin accounts of one college (v0.9): names on the card, managed in place. */
+function CollegeAdmins({ college, users, actions }: { college: CollegeData; users: User[]; actions?: AccountActions }) {
+  const [open, setOpen] = useState(false)
+  const admins = users.filter((u) => u.role === 'collegeAdmin' && u.collegeId === college.college.id)
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        save()
-      }}
-      className="flex flex-wrap items-center gap-2"
-    >
-      <label className="min-w-0 flex-1">
-        <span className="sr-only">College Admin names, separated by commas</span>
-        <input
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
-          placeholder="Names, separated by commas"
-          className="w-full rounded-lg border border-rule bg-paper px-3 py-1.5 text-[13px]"
-        />
-      </label>
-      <button type="submit" className={`${btn} border-ink bg-ink text-paper`}>
-        Save
-      </button>
-      <button type="button" onClick={() => setEditing(false)} className={`${btn} border-rule`}>
-        Cancel
-      </button>
-    </form>
+    <div className="text-[13px]">
+      <p className="flex flex-wrap items-center gap-2">
+        <span className="text-muted">College Admins:</span>
+        <span>{admins.length ? admins.map((a) => `${a.displayName}${a.disabled ? ' (disabled)' : ''}`).join(', ') : <em className="text-muted">no account yet</em>}</span>
+        {actions && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="inline-flex items-center gap-1 text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+          >
+            <UserCog size={13} aria-hidden /> {open ? 'Close' : 'Manage accounts'}
+          </button>
+        )}
+      </p>
+      {open && actions && (
+        <div className="mt-2">
+          <AccountsPanel college={college} users={users} roles={['collegeAdmin']} actions={actions} compact />
+        </div>
+      )}
+    </div>
   )
 }
 
 /** Super Admin: every college on the platform — create, clone, archive, admins and read-only status. */
-export function SuperPortal({ colleges, onView, onInsights, onOpenAsAdmin, onOpenStructure }: Props) {
+export function SuperPortal({ colleges, onView, onInsights, onOpenAsAdmin, onOpenStructure, users = [], accountActions }: Props) {
   const addCollege = useKaal((s) => s.addCollege)
   const updateCollege = useKaal((s) => s.updateCollege)
   const [creating, setCreating] = useState(false)
@@ -161,7 +139,7 @@ export function SuperPortal({ colleges, onView, onInsights, onOpenAsAdmin, onOpe
                 <br />
                 {s.dayRange} · {s.slotsPerDay} slots a day · {s.semester.name}
               </p>
-              <AdminNames college={c} />
+              <CollegeAdmins college={c} users={users} actions={accountActions?.(c.college.id)} />
               <p className="border-t border-rule pt-3 text-[13px]">
                 <span className="text-muted">Timetable: </span>
                 {c.published ? `published v${c.published.version}` : 'not published'}

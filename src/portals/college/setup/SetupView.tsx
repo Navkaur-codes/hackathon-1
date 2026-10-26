@@ -1,5 +1,6 @@
+import { AccountsPanel, type AccountActions } from '../../../components/AccountsPanel'
 import { PreflightPanel } from '../../../components/PreflightPanel'
-import type { CollegeData, Id } from '../../../types'
+import type { CollegeData, Id, User } from '../../../types'
 import { SubjectsTab } from '../../super/structure/SubjectsTab'
 import { AssignmentsTab } from './AssignmentsTab'
 import { BlockedTab } from './BlockedTab'
@@ -18,10 +19,12 @@ type Props = {
   deptId?: Id
   /** Accent of the active tab: vermilion (College Admin) or terracotta (HOD). */
   accent?: 'vermilion' | 'terracotta'
+  /** College Admin: the accounts of the college and what may be done with them (People tab, v0.9). */
+  people?: { users: User[]; actions: AccountActions }
 }
 
 /** Setup: everything the solver needs beyond the structure, with live pre-flight beside it. */
-export function SetupView({ college, tab, onTab, edit, deptId, accent = 'vermilion' }: Props) {
+export function SetupView({ college, tab, onTab, edit, deptId, accent = 'vermilion', people }: Props) {
   const tabs = setupTabsFor(!!deptId)
   return (
     <div>
@@ -52,6 +55,20 @@ export function SetupView({ college, tab, onTab, edit, deptId, accent = 'vermili
           {tab === 'sections' && <SectionsTab college={college} edit={edit} deptId={deptId} />}
           {tab === 'blocked' && !deptId && <BlockedTab college={college} edit={edit} />}
           {tab === 'paste' && <PasteTab college={college} edit={edit} deptId={deptId} />}
+          {tab === 'people' && !deptId && people && (
+            <section aria-labelledby="people-h" className="space-y-3">
+              <div>
+                <h2 id="people-h" className="font-display text-lg font-semibold">
+                  People
+                </h2>
+                <p className="text-[13px] text-muted">
+                  Sign-in accounts of your college: one per HOD and teacher, one shared account per section (each student types their own name). New
+                  accounts and resets get a temporary password that is changed at the first sign-in.
+                </p>
+              </div>
+              <AccountsPanel college={college} users={people.users} roles={['deptAdmin', 'teacher', 'student']} actions={people.actions} />
+            </section>
+          )}
         </div>
         <PreflightPanel college={college} />
       </div>

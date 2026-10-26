@@ -165,3 +165,30 @@ describe('T9.6 store accounts', () => {
     expect(await store.getState().signIn('dcas.admin', DEMO_PASSWORD)).toBeNull()
   })
 })
+
+describe('T9.5 account management helpers', () => {
+  const admin: Session = { role: 'collegeAdmin', collegeId: diet.college.id }
+  it('suggested passwords are long enough and readable; usernames are free and well-formed', async () => {
+    const { suggestPassword, suggestUsername, usernameProblem } = await import('./auth')
+    const p = suggestPassword()
+    expect(p).toMatch(/^kc-[a-hj-km-np-z2-9]{10}$/)
+    expect(suggestPassword()).not.toBe(p)
+    expect(suggestUsername(users, 'DIET', 'Dr. Harpreet Kaur')).toBe('diet.harpreet-kaur')
+    expect(suggestUsername(users, 'DIET', 'admin')).toBe('diet.admin2')
+    expect(usernameProblem(users, suggestUsername(users, 'DIET', 'CSE-Y2-A'))).toBeNull()
+  })
+
+  it('creates exactly the missing section accounts, with a temporary password to change', async () => {
+    const { createSectionAccounts, sectionsWithoutAccount } = await import('./auth')
+    const without = users.filter((u) => !(u.role === 'student' && u.sectionId === diet.sections[0].id))
+    expect(sectionsWithoutAccount(without, diet).map((s) => s.id)).toEqual([diet.sections[0].id])
+    const r = await createSectionAccounts(without, colleges, admin, diet.college.id, 'temporary-1', NOW)
+    if (!r.ok) throw new Error((r as { reason: string }).reason)
+    expect('created' in r && r.created).toBe(1)
+    const made = r.users.at(-1)!
+    expect(made).toMatchObject({ role: 'student', sectionId: diet.sections[0].id, mustChange: true })
+    expect(sectionsWithoutAccount(r.users, diet)).toEqual([])
+    expect((await createSectionAccounts(without, colleges, { role: 'collegeAdmin', collegeId: dcas.college.id }, diet.college.id, 'temporary-1', NOW)).ok).toBe(false)
+    expect((await createSectionAccounts(without, colleges, admin, diet.college.id, 'short', NOW)).ok).toBe(false)
+  })
+})

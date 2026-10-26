@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AccountMenu, ChangePasswordDialog } from './components/AccountMenu'
 import { LoginPage } from './components/LoginPage'
 import { DEMO_PASSWORD } from './demoAccounts'
+import type { AccountActions } from './components/AccountsPanel'
+import { createSectionAccounts, createUser, resetPassword, setDisabled, type AuthOutcome } from './lib/auth'
 import { SharedWeek } from './components/SharedWeek'
 import { ChatDrawer } from './components/ChatDrawer'
 import { roleMeta } from './components/roles'
@@ -33,7 +35,7 @@ import { moveToRoom, syncAllocations } from './lib/allocation'
 import { lockedFixed, toggleLock, unlockAll } from './lib/lock'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
-import type { CollegeData, Role } from './types'
+import type { CollegeData, Role, User } from './types'
 import type { Jump, OpenPage } from './lib/assistant'
 
 // A shared link (?college=…&seed=…) reopens that exact timetable, view and filters.
@@ -173,6 +175,23 @@ export default function App() {
   // #/super/<collegeId>/insights — the read-only dashboard
   const insightsTarget = inPortal && session.role === 'superAdmin' && subPath[1] === 'insights' ? collegeFor(session, colleges, subPath[0]) : undefined
   const superInsights = insightsTarget && can(session, 'insights', insightsTarget.college.id, colleges) ? insightsTarget : undefined
+  /** Account changes (v0.9): applied to the accounts as they are now; `lib/auth.ts` checks who may do what. */
+  const accountActions = (collegeId: string): AccountActions | undefined => {
+    if (!session || !me) return undefined
+    const by = session
+    const apply = async (fn: (users: User[]) => Promise<AuthOutcome | { ok: true; users: User[] }> | AuthOutcome) => {
+      const r = await fn(appStore.getState().users)
+      if (r.ok) setUsers(r.users)
+      return r.ok ? null : (r as { reason: string }).reason
+    }
+    const now = () => new Date().toISOString()
+    return {
+      create: (input) => apply((us) => createUser(us, appStore.getState().colleges, { ...input, mustChange: true }, by, now())),
+      reset: (id, temp) => apply((us) => resetPassword(us, by, id, temp)),
+      setDisabled: (id, off) => apply((us) => setDisabled(us, by, id, off)),
+      ...(by.role === 'collegeAdmin' ? { createSections: (temp: string) => apply((us) => createSectionAccounts(us, appStore.getState().colleges, by, collegeId, temp, now())) } : {}),
+    }
+  }
   /** Apply a checked change (leave, bookings…) to the college as it is now — another tab may have changed it. */
   const applyTo =
     (collegeId: string) =>
@@ -327,6 +346,8 @@ export default function App() {
             colleges={colleges}
             onView={view}
             onInsights={(id) => go({ page: 'portal', portal: 'super', path: [id, 'insights'] })}
+            users={users}
+            accountActions={accountActions}
             onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
           />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
@@ -345,6 +366,7 @@ export default function App() {
               })
             }
             actLeave={can(session, 'leave', home.college.id, colleges) ? applyTo(home.college.id) : undefined}
+            people={can(session, 'editSetup', home.college.id, colleges) ? { users, actions: accountActions(home.college.id)! } : undefined}
             fixes={
               can(session, 'conflicts', home.college.id, colleges)
                 ? {
@@ -461,7 +483,7 @@ export default function App() {
       </main>
 
       {me && (changingPassword || me.mustChange) && (
-        <ChangePasswordDialog user={me} users={users} forced={!!me.mustChange} onSaved={setUsers} onClose={() => setChangingPassword(false)} />
+        <ChangePasswordDialog user={me} users={users} forced={!!me.mustChange} onSaved={setUsers} onClose={() => setChangingPassword(false)} onSignOut={exit} />
       )}
 
       {askScope && askCollege && session && (

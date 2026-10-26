@@ -173,3 +173,54 @@ export function usersOf(users: User[], collegeId: Id): User[] {
 
 /** What the header shows: never the hash or salt. */
 export const publicUser = (u: User) => ({ id: u.id, username: u.username, displayName: u.displayName, role: u.role, collegeId: u.collegeId })
+
+// ── account management helpers (P0.9-c) ──────────────────────────────
+
+const SAFE = 'abcdefghjkmnpqrstuvwxyz23456789'
+
+/** A temporary password that is easy to read aloud (no 0 / o / 1 / l / i). */
+export function suggestPassword(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(10))
+  return `kc-${[...bytes].map((b) => SAFE[b % SAFE.length]).join('')}`
+}
+
+const slugPart = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/\b(dr|prof|ms|mr|mrs)\.?\s+/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+/** A free username like `diet.kaur` or `diet.cse-y2-a` (a number is added when taken). */
+export function suggestUsername(users: User[], collegeCode: string, part: string): string {
+  const base = `${slugPart(collegeCode).replace(/-/g, '')}.${slugPart(part)}`.slice(0, 29)
+  if (!users.some((u) => u.username === base)) return base
+  for (let i = 2; ; i++) if (!users.some((u) => u.username === `${base}${i}`)) return `${base}${i}`
+}
+
+/** Sections of a college that have no student account yet. */
+export const sectionsWithoutAccount = (users: User[], college: CollegeData) =>
+  college.sections.filter((s) => !users.some((u) => u.role === 'student' && u.sectionId === s.id))
+
+/** One shared account per section that has none, all with the same temporary password (changed at first sign-in). */
+export async function createSectionAccounts(users: User[], colleges: CollegeData[], by: Session, collegeId: Id, password: string, now: string): Promise<AuthOutcome | { ok: true; users: User[]; created: number }> {
+  const college = colleges.find((c) => c.college.id === collegeId)
+  if (!college || !mayManage(by, 'student', collegeId)) return fail('You cannot create those accounts.')
+  const problem = passwordProblem(password)
+  if (problem) return fail(problem)
+  let next = users
+  let created = 0
+  for (const s of sectionsWithoutAccount(users, college)) {
+    const r = await createUser(
+      next,
+      colleges,
+      { username: suggestUsername(next, college.college.code, s.name), displayName: `${s.name} students`, password, role: 'student', collegeId, sectionId: s.id, mustChange: true },
+      by,
+      now,
+    )
+    if (!r.ok) return r
+    next = r.users
+    created++
+  }
+  return { ok: true, users: next, created }
+}

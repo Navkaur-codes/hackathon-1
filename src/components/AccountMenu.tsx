@@ -11,10 +11,12 @@ type DialogProps = {
   /** Forced after a reset: no way out except a new password (or signing out). */
   forced?: boolean
   onClose: () => void
+  /** Forced mode: the only other way out. */
+  onSignOut?: () => void
 }
 
 /** Change password: current one required, the new one twice, at least 8 characters. Re-salted on save. */
-export function ChangePasswordDialog({ user, users, onSaved, forced = false, onClose }: DialogProps) {
+export function ChangePasswordDialog({ user, users, onSaved, forced = false, onClose, onSignOut }: DialogProps) {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [again, setAgain] = useState('')
@@ -82,6 +84,11 @@ export function ChangePasswordDialog({ user, users, onSaved, forced = false, onC
         <button type="submit" disabled={busy} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-[14px] font-medium text-paper disabled:opacity-60">
           {busy && <Loader2 size={15} className="animate-spin" aria-hidden />} Save new password
         </button>
+        {forced && onSignOut && (
+          <button type="button" onClick={onSignOut} className="mt-2 inline-flex w-full items-center justify-center gap-1.5 text-[13px] text-muted underline-offset-2 hover:text-ink hover:underline">
+            <LogOut size={14} aria-hidden /> Not now — sign out
+          </button>
+        )}
       </form>
     </div>
   )

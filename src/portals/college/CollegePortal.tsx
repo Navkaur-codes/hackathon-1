@@ -14,7 +14,8 @@ import { ConflictCenter } from './ConflictCenter'
 import { Insights } from './Insights'
 import { conflictCount, conflictReport } from '../../solver/conflicts'
 import { localIso } from '../../lib/myDay'
-import type { Id, Placement } from '../../types'
+import type { Id, Placement, User } from '../../types'
+import type { AccountActions } from '../../components/AccountsPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
 
@@ -37,6 +38,8 @@ type Props = {
   actBookings?: (fn: (c: CollegeData) => BookingOutcome) => string | null
   /** Present only when this session may decide leave for the whole college. */
   actLeave?: (fn: (c: CollegeData) => { ok: true; college: CollegeData } | { ok: false; reason: string }) => string | null
+  /** People tab: the college's accounts and what this session may do with them (v0.9). */
+  people?: { users: User[]; actions: AccountActions }
   /** Conflict Center fixes (existing actions), present only when this session may use them. */
   fixes?: {
     generateDept: (deptId: Id) => Promise<void>
@@ -47,7 +50,7 @@ type Props = {
 }
 
 /** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings, actLeave, fixes }: Props) {
+export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings, actLeave, fixes, people }: Props) {
   const leaveCount = leaveWaiting(college)
   const clashes = useMemo(() => conflictCount(conflictReport(college, localIso(new Date()))), [college])
   // the stored draft, described against the college as it is now
@@ -60,7 +63,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         Your college only — set it up, generate one clash-free timetable for every department, then publish it.
       </PortalTitle>
 
-      <div role="tablist" aria-label="College desk" className="mt-5 flex gap-4 overflow-x-auto border-b border-rule sm:gap-5">
+      <div role="tablist" aria-label="College desk" className="mt-5 flex gap-4 overflow-x-auto border-b border-rule [scrollbar-width:none] sm:gap-5">
         {(
           [
             ['overview', 'Timetable'],
@@ -115,7 +118,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         </div>
       ) : page === 'setup' && edit ? (
         <div className="mt-6">
-          <SetupView college={college} tab={setupTab} onTab={(t) => onPage('setup', t)} edit={edit} />
+          <SetupView college={college} tab={setupTab} onTab={(t) => onPage('setup', t)} edit={edit} people={people} />
         </div>
       ) : (
         <div className="mt-6 max-w-2xl">

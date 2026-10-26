@@ -54,7 +54,7 @@ export function StudentPortal({ college, sectionId, studentName, onName, page, o
         </div>
       ) : (
         <>
-          <div role="tablist" aria-label="Student desk" className="no-print mt-5 flex gap-4 overflow-x-auto border-b border-rule sm:gap-5">
+          <div role="tablist" aria-label="Student desk" className="no-print mt-5 flex gap-4 overflow-x-auto border-b border-rule [scrollbar-width:none] sm:gap-5">
             {TABS.map(([id, label]) => (
               <button
                 key={id}
