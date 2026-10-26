@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.8 complete — P0.8-b built (awaiting push); v0.9 design next** · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.9 Authentication — P0.9-a built (awaiting push), P0.9-b next** · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
 > **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first. v0.7 complete: P0.7-a `f658fa7`, P0.7-b `e186e9c`, P0.7-c `2d14471` (375 tests).
 >
-> **Next:** the user commits & pushes P0.8-b (`feat(assistant): chat drawer on every desk`). Then write the **v0.9 design** — Authentication (`docs/PLAN.md`: login replaces the role switcher; Super Admin creates College Admin accounts, College Admin creates users linked to a department / teacher / section; passwords hashed with Web Crypto SHA-256 + salt in the local store; route guards through `access.ts`; demo accounts listed on the login page; README states the production path) — and show the 5-line summary before coding. v0.8 complete: P0.8-a `6dc6f54`.
+> **Next:** the user commits & pushes P0.9-a (`feat(auth): accounts with salted password hashes`). Then **P0.9-b** — the login window, built beautifully as the user asked (see the P0.9-b screen notes: editorial left panel with the turning wheel, form card, one-click demo account chips, GSAP rise / shake under reduced-motion guard, light + dark, 375 px), header user menu + change password, `guard` route protection (landing and `?s=` links public), switchers removed; the store already has `signIn` / `signOut` / `ensureAccounts`. Demo password: `kaalchakra`. v0.8 complete: P0.8-a `6dc6f54`, P0.8-b `8129e81`.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -551,5 +551,54 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 - "Now" uses the device clock; dated questions use the semester calendar.
 - The conversation is not saved (by design).
 - Bundle 756 kB > 500 kB — code-split the desks before v1.0; M8 / M10 hand checks still open.
+
+---
+
+## v0.9 Authentication
+
+### Design
+**Goal:** the doors get locks. A **login screen** replaces the role / college / department / teacher / section switchers: each person signs in with their own account and lands on their own desk, already linked to their college, department, teacher record or section. The Super Admin creates College Admin accounts; the College Admin creates the accounts of their college (HODs, teachers, section accounts for students). Passwords are never stored — only a salted SHA-256 hash (Web Crypto). Every screen keeps reading the session through `access.ts`, so **screens do not change** (root §2: "auth only replaces how the session is set"). Judges still try every role in one click: the login page lists the **demo accounts**.
+
+**Honesty note (shown on the login page and in the README):** Kaalchakra is fully client-side, so this is a demo-grade gate — data and hashes live in this browser's storage. The production path is a real auth service and database with row-level security per college / department (e.g. Supabase or Firebase Auth + Postgres).
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `types.ts` | `User { id, username, displayName, role, collegeId?, deptId?, teacherId?, sectionId?, salt, hash, createdAt, disabled?, mustChange? }` — a role plus exactly the link that role needs (super: none · collegeAdmin: college · deptAdmin: college + department · teacher: college + teacher · student: college + section, one shared account per section; the student still types their own name, as today). `Platform.users`. |
+| `lib/auth.ts` | `hashPassword(password, salt)` → hex SHA-256 of salt + password via `crypto.subtle` (async; works in the browser and in vitest) · `newSalt()` (16 random bytes, hex) · `createUser(platform, input, by, now)` → validates username (unique across the platform, 3–32 chars `a-z 0-9 . _ -`), password (≥ 8 chars), role link exists **in that college** and the creator may create it (Super Admin → College Admins of any college; College Admin → HOD / teacher / section accounts of their own college only) · `verifyLogin(users, username, password)` → the user or one generic refusal ("Username or password is wrong") — also for disabled accounts · `sessionOf(user, colleges)` → the `Session` the screens already use (no more switching) · `changePassword` (old password required) · `resetPassword` (by the creator role, sets `mustChange`) · `disableUser` / `enableUser` · `usersOf(platform, collegeId)`. Nothing stores or logs a plain password. |
+| `store.ts` | `users` persisted next to `colleges`; `signIn(username, password)` (async → session from `sessionOf`), `signOut`. **Migrate**: version 1 saves keep their colleges and get the demo accounts seeded (version 2). `enterAs` / `switchCollege` / `switchDept` / `switchTeacher` / `switchSection` are removed from the UI (kept only for tests of `access.ts`). |
+| `demoAccounts.ts` | Seed accounts built from the demo data (no hard-coded ids beyond the seed — rule G3): `super`, `diet.admin`, `dcas.admin`, one HOD per demo department (`diet.cse.hod` …), a few teachers (`diet.kaur` …), one student account per demo section (`diet.cse-y2-a` …); one shared demo password shown on the login page. "Reset demo data" re-seeds them. |
+| `lib/access.ts` | `guard(session, route)` → the route to show: no session → the login page (only `#/login`, the landing page and shared links `?s=` stay public); a portal that is not the session's → its own portal (as today). |
+
+**Screens**
+- **Login** `#/login`: Kaalchakra mark, username, password (show / hide), Sign in; a generic error on failure; a **Demo accounts** panel grouped by college and role — each row fills the form and signs in with one click; the honesty note. Landing "Enter as …" buttons become **Sign in**; the role cards stay as explanations.
+- **Login, designed with care (user request at approval, 2026-10-26: "build the login window beautifully").** A two-part page in Paper & Ink: on the left (top on phones) a calm editorial panel — the slowly turning Kaalchakra wheel, the tagline "Every period, in its place.", and the five role accents as a small legend of who signs in here; on the right a card with the form — Fraunces heading "Sign in", Inter fields with large touch targets, a show / hide eye, Caps Lock warning, a vermilion inline error that names no detail, a loading state on the button while hashing. Below the form, **Demo accounts** as tidy role-coloured chips (grouped by college, the shared demo password shown once), each signing in with one click. GSAP: the card rises and the wheel eases in on first load, a gentle shake on a failed sign-in — all off under reduced motion, never delaying input. Light and Blackboard dark themes, contrast ≥ 4.5:1, keyboard order username → password → Sign in → demo chips, visible focus, 375 px without sideways scroll.
+- **Header** (signed in): the user's name and role chip (role accent) and college; **Change password**; **Sign out**. No role / college / department / teacher / section pickers any more (Super Admin still picks a college inside its own desk). A first login with `mustChange` asks for a new password before the desk.
+- **Super Admin → Colleges:** "College Admins" on each card becomes real accounts: add (username, display name, temporary password), reset password, disable / enable; `collegeAdminIds` keeps the display names for the card.
+- **College Admin → Setup → People** (new tab): accounts of the college — add an HOD (department), a teacher (pick the teacher record), a section account (pick the section); reset password, disable / enable; "Create missing section accounts" in one go. HODs, teachers and students cannot create accounts.
+- **Shared section links** (`?s=…`) and the landing page stay public — no data beyond what the link carries.
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.9-a | `lib/auth.ts` (hash, create, verify, session, change / reset / disable), `Platform.users`, store sign in / out + migrate, demo accounts | T9.1 wrong password, unknown user and disabled account → the same generic refusal · T9.2 stored hash ≠ plain text, a new salt per user, same password → different hashes, verify true only for the right one · T9.3 each demo account's session = its role and links; another college's id never reachable · T9.5 who may create whom (College Admin only inside own college, links must exist there, usernames unique) · T9.6 a version-1 save keeps its colleges and gains the demo accounts | `feat(auth): accounts with salted password hashes` |
+| P0.9-b | Login screen + demo accounts panel + header user menu + change password + route guards (landing / shared links public) | T9.4 `guard`: no session → login; another role's portal → own portal; landing and `?s=` public · manual M12 sign in as each demo account, wrong password, sign out, refresh keeps the session | `feat(auth): login screen and route guards` |
+| P0.9-c | Account management: Super Admin → College Admins; College Admin → People tab (HOD / teacher / section accounts, reset, disable, create missing section accounts); first-login password change | T9.5 (UI side) · manual M30: create a teacher account, sign in as it, change password, disable it → sign-in refused | `feat(auth): account management` |
+
+**Decisions**
+- **Session shape unchanged.** A login produces the same `Session` the switchers made, so `access.ts` and every desk keep working untouched; only how the session is set changes (root §2).
+- **Student accounts are per section** (a shared login a class rep or teacher hands out); each student still types their own name for meetings. Individual student accounts are future work.
+- **Hashing is async** (Web Crypto); the store awaits it; tests use Node's built-in Web Crypto. No new library.
+- **Exports never include accounts or hashes**; importing a college keeps its existing accounts; a cloned college starts with none.
+- **Generic login error** (no "unknown user" vs "wrong password") and a short delay after a failure.
+- **Drop order if time runs short:** P0.9-c account management for HODs / teachers / sections (keep the seeded accounts and the Super Admin's College Admin accounts) → first-login password change → change password.
+
+**Done when:** on a fresh browser the landing page offers Sign in; the login page lists the demo accounts; signing in as the Super Admin, DIET's College Admin, the CSE HOD, Dr. Kaur and CSE-Y2-A each lands on that desk with no switchers; a wrong password is refused; a portal URL without a session goes to the login page; shared section links still open without signing in; the College Admin creates a teacher account that can sign in and change its password; a refresh keeps the session; and no password is ever stored in plain text.
+
+### Built
+- **P0.9-a** — **accounts**: `lib/auth.ts` (salted SHA-256 via Web Crypto, create / verify / session / change / reset / disable, generic error), `demoAccounts.ts` (36 accounts on the two demos, one demo password), store v2 with `users` + `signIn` + migrate. Decided: account ids derive from the username (`u-<username>`); demo accounts are re-seeded from whatever colleges exist when the store has none; the plain password lives only inside `createUser` / `verifyLogin` / `changePassword` calls.
+
+### Open issues
+_(fill after v0.9)_
 
 ---

@@ -391,6 +391,31 @@ export type CollegeData = {
   bookings?: RoomBooking[]
 }
 
+/**
+ * A sign-in account (v0.9). A role plus exactly the link that role needs: collegeAdmin → college ·
+ * deptAdmin → college + department · teacher → college + teacher · student → college + section (one shared
+ * account per section; each student still types their own name). The password is never stored — only a
+ * salted SHA-256 hash.
+ */
+export type User = {
+  id: Id
+  username: string
+  displayName: string
+  role: Role
+  collegeId?: Id
+  deptId?: Id
+  teacherId?: Id
+  sectionId?: Id
+  /** Hex salt and hex SHA-256(salt + password). */
+  salt: string
+  hash: string
+  createdAt: string
+  disabled?: boolean
+  /** Set by a password reset: a new password is asked for at the next sign-in. */
+  mustChange?: boolean
+}
+
 export type Platform = {
   colleges: CollegeData[]
+  users: User[]
 }

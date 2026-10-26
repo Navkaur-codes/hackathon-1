@@ -6,12 +6,24 @@ import { useStore } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { createStore } from 'zustand/vanilla'
 import { buildDemoColleges } from './demoData'
+import { buildDemoAccounts } from './demoAccounts'
 import { sessionFor } from './lib/access'
-import type { CollegeData, Id, Role, Session } from './types'
+import { LOGIN_ERROR, sessionOf, verifyLogin } from './lib/auth'
+import type { CollegeData, Id, Role, Session, User } from './types'
 
 export type KaalState = {
   colleges: CollegeData[]
   session: Session | null
+  /** Sign-in accounts (v0.9) — salted hashes only, never a plain password. */
+  users: User[]
+  /** Id of the signed-in account (null with a switcher session in tests, or signed out). */
+  userId: Id | null
+  /** Check the credentials and open that account's session; returns the refusal, or null when signed in. */
+  signIn: (username: string, password: string) => Promise<string | null>
+  /** Replace the accounts (after a pure change from lib/auth.ts). */
+  setUsers: (users: User[]) => void
+  /** Seed the demo accounts for the colleges in the store when there are none (first load, after a migrate or a reset). */
+  ensureAccounts: () => Promise<void>
   /** Switch role (stand-in for logging in until v0.9). */
   enterAs: (role: Role) => void
   switchCollege: (collegeId: Id) => void
@@ -31,18 +43,18 @@ export type KaalState = {
   resetDemo: () => void
 }
 
-type Persisted = Pick<KaalState, 'colleges' | 'session'>
+type Persisted = Pick<KaalState, 'colleges' | 'session' | 'users' | 'userId'>
 
 export const STORE_KEY = 'kaalchakra'
-export const STORE_VERSION = 1
+export const STORE_VERSION = 2
 
-const seed = (): Persisted => ({ colleges: buildDemoColleges(), session: null })
+const seed = (): Persisted => ({ colleges: buildDemoColleges(), session: null, users: [], userId: null })
 
 /** Store factory; tests pass an in-memory storage, the app uses localStorage. */
 export function createKaalStore(storage?: StateStorage) {
   return createStore<KaalState>()(
     persist(
-      (set) => ({
+      (set, get) => ({
         ...seed(),
         enterAs: (role) => set((s) => ({ session: sessionFor(role, s.colleges, s.session) })),
         switchCollege: (collegeId) =>
@@ -70,7 +82,23 @@ export function createKaalStore(storage?: StateStorage) {
               : s,
           ),
         setStudentName: (name) => set((s) => (s.session?.role === 'student' ? { session: { ...s.session, studentName: name.slice(0, 60) } } : s)),
-        signOut: () => set({ session: null }),
+        signOut: () => set({ session: null, userId: null }),
+        signIn: async (username, password) => {
+          const s = get()
+          const r = await verifyLogin(s.users, username, password)
+          if (!r.ok) return r.reason
+          const session = sessionOf(r.user, get().colleges)
+          if (!session) return LOGIN_ERROR
+          set({ session, userId: r.user.id })
+          return null
+        },
+        setUsers: (users) => set({ users }),
+        ensureAccounts: async () => {
+          if (get().users.length > 0) return
+          const users = await buildDemoAccounts(get().colleges, new Date().toISOString())
+          // another call may have seeded meanwhile
+          if (get().users.length === 0) set({ users })
+        },
         addCollege: (c) =>
           set((s) => (s.colleges.some((x) => x.college.id === c.college.id) ? s : { colleges: [...s.colleges, c] })),
         updateCollege: (collegeId, fn) =>
@@ -78,20 +106,27 @@ export function createKaalStore(storage?: StateStorage) {
         resetDemo: () =>
           set((s) => {
             const fresh = seed()
-            return { colleges: fresh.colleges, session: s.session && sessionFor(s.session.role, fresh.colleges, s.session) }
+            // accounts are re-seeded for the fresh colleges (ensureAccounts); the signed-in account keeps its session only if it still fits
+            return { colleges: fresh.colleges, users: [], session: s.session && sessionFor(s.session.role, fresh.colleges, s.session) }
           }),
       }),
       {
         name: STORE_KEY,
         version: STORE_VERSION,
         storage: createJSONStorage(() => storage ?? localStorage),
-        partialize: (s): Persisted => ({ colleges: s.colleges, session: s.session }),
+        partialize: (s): Persisted => ({ colleges: s.colleges, session: s.session, users: s.users, userId: s.userId }),
+        // version 1 (before accounts) keeps its colleges and session and gets accounts seeded on load;
         // older or unknown saved shapes are replaced by a fresh seed rather than half-loaded
-        migrate: (persisted, version) => (version === STORE_VERSION ? (persisted as Persisted) : seed()),
+        migrate: (persisted, version) =>
+          version === STORE_VERSION
+            ? (persisted as Persisted)
+            : version === 1
+              ? { ...(persisted as Persisted), users: [], userId: null }
+              : seed(),
         merge: (persisted, current) => {
           const p = persisted as Partial<Persisted> | undefined
           if (!p || !Array.isArray(p.colleges) || p.colleges.length === 0) return current
-          return { ...current, colleges: p.colleges, session: p.session ?? null }
+          return { ...current, colleges: p.colleges, session: p.session ?? null, users: Array.isArray(p.users) ? p.users : [], userId: p.userId ?? null }
         },
       },
     ),
@@ -112,7 +147,10 @@ export function syncAcrossTabs(store: ReturnType<typeof createKaalStore>, target
 }
 
 export const appStore = createKaalStore()
-if (typeof window !== 'undefined') syncAcrossTabs(appStore, window)
+if (typeof window !== 'undefined') {
+  syncAcrossTabs(appStore, window)
+  void appStore.getState().ensureAccounts()
+}
 
 /** React hook over the app store. */
 export const useKaal = <T,>(selector: (s: KaalState) => T): T => useStore(appStore, selector)

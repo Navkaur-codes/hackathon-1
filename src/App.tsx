@@ -150,6 +150,7 @@ export default function App() {
   const reset = () => {
     if (!window.confirm('Reset to the two demo colleges? Every change saved in this browser will be lost.')) return
     resetDemo()
+    void appStore.getState().ensureAccounts()
     setResults({})
     setOpen(null)
   }
