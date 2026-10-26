@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { CalendarOff } from 'lucide-react'
 import { cancelLeave, localIso, requestLeave, type SelfOutcome } from '../../lib/myDay'
 import { shortDate } from '../../lib/semester'
+import { coverOf } from '../../lib/leave'
+import { periodTimes } from '../../lib/structure'
 import type { CollegeData, Id, LeaveRequest } from '../../types'
 
 type Props = { college: CollegeData; teacherId: Id; act: (fn: (c: CollegeData) => SelfOutcome) => string | null }
@@ -11,6 +13,7 @@ const STATUS: Record<LeaveRequest['status'], { text: string; color: string }> = 
   pending: { text: 'waiting for HOD', color: 'var(--gold)' },
   approved: { text: 'approved', color: 'var(--plum)' },
   rejected: { text: 'declined', color: 'var(--muted)' },
+  cancelled: { text: 'called off', color: 'var(--muted)' },
 }
 
 /** Ask for leave on one date; the HOD approves and Kaalchakra allots substitutes (HOD screens in v0.7). */
@@ -20,6 +23,12 @@ export function LeaveTab({ college, teacherId, act }: Props) {
   const [date, setDate] = useState(first)
   const [reason, setReason] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const times = periodTimes(college.calendar)
+  const nameOf = (id: Id) => college.teachers.find((t) => t.id === id)?.name ?? id
+  const subjectOf = (assignmentId: Id) => {
+    const a = college.assignments.find((x) => x.id === assignmentId)
+    return `${college.subjects.find((x) => x.id === a?.subjectId)?.code ?? ''} · ${college.sections.find((x) => x.id === a?.sectionId)?.name ?? ''}`
+  }
   const mine = college.leaves.filter((l) => l.teacherId === teacherId).sort((a, b) => b.date.localeCompare(a.date))
 
   const submit = () => {
@@ -83,7 +92,16 @@ export function LeaveTab({ college, teacherId, act }: Props) {
             {mine.map((l) => (
               <li key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-[13px]">
                 <span className="w-16 font-mono text-[12px]">{shortDate(l.date)}</span>
-                <span className="min-w-0 flex-1">{l.reason}</span>
+                <span className="min-w-0 flex-1">
+                  {l.reason}
+                  {l.reply && <span className="block text-muted">HOD: “{l.reply}”</span>}
+                  {l.status === 'approved' &&
+                    coverOf(college, l.id).map((s) => (
+                      <span key={s.id} className={`block text-[12px] ${s.substituteTeacherId ? 'text-muted' : 'text-vermilion'}`}>
+                        {times[s.period]?.start} {subjectOf(s.assignmentId)} — {s.substituteTeacherId ? `covered by ${nameOf(s.substituteTeacherId)}` : 'no one free; students are told'}
+                      </span>
+                    ))}
+                </span>
                 <span
                   className="rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase"
                   style={{ color: STATUS[l.status].color, borderColor: STATUS[l.status].color }}

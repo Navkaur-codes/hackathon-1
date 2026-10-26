@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.6 complete — P0.6-c built (awaiting push); v0.7 design next** · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.7 Ops & insights — design approved; P0.7-a built (awaiting push), P0.7-b next** · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
-> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher built (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
+> **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first.
 >
-> **Next:** the user commits & pushes P0.6-c (`feat(meet): meet-a-teacher requests and inbox`). Then write the **v0.7 design** (Ops & insights, `docs/PLAN.md`: HOD leave inbox + substitute swap on the v0.2 engine — teachers already request leave, students already see substitute notices; lock & regenerate; Conflict Center; dashboard + shared-resource ledger) and show the 5-line summary before coding.
+> **Next:** the user commits & pushes P0.7-a (`feat(leave): leave inbox and absence mode`). Then **P0.7-b** Lock & regenerate (`lib/lock.ts`; locked placements as `fixed` in whole-college and department generate, `mustKeep` for H10; Lock / Unlock in Clash Court) + Conflict Center (`solver/conflicts.ts`, `#/college/conflicts`), then **P0.7-c** Insights.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -449,3 +449,52 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 
 ---
 
+## v0.7 Ops & insights
+
+### Design
+**Goal:** the timetable survives a real semester. When a teacher is away, the HOD approves the leave and every class that date gets a free substitute in seconds; nobody is ever double-booked. The College Admin can **lock** classes that must not move and regenerate around them, sees every clash in one **Conflict Center** with the fix next to it, and gets a **dashboard** of loads, room use and idle rooms. All of it reuses the v0.2 engine (`planLeaveCover`, `substituteCandidates`, `validateDate`, `solve` with `fixed`, `validate` with `mustKeep`) — no second algorithm (root §5).
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `types.ts` | `LeaveRequest` gains `decidedAt?`, `reply?`. New `UnavailabilityRequest { id, collegeId, teacherId, slots: SlotKey[], reason, status: pending · approved · rejected, createdAt, decidedAt? }` and `CollegeData.unavailabilityRequests?`. `Substitution` unchanged (`suggested` → `confirmed`, `uncovered`). |
+| `lib/leave.ts` | `leaveInbox(c, deptId?)` (pending first, then upcoming approved, then past) · `approveLeave(c, id, at, today)` → only on the **published** version, only for dates ≥ today with classes → status approved + `planLeaveCover` appended to `substitutions` (best free teacher per class: same dept → same subject → knows the section → lightest load; never over limits or lunch) → `validateDate` must report **0 conflicts** · `rejectLeave(c, id, reply, at)` · `coverOptions(c, substitutionId)` → ranked free teachers for that class and date (from `substituteCandidates`, other substitutions of that date counted) · `swapSubstitute(c, subId, teacherId)` → only a listed candidate; status `confirmed` · `confirmCover(c, subId)` · `withdrawLeave` (approved → cancelled: its substitutions removed) · `coverAfterPublish(c, today)` → for every approved leave from today on, re-plan the cover against the new version (confirmed choices kept when still free), called by `publish`. Root §3 leave rules hold: one date, the weekly pattern never changes. |
+| `lib/unavailability.ts` | Teacher asks "I can't teach Fri P6–P7 any more" → `requestUnavailable`; the HOD approves → `teacher.unavailable` updated through `deptEdit` (department back to Draft, draft coverage shows the clash) or rejects. |
+| `lib/lock.ts` | `toggleLock(c, placement)` on the draft · `lockedOf(c)` · `unlockAll`. Generate (whole college and department) passes the locked placements as `fixed` and judges the result with `validate(…, { mustKeep: locked })` (H10). A locked class that became illegal (e.g. its teacher is now unavailable) is reported, never silently moved. |
+| `solver/conflicts.ts` | `conflictReport(c)` → the independent validator on the **draft** and on the **published version against today's data** (a removed room, a teacher made unavailable after publishing), grouped by rule with the parties (departments, teacher, section, room) and suggested fixes: *Generate department X* · *Move to another room* · *Unlock* · *Generate whole college* · *Take back the room loan*. Plus upcoming dates: leave days with **uncovered** classes (`validateDate`). Publish stays blocked on any draft clash (root §5). |
+| `lib/insights.ts` | `teacherLoads(c, tt)` (per teacher: week vs limit, max day vs daily limit, over / idle flags) · `roomUse(c, tt)` (per room × day: periods used of teachable slots; idle %) · `idleRooms(c, tt)` (department rooms with the most idle slots → candidates to lend) · `sharedLedger(c, tt)` (per shared room: each department's periods, idle periods; totals = placements in that room) · `deptSummary(c)` (per department: periods, unplaced, clashes, Ready). Read the published version, or the draft when nothing is published. |
+
+**Screens**
+- **HOD desk → Leave** `#/dept/leave` (badge "N to decide"): requests from the department's teachers (date, reason, the classes that date). **Approve** → the **Absence Mode** panel for that date: each affected class with its auto-allotted substitute and why ("Same department · teaches DS · 2 periods that day"), **Swap** (ranked free teachers), **Confirm**; *uncovered* classes flagged in vermilion with the reason; a verified stamp from `validateDate` ("0 clashes on 4 Nov"). Swapping glides the name into place (GSAP Flip; off under reduced motion). **Reject** with a reply. Upcoming approved leave listed; *Cancel leave* removes its cover. Plus **unavailability requests** (approve / reject).
+- **Teacher desk:** Leave list shows approved / rejected with the HOD's reply and who covers each class; Office hours tab gains *"Ask to be unavailable"* (pick slots + reason).
+- **College Admin desk → Leave** (read + decide every department's leave, root §2 "all leave").
+- **Lock:** Clash Court on the College Admin's (and an HOD's own department's) draft gets **Lock / Unlock**; locked cells show a small lock; the Timetable page shows "N locked · Unlock all". Generate keeps them.
+- **College Admin → Conflict Center** `#/college/conflicts`: "0 clashes" seal when clean; otherwise cards per clash (rule, what, who) with the fix buttons; a section for upcoming uncovered classes; publish panel links here when blocked.
+- **College Admin → Insights** `#/college/insights` (dashboard): quality score and its parts · department strip · teacher load bars (over-limit / under-used) · **room heatmap** (rooms × days, cell shade = periods used, idle rooms marked "could lend") · **Shared-Resource Ledger** (each shared room: periods per department, idle) · semester delivery (contact hours per programme). Hand-made SVG / CSS, Paper & Ink colours, no chart library. Super Admin sees the same read-only.
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.7-a | Leave inbox + Absence Mode (approve → auto cover, swap / confirm, uncovered, reject, cancel; cover re-planned on publish) for HOD and College Admin; teacher sees decisions; unavailability requests | T7.6 approve → one substitution per class, every substitute free / available / within limits / lunch kept, `validateDate` 0 conflicts · swap only to a ranked candidate · reject / cancel remove cover · an HOD decides only own department · re-publish re-plans cover · T7.7 unavailability approved → teacher.unavailable + department Draft | `feat(leave): leave inbox and absence mode` |
+| P0.7-b | Lock & regenerate + Conflict Center | T7.3 locked class stays put through whole-college and department generate (H10 via `mustKeep`) · T7.4 injected cross-department room clash → reported with both departments and fixes; publish blocked; a published version that breaks today's data is reported | `feat(ops): lock and regenerate, conflict center` |
+| P0.7-c | Insights dashboard + Shared-Resource Ledger | T7.5 ledger: per shared room the department totals equal the placements in that room · T7.8 room use / idle never exceed teachable slots; loads match the grid | `feat(insights): college dashboard and shared-resource ledger` |
+
+**Decisions**
+- **Leave is decided on the published version** (teachers live by it); cover is planned only for dates from today on. Students and teachers already see the result (P0.6 Today / notices).
+- **Absence Mode = substitutes first.** Moving an uncovered class to another free slot that week (`Substitution.movedTo`) stays out unless time allows — an uncovered class is shown to students as a notice instead (never a clash).
+- **A re-publish re-plans cover** for upcoming approved leave instead of leaving stale substitutions behind; confirmed swaps are kept when still free.
+- **Locks live on the draft** and are carried into every generate as fixed bookings; H10 is checked by the independent validator.
+- **Conflict Center reads, it does not repair by itself:** every fix is one of the existing actions (generate, move room, unlock, take back a loan), so nothing new can create a clash.
+- **Dashboard numbers are computed, never stored** (like `describeTimetable`).
+- **Access:** `canDept(…, 'leave', deptId)` for an HOD's own department; `can(…, 'leave')`, `'lock'`, `'conflicts'`, `'insights'` for the College Admin; Super Admin reads insights only.
+- **Drop order if time runs short:** unavailability requests → room heatmap → Flip on swap → semester delivery card.
+
+**Done when:** a DIET teacher asks for leave on a teaching date; the CSE HOD approves and every class that date gets a free substitute (one swapped by hand), verified with 0 clashes; the substitute sees the duty and the section sees the notice; the College Admin locks a class, regenerates and it stays put; an injected cross-department room clash shows in the Conflict Center with both departments and a working fix, and publishing stays blocked until it is fixed; the dashboard shows loads, room use and the shared-room ledger — all on DIET and DCAS.
+
+### Built
+- **P0.7-a** — **Leave inbox + Absence Mode** (`lib/leave.ts`, `lib/unavailability.ts`, `coverCandidates`): approve → auto cover verified by `validateDate`, swap to ranked free teachers / confirm, uncovered flagged, reject with reply, call off, cover re-planned on every publish; shared `LeaveDesk` for the HOD (own department) and the College Admin (all); teachers see decisions and who covers, and can ask to be unavailable. Decided: an unavailability approval is a setup change (department back to Draft, draft out of date) — the published version stays until the College Admin re-publishes.
+
+### Open issues
+_(fill after v0.7)_
+
+---

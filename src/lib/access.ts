@@ -17,8 +17,10 @@ export type Action =
   | 'viewPublished'
   /** Decide single-date bookings of shared rooms (owned rooms are decided by their HOD). */
   | 'roomBookings'
+  /** Decide every department's leave and unavailability requests (root §2 "all leave"). */
+  | 'leave'
 
-const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings']
+const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave']
 const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished']
 /** An HOD works on the college draft (their own department's part of it) — never publishes. */
 const DEPT_ADMIN: Action[] = ['viewDraft', 'viewPublished']
@@ -33,6 +35,8 @@ export type DeptAction =
   | 'markReady'
   /** Offer / request / approve / revoke room loans where the dept is owner or borrower (v0.5-c). */
   | 'exchange'
+  /** Decide leave (with cover) and unavailability requests of the department's teachers (v0.7-a). */
+  | 'leave'
 
 const isActive = (c: CollegeData) => c.college.status === 'active'
 

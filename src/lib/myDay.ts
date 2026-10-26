@@ -201,7 +201,7 @@ export function requestLeave(c: CollegeData, teacherId: Id, date: string, reason
   if (day.status === 'outside') return fail('That date is outside the semester.')
   if (day.status !== 'teaching') return fail(`No classes that day${day.label ? ` (${day.label})` : ''} — no leave needed.`)
   if (!day.classes.some((x) => x.kind === 'own')) return fail('You have no classes that day — no leave needed.')
-  if (c.leaves.some((l) => l.teacherId === teacherId && l.date === date && l.status !== 'rejected'))
+  if (c.leaves.some((l) => l.teacherId === teacherId && l.date === date && (l.status === 'pending' || l.status === 'approved')))
     return fail('You already asked for leave that day.')
   const leave: LeaveRequest = {
     id: `${teacherId}-leave-${date}-${c.leaves.length + 1}`,

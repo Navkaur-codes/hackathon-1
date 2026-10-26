@@ -8,6 +8,8 @@ import { LoanLedger } from './LoanLedger'
 import { BookingsPanel } from './BookingsPanel'
 import type { BookingOutcome } from '../../lib/bookings'
 import { PublishPanel } from './PublishPanel'
+import { leaveWaiting } from '../../lib/leave'
+import { LeaveDesk } from '../leave/LeaveDesk'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
 
@@ -17,9 +19,9 @@ type Props = {
   onResult: (r: SolveResult) => void
   onView: () => void
   /** `overview` = generate & view; `setup` = rooms, teachers, assignments… */
-  page: 'overview' | 'setup'
+  page: 'overview' | 'setup' | 'leave'
   setupTab: SetupTab
-  onPage: (page: 'overview' | 'setup', tab?: SetupTab) => void
+  onPage: (page: 'overview' | 'setup' | 'leave', tab?: SetupTab) => void
   /** Present only when this session may edit the setup (lib/access.ts). */
   edit?: Edit
   canPublish: boolean
@@ -28,10 +30,13 @@ type Props = {
   solveOptions?: BestOptions
   /** Present only when this session may decide shared-room day bookings. */
   actBookings?: (fn: (c: CollegeData) => BookingOutcome) => string | null
+  /** Present only when this session may decide leave for the whole college. */
+  actLeave?: (fn: (c: CollegeData) => { ok: true; college: CollegeData } | { ok: false; reason: string }) => string | null
 }
 
 /** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings }: Props) {
+export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings, actLeave }: Props) {
+  const leaveCount = leaveWaiting(college)
   // the stored draft, described against the college as it is now
   const draft = college.draft
   const result = useMemo(() => (draft ? describeTimetable(college, draft) : undefined), [college, draft])
@@ -47,6 +52,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
           [
             ['overview', 'Timetable'],
             ['setup', 'Setup'],
+            ['leave', 'Leave'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -60,6 +66,9 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
             }`}
           >
             {label}
+            {id === 'leave' && leaveCount > 0 && (
+              <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{leaveCount} to decide</span>
+            )}
             {id === 'setup' && open > 0 && (
               <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{open} to assign</span>
             )}
@@ -67,7 +76,11 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         ))}
       </div>
 
-      {page === 'setup' && edit ? (
+      {page === 'leave' && actLeave ? (
+        <div className="mt-6">
+          <LeaveDesk college={college} act={actLeave} accent="vermilion" />
+        </div>
+      ) : page === 'setup' && edit ? (
         <div className="mt-6">
           <SetupView college={college} tab={setupTab} onTab={(t) => onPage('setup', t)} edit={edit} />
         </div>

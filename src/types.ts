@@ -268,9 +268,26 @@ export type LeaveRequest = {
   /** Working-day index of that date in the college calendar. */
   day: number
   reason: string
-  status: 'pending' | 'approved' | 'rejected'
+  /** `cancelled`: approved, then called off — its cover is removed. */
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
   /** ISO timestamp of the request. */
   createdAt?: string
+  decidedAt?: string
+  /** The HOD's answer. */
+  reply?: string
+}
+
+/** A teacher asks to be unavailable in some weekly slots from now on; the HOD approves (rule H6). */
+export type UnavailabilityRequest = {
+  id: Id
+  collegeId: Id
+  teacherId: Id
+  slots: SlotKey[]
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+  decidedAt?: string
+  reply?: string
 }
 
 /**
@@ -368,6 +385,8 @@ export type CollegeData = {
   published?: Published
   /** Every version ever published, newest last (missing = none yet). */
   publishLog?: PublishEntry[]
+  /** Teachers' requests to be unavailable in weekly slots (missing = none yet). */
+  unavailabilityRequests?: UnavailabilityRequest[]
   /** Single-date room bookings (missing = none yet). */
   bookings?: RoomBooking[]
 }

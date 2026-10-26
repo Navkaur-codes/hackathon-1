@@ -1,5 +1,6 @@
 import type { MeetOutcome } from '../../lib/meetings'
 import type { SelfOutcome } from '../../lib/myDay'
+import type { UnavailOutcome } from '../../lib/unavailability'
 import { MeetingsTab } from './MeetingsTab'
 import type { CollegeData, Id } from '../../types'
 import { PortalTitle } from '../PortalTitle'
@@ -15,7 +16,7 @@ type Props = {
   page: TeacherPage
   onPage: (p: TeacherPage) => void
   /** Present only when this session is this teacher (lib/access.ts). */
-  act?: (fn: (c: CollegeData) => SelfOutcome | MeetOutcome) => string | null
+  act?: (fn: (c: CollegeData) => SelfOutcome | MeetOutcome | UnavailOutcome) => string | null
 }
 
 const TABS: [TeacherPage, string][] = [

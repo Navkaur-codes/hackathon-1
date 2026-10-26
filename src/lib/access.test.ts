@@ -5,7 +5,7 @@ import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, st
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
-const ACTIONS: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings']
+const ACTIONS: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave']
 const ids = (cs: CollegeData[]) => cs.map((c) => c.college.id)
 const archive = (c: CollegeData): CollegeData => ({ ...c, college: { ...c.college, status: 'archived' } })
 
@@ -19,7 +19,7 @@ describe('T4.4 college admin scope', () => {
   })
 
   it('may set up, generate, publish and export its own college — not structure, not another college', () => {
-    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings'] as Action[])
+    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave'] as Action[])
       expect(can(admin, a, dcas.college.id, colleges)).toBe(true)
     expect(can(admin, 'editStructure', dcas.college.id, colleges)).toBe(false)
     for (const a of ACTIONS) expect(can(admin, a, diet.college.id, colleges)).toBe(false)
@@ -73,7 +73,7 @@ describe('T4.6 super admin scope and college isolation', () => {
 })
 
 describe('T5.1 HOD scope', () => {
-  const DEPT_ACTIONS: DeptAction[] = ['editDept', 'generateDept', 'markReady', 'exchange']
+  const DEPT_ACTIONS: DeptAction[] = ['editDept', 'generateDept', 'markReady', 'exchange', 'leave']
   const hod: Session = { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-cse' }
 
   it('an HOD acts only on their own department', () => {
@@ -84,7 +84,7 @@ describe('T5.1 HOD scope', () => {
       expect(canDept(hod, a, dcas.departments[0].id, colleges)).toBe(false) // another college
     }
     // never the college-wide actions
-    for (const a of ['editSetup', 'generate', 'publish', 'export', 'editStructure'] as Action[]) expect(can(hod, a, diet.college.id, colleges)).toBe(false)
+    for (const a of ['editSetup', 'generate', 'publish', 'export', 'editStructure', 'leave'] as Action[]) expect(can(hod, a, diet.college.id, colleges)).toBe(false)
   })
 
   it('the College Admin may edit and generate any department of their college; Ready and loans stay with HODs', () => {
@@ -95,6 +95,8 @@ describe('T5.1 HOD scope', () => {
       expect(canDept(admin, 'generateDept', d.id, colleges)).toBe(true)
       expect(canDept(admin, 'markReady', d.id, colleges)).toBe(false)
       expect(canDept(admin, 'exchange', d.id, colleges)).toBe(false)
+      // the College Admin decides leave through can(…, 'leave') for the whole college
+      expect(canDept(admin, 'leave', d.id, colleges)).toBe(false)
     }
     expect(canDept(admin, 'editDept', dcas.departments[0].id, colleges)).toBe(false)
   })

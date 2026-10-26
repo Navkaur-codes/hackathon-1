@@ -79,6 +79,15 @@ export function substituteCandidates(college: CollegeData, placement: Placement,
 }
 
 /**
+ * Ranked free teachers for one class on one date, given that date's other substitutions (the class's own
+ * substitution must be left out of `subs`, so its current substitute counts as free).
+ */
+export function coverCandidates(college: CollegeData, timetable: Timetable, date: string, placement: Placement, subs: Substitution[]): Candidate[] {
+  const state = dayState(college, timetable, date, subs, [])
+  return state ? substituteCandidates(college, placement, state) : []
+}
+
+/**
  * Auto-allot cover for an approved leave: one Substitution per class the teacher had that date.
  * Returns [] when the date has no classes (holiday, weekend, outside the semester).
  */

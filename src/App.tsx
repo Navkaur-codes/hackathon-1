@@ -160,6 +160,15 @@ export default function App() {
   const subPath = route.page === 'portal' ? (route.path ?? []) : []
   const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
   const building = target && can(session, 'editStructure', target.college.id, colleges) ? target : undefined
+  /** Apply a checked change (leave, bookings…) to the college as it is now — another tab may have changed it. */
+  const applyTo =
+    (collegeId: string) =>
+    (fn: (c: CollegeData) => { ok: true; college: CollegeData } | { ok: false; reason: string }): string | null => {
+      const current = appStore.getState().colleges.find((c) => c.college.id === collegeId)!
+      const r = fn(current)
+      if (r.ok) updateCollege(collegeId, () => r.college)
+      return r.ok ? null : r.reason
+    }
   /** Apply a pure edit to one college; a timetable generated before it no longer matches, so it is dropped. */
   const editOf = (collegeId: string) => (fn: (c: CollegeData) => CollegeData) => {
     updateCollege(collegeId, fn)
@@ -288,9 +297,16 @@ export default function App() {
             college={home}
             onResult={saveDraft(home.college.id)}
             onView={() => view(home.college.id)}
-            page={subPath[0] === 'setup' ? 'setup' : 'overview'}
+            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'leave' ? 'leave' : 'overview'}
             setupTab={asSetupTab(subPath[1])}
-            onPage={(page, tab) => go({ page: 'portal', portal: 'college', ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : {}) })}
+            onPage={(page, tab) =>
+              go({
+                page: 'portal',
+                portal: 'college',
+                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : page === 'leave' ? { path: ['leave'] } : {}),
+              })
+            }
+            actLeave={can(session, 'leave', home.college.id, colleges) ? applyTo(home.college.id) : undefined}
             edit={can(session, 'editSetup', home.college.id, colleges) ? editOf(home.college.id) : undefined}
             canPublish={can(session, 'publish', home.college.id, colleges)}
             canExport={can(session, 'export', home.college.id, colleges)}
@@ -313,13 +329,18 @@ export default function App() {
             key={`${home.college.id}/${hodDept}`}
             college={home}
             deptId={hodDept}
-            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'exchange' ? 'exchange' : 'overview'}
+            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'exchange' ? 'exchange' : subPath[0] === 'leave' ? 'leave' : 'overview'}
+            actLeave={canDept(session, 'leave', hodDept, colleges) ? applyTo(home.college.id) : undefined}
             setupTab={asSetupTab(subPath[1], true)}
             onPage={(page, tab) =>
               go({
                 page: 'portal',
                 portal: 'dept',
-                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1], true)] } : page === 'exchange' ? { path: ['exchange'] } : {}),
+                ...(page === 'setup'
+                  ? { path: ['setup', tab ?? asSetupTab(subPath[1], true)] }
+                  : page === 'exchange' || page === 'leave'
+                    ? { path: [page] }
+                    : {}),
               })
             }
             edit={canDept(session, 'editDept', hodDept, colleges) ? (fn) => editOf(home.college.id)(deptEdit(hodDept, fn)) : undefined}

@@ -4,6 +4,7 @@
 import { score } from '../solver/score'
 import { bookingsAfterPublish } from './bookings'
 import { meetingsAfterPublish } from './meetings'
+import { coverAfterPublish } from './leave'
 import { coverage } from './deptPlan'
 import { validate } from '../solver/validate'
 import type { CollegeData, Timetable } from '../types'
@@ -59,14 +60,15 @@ export function publish(c: CollegeData, at: string, opts: { acceptUnplaced?: boo
   return {
     ok: true,
     // … and accepted meetings whose slot now holds a class become "needs reschedule" (meetings never block teaching)
-    college: meetingsAfterPublish(bookingsAfterPublish({
+    // … and the cover of upcoming approved leave is planned again against the new version
+    college: coverAfterPublish(meetingsAfterPublish(bookingsAfterPublish({
       ...c,
       published: { timetable: draft, version, at },
       publishLog: [
         ...log,
         { version, at, score: score(c, draft).total, periods: draft.placements.reduce((s, p) => s + p.length, 0), unplaced: check.unplaced },
       ],
-    })),
+    })), at.slice(0, 10)),
   }
 }
 
