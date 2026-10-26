@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, Lock, LockOpen, X } from 'lucide-react'
 import { CELL_INK, subjectColor } from '../lib/colors'
 import { explainPlacement } from '../lib/explain'
 import type { GridCell } from '../lib/gridModel'
@@ -15,15 +15,19 @@ type Props = {
   onClose: () => void
   /** College Admin: move this class to another room (returns the refusal reason, or null when done). */
   onMoveRoom?: (placement: Placement, roomId: Id) => string | null
+  /** Lock / unlock this class (present only when this session may — lib/access.ts `canLock`). */
+  onToggleLock?: (placement: Placement) => string | null
 }
 
 const WIDTH = 352 // px, ~22rem
 
 /** "Why here?" — the hard-rule checklist for one class, as a popover (bottom sheet on phones). */
-export function ClashCourt({ college, timetable, cell, anchor, onClose, onMoveRoom }: Props) {
+export function ClashCourt({ college, timetable, cell, anchor, onClose, onMoveRoom, onToggleLock }: Props) {
   const [moveTo, setMoveTo] = useState('')
   const [moveError, setMoveError] = useState<string | null>(null)
-  const options = onMoveRoom ? roomOptions(college, cell.placement).filter((o) => !o.current) : []
+  const locked = cell.placement.locked
+  const options = onMoveRoom && !locked ? roomOptions(college, cell.placement).filter((o) => !o.current) : []
+  const [lockError, setLockError] = useState<string | null>(null)
   const panel = useRef<HTMLDivElement>(null)
   // latest onClose without re-running the focus effect on every render
   const onCloseRef = useRef(onClose)
@@ -128,7 +132,30 @@ export function ClashCourt({ college, timetable, cell, anchor, onClose, onMoveRo
       <p className="border-t border-rule px-4 py-3 text-[12px] text-muted">
         {allOk ? 'Every hard rule holds for this class.' : 'This class breaks a hard rule — regenerate to fix it.'}
       </p>
-      {onMoveRoom && (
+      {onToggleLock && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-3">
+          <p className="min-w-0 flex-1 text-[12px] text-muted">
+            {locked ? 'Locked — it stays here whenever the timetable is generated again.' : 'Lock it to keep it here when you generate again.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const reason = onToggleLock(cell.placement)
+              if (reason) setLockError(reason)
+              else onClose()
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-ink px-3 py-1.5 text-[13px] font-medium transition hover:bg-ink hover:text-paper"
+          >
+            {locked ? <LockOpen size={14} aria-hidden /> : <Lock size={14} aria-hidden />} {locked ? 'Unlock' : 'Lock this class'}
+          </button>
+          {lockError && (
+            <p role="alert" className="basis-full text-[12px] text-vermilion">
+              {lockError}
+            </p>
+          )}
+        </div>
+      )}
+      {onMoveRoom && !locked && (
         <div className="border-t border-rule px-4 py-3">
           <p className="font-mono text-[11px] tracking-[0.15em] text-muted uppercase">Move to another room</p>
           {options.length === 0 ? (

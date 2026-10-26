@@ -19,8 +19,10 @@ export type Action =
   | 'roomBookings'
   /** Decide every department's leave and unavailability requests (root §2 "all leave"). */
   | 'leave'
+  /** The Conflict Center: every clash with its fix (root §2). */
+  | 'conflicts'
 
-const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave']
+const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts']
 const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished']
 /** An HOD works on the college draft (their own department's part of it) — never publishes. */
 const DEPT_ADMIN: Action[] = ['viewDraft', 'viewPublished']
@@ -94,6 +96,17 @@ export function canDept(session: Session | null, action: DeptAction, deptId: Id 
   if (session.role === 'deptAdmin') return session.deptId === deptId
   if (session.role === 'collegeAdmin') return action === 'editDept' || action === 'generateDept'
   return false
+}
+
+/**
+ * May this session lock / unlock a class of department `deptId` in the draft? The College Admin any class of their
+ * college; an HOD only their own department's (root §2 "lock slots" + department generate).
+ */
+export function canLock(session: Session | null, deptId: Id | undefined, colleges: CollegeData[]): boolean {
+  if (!session || !deptId) return false
+  if (session.role === 'collegeAdmin')
+    return can(session, 'generate', session.collegeId, colleges) && !!collegeFor(session, colleges, session.collegeId)?.departments.some((d) => d.id === deptId)
+  return session.role === 'deptAdmin' && canDept(session, 'generateDept', deptId, colleges)
 }
 
 /** Colleges a role can be switched into (the stand-in for logging in): every active one. */

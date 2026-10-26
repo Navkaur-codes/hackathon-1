@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
 import { CELL_INK, subjectColor } from '../lib/colors'
 import type { Grid, GridCell } from '../lib/gridModel'
@@ -121,7 +122,7 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
               type="button"
               data-cell={c.key}
               data-dim={dim || undefined}
-              aria-label={dim ? `${label(c)} (does not match the filters)` : label(c)}
+              aria-label={`${label(c)}${c.placement.locked ? ', locked' : ''}${dim ? ' (does not match the filters)' : ''}`}
               onClick={(e) => onSelect?.(c, e.currentTarget)}
               className="relative m-1 flex flex-col items-start gap-0.5 overflow-hidden rounded-lg px-2.5 py-2 text-left shadow-[0_1px_0_rgba(28,27,25,0.12)] hover:shadow-md focus-visible:outline-2"
               style={{
@@ -136,6 +137,7 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
                 {c.subject.code}
                 {c.lab ? ' · LAB' : ''}
               </span>
+              {c.placement.locked && <Lock size={11} aria-hidden className="absolute top-1.5 right-1.5 opacity-70" />}
               <span className="text-[13px] leading-snug font-semibold">{c.subject.name}</span>
               <span className="text-[11px] leading-snug opacity-80">{c.detail}</span>
             </button>

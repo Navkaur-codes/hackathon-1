@@ -11,6 +11,8 @@ type Props = {
   canPublish: boolean
   canExport: boolean
   edit?: Edit
+  /** Open the Conflict Center (shown when publishing is blocked). */
+  onConflicts?: () => void
 }
 
 const when = (iso: string) =>
@@ -18,7 +20,7 @@ const when = (iso: string) =>
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition disabled:opacity-40'
 
 /** Publish the draft as a version teachers and students follow; unpublish; history; export / import. */
-export function PublishPanel({ college, canPublish, canExport, edit }: Props) {
+export function PublishPanel({ college, canPublish, canExport, edit, onConflicts }: Props) {
   const check = publishCheck(college)
   const pub = college.published
   const log = college.publishLog ?? []
@@ -89,6 +91,14 @@ export function PublishPanel({ college, canPublish, canExport, edit }: Props) {
                   <CircleAlert size={15} className="mt-0.5 shrink-0 text-vermilion" aria-hidden /> {b}
                 </li>
               ))}
+              {onConflicts && (
+                <li>
+                  <button type="button" onClick={onConflicts} className="font-medium underline">
+                    Open the Conflict Center
+                  </button>{' '}
+                  — every clash with who is involved and a fix.
+                </li>
+              )}
             </ul>
           ) : (
             <p className="mt-3 text-[13px] text-muted">

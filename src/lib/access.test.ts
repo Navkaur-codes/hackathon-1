@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { buildDemoColleges } from '../demoData'
 import type { CollegeData, Role, Session } from '../types'
-import { can, canDept, collegeFor, deptScope, sessionFor, switchableColleges, studentScope, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
+import { can, canDept, canLock, collegeFor, deptScope, sessionFor, switchableColleges, studentScope, teacherScope, visibleColleges, type Action, type DeptAction } from './access'
 
 const colleges = buildDemoColleges()
 const [diet, dcas] = colleges
-const ACTIONS: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave']
+const ACTIONS: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts']
 const ids = (cs: CollegeData[]) => cs.map((c) => c.college.id)
 const archive = (c: CollegeData): CollegeData => ({ ...c, college: { ...c.college, status: 'archived' } })
 
@@ -19,7 +19,7 @@ describe('T4.4 college admin scope', () => {
   })
 
   it('may set up, generate, publish and export its own college — not structure, not another college', () => {
-    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave'] as Action[])
+    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts'] as Action[])
       expect(can(admin, a, dcas.college.id, colleges)).toBe(true)
     expect(can(admin, 'editStructure', dcas.college.id, colleges)).toBe(false)
     for (const a of ACTIONS) expect(can(admin, a, diet.college.id, colleges)).toBe(false)
@@ -161,6 +161,19 @@ describe('T6.2 student scope', () => {
     expect(studentScope({ ...s, sectionId: dcas.sections[0].id }, colleges)).toBeUndefined()
     expect(studentScope({ ...s, sectionId: 'gone' }, colleges)).toBeUndefined()
     expect(studentScope({ ...s, role: 'teacher' }, colleges)).toBeUndefined()
+  })
+})
+
+describe('T7.3 who may lock', () => {
+  it('College Admin any department of their college; HOD only their own; nobody else', () => {
+    const admin: Session = { role: 'collegeAdmin', collegeId: diet.college.id }
+    for (const d of diet.departments) expect(canLock(admin, d.id, colleges)).toBe(true)
+    const hod: Session = { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-cse' }
+    expect(canLock(hod, 'diet-cse', colleges)).toBe(true)
+    expect(canLock(hod, 'diet-ece', colleges)).toBe(false)
+    for (const s of [{ role: 'teacher', collegeId: diet.college.id }, { role: 'student', collegeId: diet.college.id }, { role: 'superAdmin' }, null] as (Session | null)[])
+      expect(canLock(s, 'diet-cse', colleges)).toBe(false)
+    expect(canLock({ role: 'collegeAdmin', collegeId: dcas.college.id }, 'diet-cse', colleges)).toBe(false)
   })
 })
 

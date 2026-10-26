@@ -10,6 +10,10 @@ import type { BookingOutcome } from '../../lib/bookings'
 import { PublishPanel } from './PublishPanel'
 import { leaveWaiting } from '../../lib/leave'
 import { LeaveDesk } from '../leave/LeaveDesk'
+import { ConflictCenter } from './ConflictCenter'
+import { conflictCount, conflictReport } from '../../solver/conflicts'
+import { localIso } from '../../lib/myDay'
+import type { Id, Placement } from '../../types'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
 
@@ -19,9 +23,9 @@ type Props = {
   onResult: (r: SolveResult) => void
   onView: () => void
   /** `overview` = generate & view; `setup` = rooms, teachers, assignments… */
-  page: 'overview' | 'setup' | 'leave'
+  page: 'overview' | 'setup' | 'leave' | 'conflicts'
   setupTab: SetupTab
-  onPage: (page: 'overview' | 'setup' | 'leave', tab?: SetupTab) => void
+  onPage: (page: 'overview' | 'setup' | 'leave' | 'conflicts', tab?: SetupTab) => void
   /** Present only when this session may edit the setup (lib/access.ts). */
   edit?: Edit
   canPublish: boolean
@@ -32,11 +36,19 @@ type Props = {
   actBookings?: (fn: (c: CollegeData) => BookingOutcome) => string | null
   /** Present only when this session may decide leave for the whole college. */
   actLeave?: (fn: (c: CollegeData) => { ok: true; college: CollegeData } | { ok: false; reason: string }) => string | null
+  /** Conflict Center fixes (existing actions), present only when this session may use them. */
+  fixes?: {
+    generateDept: (deptId: Id) => Promise<void>
+    generateAll: () => Promise<void>
+    moveRoom: (placement: Placement, roomId: Id) => string | null
+    unlock: (placement: Placement) => string | null
+  }
 }
 
 /** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings, actLeave }: Props) {
+export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings, actLeave, fixes }: Props) {
   const leaveCount = leaveWaiting(college)
+  const clashes = useMemo(() => conflictCount(conflictReport(college, localIso(new Date()))), [college])
   // the stored draft, described against the college as it is now
   const draft = college.draft
   const result = useMemo(() => (draft ? describeTimetable(college, draft) : undefined), [college, draft])
@@ -53,6 +65,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
             ['overview', 'Timetable'],
             ['setup', 'Setup'],
             ['leave', 'Leave'],
+            ...(fixes ? ([['conflicts', 'Conflicts']] as const) : []),
           ] as const
         ).map(([id, label]) => (
           <button
@@ -66,6 +79,9 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
             }`}
           >
             {label}
+            {id === 'conflicts' && clashes > 0 && (
+              <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{clashes}</span>
+            )}
             {id === 'leave' && leaveCount > 0 && (
               <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{leaveCount} to decide</span>
             )}
@@ -76,7 +92,18 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         ))}
       </div>
 
-      {page === 'leave' && actLeave ? (
+      {page === 'conflicts' && fixes ? (
+        <div className="mt-6 max-w-3xl">
+          <ConflictCenter
+            college={college}
+            onGenerateDept={fixes.generateDept}
+            onGenerateAll={fixes.generateAll}
+            onMoveRoom={fixes.moveRoom}
+            onUnlock={fixes.unlock}
+            onLeave={() => onPage('leave')}
+          />
+        </div>
+      ) : page === 'leave' && actLeave ? (
         <div className="mt-6">
           <LeaveDesk college={college} act={actLeave} accent="vermilion" />
         </div>
@@ -102,7 +129,7 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
           )}
           <CollegeCard data={college} result={result} onResult={onResult} onView={onView} solveOptions={solveOptions} />
           <div className="mt-4">
-            <PublishPanel college={college} canPublish={canPublish} canExport={canExport} edit={edit} />
+            <PublishPanel college={college} canPublish={canPublish} canExport={canExport} edit={edit} onConflicts={fixes ? () => onPage('conflicts') : undefined} />
           </div>
           <div className="mt-4">
             <DeptStrip college={college} />

@@ -10,7 +10,7 @@ import { Landing } from './components/Landing'
 import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
-import { can, canDept, collegeFor, deptScope, studentScope, switchableColleges, teacherScope } from './lib/access'
+import { can, canDept, canLock, collegeFor, deptScope, studentScope, switchableColleges, teacherScope } from './lib/access'
 import { deptEdit, deptSolveOptions, markReady, mergeDept, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
@@ -28,6 +28,7 @@ import { asSetupTab } from './portals/college/setup/tabs'
 import { describeTimetable, type SolveResult } from './solver/best'
 import { setDraft } from './lib/publish'
 import { moveToRoom, syncAllocations } from './lib/allocation'
+import { lockedFixed, toggleLock, unlockAll } from './lib/lock'
 import { runSolver } from './solver/runSolver'
 import { appStore, useKaal } from './store'
 import type { CollegeData, Role } from './types'
@@ -95,7 +96,11 @@ export default function App() {
   // every use of another department's room is recorded as a semester allocation (H11)
   const saveDraft = (collegeId: string) => (r: SolveResult) => updateCollege(collegeId, (c) => syncAllocations(setDraft(c, r.timetable)))
   /** The College Admin designs the timetable: any suitable room of the college may be used. */
-  const designerOptions = (collegeId: string) => (can(session, 'generate', collegeId, colleges) ? { anyRoom: true } : undefined)
+  // … and every locked class stays where it is (fixed bookings, rule H10)
+  const designerOptions = (collegeId: string) => {
+    const c = colleges.find((x) => x.college.id === collegeId)
+    return can(session, 'generate', collegeId, colleges) && c ? { anyRoom: true, ...lockedFixed(c) } : undefined
+  }
   // a stored draft is described against the college as it is now (score, clashes, pre-flight recomputed)
   const openStored = useMemo(
     () => (inPortal && openCollege?.draft ? describeTimetable(openCollege, openCollege.draft) : undefined),
@@ -169,6 +174,18 @@ export default function App() {
       if (r.ok) updateCollege(collegeId, () => r.college)
       return r.ok ? null : r.reason
     }
+  /** Generate one department against the college as it is now (only that department moves; its locks stay). */
+  const generateDeptOf = (collegeId: string) => async (deptId: string, round = 1) => {
+    const current = appStore.getState().colleges.find((c) => c.college.id === collegeId)!
+    const r = await runSolver(current, { attempts: 20, baseSeed: 1 + round * 20, ...deptSolveOptions(current, deptId) })
+    updateCollege(collegeId, (c) => syncAllocations(mergeDept(c, deptId, r.timetable)))
+  }
+  /** Generate the whole college again; locked classes stay (College Admin, any room). */
+  const generateAllOf = (collegeId: string) => async () => {
+    const current = appStore.getState().colleges.find((c) => c.college.id === collegeId)!
+    const r = await runSolver(current, { attempts: 20, baseSeed: 1 + Date.now() % 1000 * 20, anyRoom: true, ...lockedFixed(current) })
+    updateCollege(collegeId, (c) => syncAllocations(setDraft(c, r.timetable)))
+  }
   /** Apply a pure edit to one college; a timetable generated before it no longer matches, so it is dropped. */
   const editOf = (collegeId: string) => (fn: (c: CollegeData) => CollegeData) => {
     updateCollege(collegeId, fn)
@@ -263,6 +280,9 @@ export default function App() {
                   }
                 : undefined
             }
+            canLock={inPortal ? (p) => canLock(session, p.deptId, colleges) : undefined}
+            onToggleLock={inPortal ? (p) => applyTo(openCollege.college.id)((c) => (canLock(session, p.deptId, colleges) ? toggleLock(c, p) : { ok: false, reason: 'Not yours to lock.' })) : undefined}
+            onUnlockAll={inPortal && can(session, 'generate', openCollege.college.id, colleges) ? () => updateCollege(openCollege.college.id, unlockAll) : undefined}
             notice={
               inPortal && openCollege.draftStale
                 ? 'This draft is out of date — the structure or setup changed after it was generated. Generate again before publishing.'
@@ -297,16 +317,26 @@ export default function App() {
             college={home}
             onResult={saveDraft(home.college.id)}
             onView={() => view(home.college.id)}
-            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'leave' ? 'leave' : 'overview'}
+            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'leave' ? 'leave' : subPath[0] === 'conflicts' ? 'conflicts' : 'overview'}
             setupTab={asSetupTab(subPath[1])}
             onPage={(page, tab) =>
               go({
                 page: 'portal',
                 portal: 'college',
-                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : page === 'leave' ? { path: ['leave'] } : {}),
+                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : page === 'leave' || page === 'conflicts' ? { path: [page] } : {}),
               })
             }
             actLeave={can(session, 'leave', home.college.id, colleges) ? applyTo(home.college.id) : undefined}
+            fixes={
+              can(session, 'conflicts', home.college.id, colleges)
+                ? {
+                    generateDept: (deptId) => generateDeptOf(home.college.id)(deptId),
+                    generateAll: generateAllOf(home.college.id),
+                    moveRoom: (p, roomId) => applyTo(home.college.id)((c) => moveToRoom(c, p, roomId)),
+                    unlock: (p) => applyTo(home.college.id)((c) => (p.locked ? toggleLock(c, p) : { ok: true, college: c })),
+                  }
+                : undefined
+            }
             edit={can(session, 'editSetup', home.college.id, colleges) ? editOf(home.college.id) : undefined}
             canPublish={can(session, 'publish', home.college.id, colleges)}
             canExport={can(session, 'export', home.college.id, colleges)}
@@ -352,12 +382,7 @@ export default function App() {
             onView={can(session, 'viewDraft', home.college.id, colleges) ? () => view(home.college.id) : undefined}
             onGenerate={
               canDept(session, 'generateDept', hodDept, colleges)
-                ? async (round) => {
-                    // solve against the college as it is now; only this department moves
-                    const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
-                    const r = await runSolver(current, { attempts: 20, baseSeed: 1 + round * 20, ...deptSolveOptions(current, hodDept) })
-                    updateCollege(home.college.id, (c) => syncAllocations(mergeDept(c, hodDept, r.timetable)))
-                  }
+                ? (round) => generateDeptOf(home.college.id)(hodDept, round)
                 : undefined
             }
             act={

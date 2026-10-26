@@ -109,12 +109,12 @@ export const deptEdit =
 // with `solveBest` — only its assignments, every other department's placements as fixed bookings — and merged
 // back. Nothing of another department ever moves.
 
-/** Solver options for generating one department against the rest of the college. */
+/** Solver options for generating one department against the rest of the college (its own locked classes stay too). */
 export function deptSolveOptions(c: CollegeData, deptId: Id): { assignmentIds: Id[]; fixed: Placement[] } {
   const mine = deptEntities(c, deptId).assignmentIds
   return {
     assignmentIds: [...mine],
-    fixed: (c.draft?.placements ?? []).filter((p) => !mine.has(p.assignmentId)),
+    fixed: (c.draft?.placements ?? []).filter((p) => !mine.has(p.assignmentId) || p.locked),
   }
 }
 

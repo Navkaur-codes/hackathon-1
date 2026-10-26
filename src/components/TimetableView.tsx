@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Printer, RotateCcw, Search } from 'lucide-react'
+import { ArrowLeft, Lock, Printer, RotateCcw, Search } from 'lucide-react'
 import { matches, type Filters } from '../lib/filters'
 import { buildGrid, listEntities, type GridCell, type GridView } from '../lib/gridModel'
 import { semesterSummary, shortDate } from '../lib/semester'
@@ -38,10 +38,15 @@ type Props = {
   solveOptions?: BestOptions
   /** College Admin: move a class to another room from Clash Court. */
   onMoveRoom?: (placement: Placement, roomId: Id) => string | null
+  /** Lock / unlock a class — `canLock` says for which classes this session may (lib/access.ts). */
+  onToggleLock?: (placement: Placement) => string | null
+  canLock?: (placement: Placement) => boolean
+  onUnlockAll?: () => void
 }
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice, scopeDeptId, solveOptions, onMoveRoom }: Props) {
+export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice, scopeDeptId, solveOptions, onMoveRoom, onToggleLock, canLock, onUnlockAll }: Props) {
+  const lockedCount = result.timetable.placements.filter((p) => p.locked).length
   const [view, setView] = useState<GridView>(initial?.view ?? 'section')
   const groups = useMemo(() => listEntities(college, view, scopeDeptId), [college, view, scopeDeptId])
   const firstId = groups[0]?.items[0]?.id ?? ''
@@ -221,6 +226,16 @@ export function TimetableView({ college, result, onBack, onResult, initial, read
         )}
         <div className="no-print mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
           <VerifiedStamp conflicts={result.conflicts.length} />
+          {lockedCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-[13px]">
+              <Lock size={13} aria-hidden /> {lockedCount} locked
+              {onUnlockAll && (
+                <button type="button" onClick={onUnlockAll} className="ml-1 font-medium underline">
+                  Unlock all
+                </button>
+              )}
+            </span>
+          )}
           <span className="font-display text-xl font-semibold tabular-nums">
             {result.score.total}
             <span className="text-sm font-normal text-muted"> / 100 quality</span>
@@ -366,6 +381,7 @@ export function TimetableView({ college, result, onBack, onResult, initial, read
           anchor={selected.anchor}
           onClose={() => setSelected(null)}
           onMoveRoom={onMoveRoom}
+          onToggleLock={onToggleLock && canLock?.(selected.cell.placement) ? onToggleLock : undefined}
         />
       )}
     </section>
