@@ -1,9 +1,9 @@
 // A department's view of the college: what belongs to it, whether it is ready, and its Draft / Ready status.
-// P0.5-b adds department generate against the rest of the college here.
+// Department generate against the rest of the college (P0.5-b) is at the bottom.
 
 import { preflight } from '../solver/preflight'
 import { validate } from '../solver/validate'
-import type { CollegeData, DeptStatus, Id } from '../types'
+import type { CollegeData, DeptStatus, Id, Placement, Timetable } from '../types'
 
 /** Ids of everything a department owns or teaches (for scoping lists, warnings and clashes). */
 export function deptEntities(c: CollegeData, deptId: Id) {
@@ -55,22 +55,22 @@ export function readiness(c: CollegeData, deptId: Id): { items: ReadinessItem[];
     fix: 'setup',
   })
 
+  // judged for this department only: a change elsewhere in the college never holds it back
   const draft = c.draft
   const unplaced = draft ? draft.unplaced.filter((u) => d.assignmentIds.has(u.assignmentId)).reduce((s, u) => s + u.periods, 0) : 0
-  const placed = !!draft && !c.draftStale && unplaced === 0 && d.assignments.every((a) => !a.teacherId || draft.placements.some((p) => p.assignmentId === a.id))
+  const missing = draft ? coverage(c, draft).filter((g) => g.deptId === deptId).reduce((s, g) => s + g.missing, 0) : 0
+  const placed = !!draft && unplaced === 0 && missing === 0
   items.push({
     id: 'placed',
     ok: placed,
     label: 'Placed in the college timetable',
     detail: !draft
       ? 'There is no college draft yet — generate the department.'
-      : c.draftStale
-        ? 'The college draft is out of date — generate again.'
+      : missing
+        ? `${missing} period${missing > 1 ? 's' : ''} of the department changed since the draft was made — generate again.`
         : unplaced
           ? `${unplaced} period${unplaced > 1 ? 's' : ''} of the department could not be placed.`
-          : placed
-            ? 'Every class of the department is in the college draft.'
-            : 'Some classes of the department are not in the draft yet — generate again.',
+          : 'Every class of the department is in the college draft.',
     fix: 'generate',
   })
 
@@ -103,3 +103,56 @@ export const deptEdit =
     const next = fn(c)
     return next === c ? c : setDeptStatus(next, deptId, 'draft')
   }
+
+// ── Department generate (P0.5-b) ──────────────────────────────────────
+// One ledger, one algorithm (root §5): the college draft is the global booking ledger. A department is solved
+// with `solveBest` — only its assignments, every other department's placements as fixed bookings — and merged
+// back. Nothing of another department ever moves.
+
+/** Solver options for generating one department against the rest of the college. */
+export function deptSolveOptions(c: CollegeData, deptId: Id): { assignmentIds: Id[]; fixed: Placement[] } {
+  const mine = deptEntities(c, deptId).assignmentIds
+  return {
+    assignmentIds: [...mine],
+    fixed: (c.draft?.placements ?? []).filter((p) => !mine.has(p.assignmentId)),
+  }
+}
+
+/**
+ * Put a department's freshly generated timetable into the college draft: the result already holds the other
+ * departments' placements (they were fixed), this department's new ones, and this department's unplaced;
+ * the other departments' unplaced are kept from the old draft. The draft is no longer stale — from here the
+ * clash check and `coverage` judge it.
+ */
+export function mergeDept(c: CollegeData, deptId: Id, result: Timetable): CollegeData {
+  const mine = deptEntities(c, deptId).assignmentIds
+  const keptUnplaced = (c.draft?.unplaced ?? []).filter((u) => !mine.has(u.assignmentId))
+  const draft: Timetable = {
+    collegeId: c.college.id,
+    seed: result.seed,
+    placements: result.placements,
+    unplaced: [...keptUnplaced, ...result.unplaced.filter((u) => mine.has(u.assignmentId))],
+  }
+  return setDeptStatus({ ...c, draft, draftStale: false }, deptId, 'draft')
+}
+
+/** A class whose periods are not all accounted for in the draft (neither placed nor listed as unplaced). */
+export type Gap = { assignmentId: Id; deptId: Id; missing: number }
+
+/**
+ * Classes the draft does not cover yet — e.g. a subject added, a teacher assigned or periods raised after the
+ * draft was generated. Empty = every period of every class is placed or reported as unplaced.
+ */
+export function coverage(c: CollegeData, draft: Timetable | undefined): Gap[] {
+  const placed = new Map<Id, number>()
+  for (const p of draft?.placements ?? []) placed.set(p.assignmentId, (placed.get(p.assignmentId) ?? 0) + p.length)
+  for (const u of draft?.unplaced ?? []) placed.set(u.assignmentId, (placed.get(u.assignmentId) ?? 0) + u.periods)
+  const subjects = new Map(c.subjects.map((s) => [s.id, s]))
+  const sections = new Map(c.sections.map((s) => [s.id, s]))
+  const gaps: Gap[] = []
+  for (const a of c.assignments) {
+    const missing = (subjects.get(a.subjectId)?.periodsPerWeek ?? 0) - (placed.get(a.id) ?? 0)
+    if (missing > 0) gaps.push({ assignmentId: a.id, deptId: sections.get(a.sectionId)?.deptId ?? '', missing })
+  }
+  return gaps
+}

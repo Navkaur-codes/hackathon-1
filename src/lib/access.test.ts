@@ -116,6 +116,10 @@ describe('T5.1 HOD scope', () => {
     expect(sessionFor('deptAdmin', colleges, null)).toEqual({ role: 'deptAdmin', collegeId: diet.college.id, deptId: diet.departments[0].id })
     expect(sessionFor('deptAdmin', colleges, { role: 'collegeAdmin', collegeId: diet.college.id, deptId: 'diet-me' }).deptId).toBe('diet-me')
     expect(sessionFor('deptAdmin', colleges, { role: 'deptAdmin', collegeId: dcas.college.id, deptId: 'diet-me' }).deptId).toBe(dcas.departments[0].id)
+    // HOD (ME) → College Admin → HOD comes back to ME
+    const admin = sessionFor('collegeAdmin', colleges, { role: 'deptAdmin', collegeId: diet.college.id, deptId: 'diet-me' })
+    expect(can(admin, 'publish', diet.college.id, colleges)).toBe(true)
+    expect(sessionFor('deptAdmin', colleges, admin).deptId).toBe('diet-me')
   })
 })
 

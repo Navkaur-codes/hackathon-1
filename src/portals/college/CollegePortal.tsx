@@ -3,6 +3,7 @@ import { CollegeCard } from '../../components/CollegeCard'
 import { describeTimetable, type SolveResult } from '../../solver/best'
 import type { CollegeData } from '../../types'
 import { PortalTitle } from '../PortalTitle'
+import { DeptStrip } from './DeptStrip'
 import { PublishPanel } from './PublishPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
@@ -82,6 +83,9 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
           <CollegeCard data={college} result={result} onResult={onResult} onView={onView} />
           <div className="mt-4">
             <PublishPanel college={college} canPublish={canPublish} canExport={canExport} edit={edit} />
+          </div>
+          <div className="mt-4">
+            <DeptStrip college={college} />
           </div>
         </div>
       )}

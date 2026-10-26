@@ -32,12 +32,14 @@ type Props = {
   readOnly?: boolean
   /** A warning shown above the result, e.g. "this draft is out of date". */
   notice?: string
+  /** HOD: pickers list only this department (its sections, teachers, own / shared / lent rooms). */
+  scopeDeptId?: Id
 }
 
 /** The timetable page for one generated result. */
-export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice }: Props) {
+export function TimetableView({ college, result, onBack, onResult, initial, readOnly = false, notice, scopeDeptId }: Props) {
   const [view, setView] = useState<GridView>(initial?.view ?? 'section')
-  const groups = useMemo(() => listEntities(college, view), [college, view])
+  const groups = useMemo(() => listEntities(college, view, scopeDeptId), [college, view, scopeDeptId])
   const firstId = groups[0]?.items[0]?.id ?? ''
   const [picked, setPicked] = useState<Record<GridView, Id>>(() => ({
     section: '',

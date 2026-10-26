@@ -89,8 +89,9 @@ export function sessionFor(role: Role, colleges: CollegeData[], current: Session
   if (role === 'superAdmin') return current?.collegeId ? { role, collegeId: current.collegeId } : { role }
   const options = switchableColleges(colleges)
   const college = options.find((c) => c.college.id === current?.collegeId) ?? options[0]
-  if (role !== 'deptAdmin' || !college) return { role, collegeId: college?.college.id }
-  // an HOD sits at one department: keep the current one if it belongs to this college, else the first
-  const dept = college.departments.find((d) => d.id === current?.deptId) ?? college.departments[0]
+  if (!college) return { role, collegeId: undefined }
+  // remember the department across role switches (only an HOD's access uses it); an HOD always has one
+  const kept = college.departments.find((d) => d.id === current?.deptId)
+  const dept = kept ?? (role === 'deptAdmin' ? college.departments[0] : undefined)
   return { role, collegeId: college.college.id, ...(dept ? { deptId: dept.id } : {}) }
 }

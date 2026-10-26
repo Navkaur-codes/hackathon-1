@@ -3,7 +3,7 @@ import { buildDemoColleges } from '../demoData'
 import { solve } from '../solver/solve'
 import type { CollegeData, Timetable } from '../types'
 import { deptEdit, deptEntities, markReady, readiness, setDeptStatus } from './deptPlan'
-import { addSubject, removeTeacher, toggleBlocked, updateSection } from './edit'
+import { addSubject, removeTeacher, toggleBlocked, updateSection, updateSubject } from './edit'
 import { setDraft } from './publish'
 
 const [diet] = buildDemoColleges()
@@ -26,11 +26,19 @@ describe('department readiness and Ready status', () => {
     expect(markReady(withDraft, 'diet-cse').departments.find((d) => d.id === 'diet-cse')!.status).toBe('ready')
   })
 
-  it('a class without a teacher, a stale draft or a clash in the department each block Ready', () => {
+  it('a class without a teacher, a change the draft does not cover, or a clash in the department each block Ready', () => {
     const teacherGone = removeTeacher(withDraft, diet.teachers.find((t) => t.deptId === 'diet-cse')!.id)
     expect(ids(teacherGone, 'diet-cse')).toContain('teachers')
-    const stale = toggleBlocked(withDraft, '0-0')
-    expect(ids(stale, 'diet-cse')).toContain('placed')
+    // more periods for a CSE subject → the draft no longer covers the department
+    const cseSubject = diet.subjects.find((s) => s.deptId === 'diet-cse' && s.kind === 'theory')!
+    const morePeriods = updateSubject(withDraft, cseSubject.id, { periodsPerWeek: cseSubject.periodsPerWeek + 1 })
+    expect(ids(morePeriods, 'diet-cse')).toContain('placed')
+    expect(ids(morePeriods, 'diet-ece')).not.toContain('placed') // ECE is unaffected
+    // blocking a slot where a CSE class sits → a clash for CSE
+    const cseIds = deptEntities(diet, 'diet-cse').assignmentIds
+    const at = withDraft.draft!.placements.find((p) => cseIds.has(p.assignmentId))!
+    const blocked = toggleBlocked(withDraft, `${at.day}-${at.period}`)
+    expect(ids(blocked, 'diet-cse')).toContain('clashes')
     const t = withDraft.draft!
     const cse = deptEntities(diet, 'diet-cse').assignmentIds
     const [a, b] = t.placements.filter((p) => cse.has(p.assignmentId) && p.length === 1)

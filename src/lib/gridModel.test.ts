@@ -97,3 +97,17 @@ describe('T3.2 subject colours', () => {
     expect(new Set(codes.map(subjectColor)).size).toBeGreaterThanOrEqual(6)
   })
 })
+
+describe('listEntities for an HOD', () => {
+  it('only the department: its sections, its teachers and anyone teaching its sections, its own + shared rooms', () => {
+    const [d] = buildDemoColleges()
+    const ids = (v: 'section' | 'teacher' | 'room') => listEntities(d, v, 'diet-ece').flatMap((g) => g.items.map((i) => i.id))
+    expect(ids('section').every((id) => d.sections.find((s) => s.id === id)!.deptId === 'diet-ece')).toBe(true)
+    const teachers = ids('teacher')
+    expect(teachers.some((id) => d.teachers.find((t) => t.id === id)!.deptId !== 'diet-ece')).toBe(true) // shared Maths teacher
+    const outsider = d.teachers.find((t) => t.deptId === 'diet-me' && !d.assignments.some((a) => a.teacherId === t.id && a.sectionId.startsWith('diet-ece')))!
+    expect(teachers).not.toContain(outsider.id)
+    expect(ids('room').every((id) => ['shared', 'diet-ece'].includes(d.rooms.find((r) => r.id === id)!.owner))).toBe(true)
+    expect(listEntities(d, 'section').flatMap((g) => g.items)).toHaveLength(d.sections.length) // no scope → all
+  })
+})

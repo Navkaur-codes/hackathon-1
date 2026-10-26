@@ -5,6 +5,7 @@ import type { CollegeData, Id } from '../../types'
 import { SetupView } from '../college/setup/SetupView'
 import type { Edit, SetupTab } from '../college/setup/tabs'
 import { PortalTitle } from '../PortalTitle'
+import { DeptGenerate } from './DeptGenerate'
 
 type Props = {
   college: CollegeData
@@ -18,6 +19,8 @@ type Props = {
   onReady?: (ready: boolean) => void
   /** Open the college draft (read-only for an HOD). */
   onView?: () => void
+  /** Present only when this session may generate the department (lib/access.ts). */
+  onGenerate?: (round: number) => Promise<void>
 }
 
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition disabled:opacity-40'
@@ -63,7 +66,7 @@ function LoadChart({ college, deptId }: { college: CollegeData; deptId: Id }) {
 }
 
 /** HOD desk: keep one department ready — setup, readiness checklist, Ready status, teacher load. */
-export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onReady, onView }: Props) {
+export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onReady, onView, onGenerate }: Props) {
   const dept = college.departments.find((d) => d.id === deptId)!
   const check = readiness(college, deptId)
   const isReady = dept.status === 'ready'
@@ -76,6 +79,14 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
     ) : item.fix === 'setup' ? (
       <button type="button" onClick={() => onPage('setup', 'teachers')} className="text-[13px] font-medium underline">
         Open setup
+      </button>
+    ) : onGenerate ? (
+      <button
+        type="button"
+        onClick={() => document.getElementById('gen-h')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+        className="text-[13px] font-medium underline"
+      >
+        Generate my department
       </button>
     ) : (
       <span className="text-[12px] text-muted">The College Admin’s “Generate whole college” places every department.</span>
@@ -121,6 +132,8 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
         </div>
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0 space-y-6">
+          {onGenerate && <DeptGenerate college={college} deptId={deptId} onGenerate={onGenerate} />}
           <section aria-labelledby="ready-h" className="rounded-xl border border-rule bg-card p-5">
             <h2 id="ready-h" className="font-display text-lg font-semibold">
               Ready to timetable?
@@ -154,7 +167,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
                 ))}
               {onView && college.draft && (
                 <button type="button" onClick={onView} className={`${btn} border-rule hover:border-ink`}>
-                  <Eye size={14} aria-hidden /> View the college draft
+                  <Eye size={14} aria-hidden /> View timetable
                 </button>
               )}
               <span className="text-[12px] text-muted">
@@ -166,6 +179,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
               </span>
             </div>
           </section>
+          </div>
           <section aria-labelledby="load-h" className="rounded-xl border border-rule bg-card p-5">
             <h2 id="load-h" className="font-display text-base font-semibold">
               Teacher load

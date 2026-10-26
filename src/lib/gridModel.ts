@@ -40,15 +40,32 @@ export type Grid = {
 
 export type EntityGroup = { group: string; items: { id: Id; label: string }[] }
 
-/** Everything that can be viewed, grouped by department (rooms: owning dept or "Shared"). */
-export function listEntities(college: CollegeData, view: GridView): EntityGroup[] {
+/**
+ * Everything that can be viewed, grouped by department (rooms: owning dept or "Shared"). With `scopeDeptId`
+ * (an HOD): that department's sections, its teachers and anyone teaching its sections, its own rooms, shared
+ * rooms and rooms lent to it.
+ */
+export function listEntities(college: CollegeData, view: GridView, scopeDeptId?: Id): EntityGroup[] {
   const deptName = new Map(college.departments.map((d) => [d.id, d.name]))
   const groups = new Map<string, { id: Id; label: string }[]>()
   const add = (group: string, id: Id, label: string) => groups.set(group, [...(groups.get(group) ?? []), { id, label }])
-  if (view === 'section') for (const s of college.sections) add(deptName.get(s.deptId) ?? s.deptId, s.id, s.name)
-  if (view === 'teacher') for (const t of college.teachers) add(deptName.get(t.deptId) ?? t.deptId, t.id, t.name)
+  const inScope = {
+    section: (deptId: Id) => !scopeDeptId || deptId === scopeDeptId,
+    teacher: (id: Id, deptId: Id) =>
+      !scopeDeptId ||
+      deptId === scopeDeptId ||
+      college.assignments.some((a) => a.teacherId === id && college.sections.some((s) => s.id === a.sectionId && s.deptId === scopeDeptId)),
+    room: (id: Id, owner: Id) =>
+      !scopeDeptId ||
+      owner === 'shared' ||
+      owner === scopeDeptId ||
+      college.grants.some((g) => g.status === 'approved' && g.roomId === id && g.toDeptId === scopeDeptId),
+  }
+  if (view === 'section') for (const s of college.sections) if (inScope.section(s.deptId)) add(deptName.get(s.deptId) ?? s.deptId, s.id, s.name)
+  if (view === 'teacher') for (const t of college.teachers) if (inScope.teacher(t.id, t.deptId)) add(deptName.get(t.deptId) ?? t.deptId, t.id, t.name)
   if (view === 'room')
-    for (const r of college.rooms) add(r.owner === 'shared' ? 'Shared rooms' : (deptName.get(r.owner) ?? r.owner), r.id, `${r.name} · ${r.capacity}`)
+    for (const r of college.rooms)
+      if (inScope.room(r.id, r.owner)) add(r.owner === 'shared' ? 'Shared rooms' : (deptName.get(r.owner) ?? r.owner), r.id, `${r.name} · ${r.capacity}`)
   return [...groups].map(([group, items]) => ({ group, items }))
 }
 

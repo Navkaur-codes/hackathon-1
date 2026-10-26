@@ -7,7 +7,7 @@ import { RoleSwitcher } from './components/RoleSwitcher'
 import { TimetableView } from './components/TimetableView'
 import { Wheel } from './components/Wheel'
 import { can, canDept, collegeFor, deptScope, switchableColleges } from './lib/access'
-import { deptEdit, markReady, setDeptStatus } from './lib/deptPlan'
+import { deptEdit, deptSolveOptions, markReady, mergeDept, setDeptStatus } from './lib/deptPlan'
 import { formatRoute, parseRoute, portalOf, type Route } from './lib/route'
 import { viewFromSearch } from './lib/viewUrl'
 import { ComingSoon } from './portals/ComingSoon'
@@ -202,6 +202,7 @@ export default function App() {
             }
             initial={initial?.collegeId === openCollege.college.id ? initial : undefined}
             readOnly={inPortal && !can(session, 'generate', openCollege.college.id, colleges)}
+            scopeDeptId={inPortal ? hodDept : undefined}
           />
         ) : openCollege && !inPortal ? (
           <div className="flex items-center gap-3 py-24 text-muted" role="status">
@@ -252,6 +253,16 @@ export default function App() {
                 : undefined
             }
             onView={can(session, 'viewDraft', home.college.id, colleges) ? () => view(home.college.id) : undefined}
+            onGenerate={
+              canDept(session, 'generateDept', hodDept, colleges)
+                ? async (round) => {
+                    // solve against the college as it is now; only this department moves
+                    const current = appStore.getState().colleges.find((c) => c.college.id === home.college.id)!
+                    const r = await runSolver(current, { attempts: 20, baseSeed: 1 + round * 20, ...deptSolveOptions(current, hodDept) })
+                    updateCollege(home.college.id, (c) => mergeDept(c, hodDept, r.timetable))
+                  }
+                : undefined
+            }
           />
         ) : inPortal && session.role === 'deptAdmin' ? (
           <p className="py-16 text-muted">This college has no departments yet, or it is archived — pick another college above.</p>

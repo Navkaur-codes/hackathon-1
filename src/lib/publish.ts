@@ -2,6 +2,7 @@
 // Pure: the caller passes the time, so versions are reproducible in tests.
 
 import { score } from '../solver/score'
+import { coverage } from './deptPlan'
 import { validate } from '../solver/validate'
 import type { CollegeData, Timetable } from '../types'
 
@@ -21,6 +22,15 @@ export function publishCheck(c: CollegeData): PublishCheck {
   const blocked: string[] = []
   if (draft.collegeId !== c.college.id) blocked.push('This draft belongs to another college.')
   if (c.draftStale) blocked.push('The structure or setup changed after this draft was generated — generate again before publishing.')
+  else {
+    // a department generate clears the stale flag; every class must still be in the draft (placed or reported)
+    const gaps = coverage(c, draft)
+    if (gaps.length) {
+      const codes = [...new Set(gaps.map((g) => c.departments.find((d) => d.id === g.deptId)?.code ?? '?'))]
+      const n = gaps.reduce((s, g) => s + g.missing, 0)
+      blocked.push(`${n} ${n === 1 ? 'period is' : 'periods are'} not in the draft yet (${codes.join(', ')}) — generate ${codes.length === 1 ? 'that department' : 'those departments'} or the whole college.`)
+    }
+  }
   const conflicts = validate(c, draft)
   if (conflicts.length)
     blocked.push(
