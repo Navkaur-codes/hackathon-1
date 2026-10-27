@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Copy, Loader2, Printer } from 'lucide-react'
+import { Check, Copy, Printer } from 'lucide-react'
 import { buildGrid } from '../lib/gridModel'
-import { fetchLiveDept, fetchLiveIndex, type LiveIndex } from '../lib/liveLinks'
 import { nowNext } from '../lib/myDay'
 import {
   collegeKey,
@@ -50,60 +49,33 @@ function Missing({ title, text }: { title: string; text: string }) {
   )
 }
 
-type Source = 'live' | 'link' | 'local'
-/** What Kaalchakra's storage answered for this address (keyed so a new address starts loading again). */
-type LiveState = { at: string; snap?: PublicSnapshot | null; index?: LiveIndex | null }
+type Source = 'link' | 'local'
 
 /**
  * A department's public timetable (v0.9-d): anyone with the link sees its Faculty, UG / PG classes and rooms from
- * the published version — no sign-in. `#/t/<college>` alone lists the college's departments. Since v0.9-l the page
- * first asks Kaalchakra's storage for the latest published version, so the same link always shows it; a snapshot
- * carried in the link (`?p=…`) or this browser's own data are the fallbacks.
+ * the published version — no sign-in. `#/t/<college>` alone lists the college's departments. The link carries its
+ * version (`?p=…`); opened on the College Admin's own device without it, this browser's saved data is used.
  */
 export function PublicTimetable({ colleges, snap, path, onPath }: Props) {
   const where = parsePublicPath(path)
-  const address = where ? `${where.college}/${where.dept ?? ''}` : ''
-  const [live, setLive] = useState<LiveState>()
-  useEffect(() => {
-    if (!where) return
-    let stop = false
-    const done = (x: Omit<LiveState, 'at'>) => !stop && setLive({ at: address, ...x })
-    if (where.dept) void fetchLiveDept(where.college, where.dept).then((s) => done({ snap: s }))
-    else void fetchLiveIndex(where.college).then((i) => done({ index: i }))
-    return () => {
-      stop = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once per college / department address
-  }, [address])
-  const loaded = live?.at === address ? live : undefined
-  const fromLive = useMemo(() => (loaded?.snap ? snapshotCollege(loaded.snap) : undefined), [loaded])
   const fromLink = useMemo(() => (snap ? snapshotCollege(snap) : undefined), [snap])
-  const local = where ? publicCollege(colleges, where.college) : undefined
-
+  if (snap === null) return <Missing title="This link is broken." text="It may have been cut short when it was copied. Ask for the link again." />
   if (!where) return <Missing title="No published timetable here." text="The link is incomplete. Ask your college for its department link." />
-  // the storage's answer wins; until it arrives, a link's snapshot or this browser's data may show
   const [college, source]: [CollegeData | undefined, Source] =
-    fromLive && collegeKey(fromLive) === where.college
-      ? [fromLive, 'live']
-      : fromLink && collegeKey(fromLink) === where.college
-        ? [fromLink, 'link']
-        : [local, 'local']
+    fromLink && collegeKey(fromLink) === where.college ? [fromLink, 'link'] : [publicCollege(colleges, where.college), 'local']
+  if (!college)
+    return <Missing title="No published timetable here." text="This college has not published a timetable yet, or the link is incomplete. Ask your college for its department link." />
   const go = (p: Omit<PublicPath, 'college'>) => onPath(publicParts({ college: where.college, ...p }))
 
-  if (!where.dept) {
-    const index = loaded?.index
-    const depts = index ? index.depts : (college?.departments ?? []).map((d) => ({ key: deptKey(d), code: d.code, name: d.name }))
-    const name = index?.name ?? college?.college.name
-    if (!name || !depts.length)
-      return loaded ? <Missing title="No published timetable here." text="This college has not published a timetable yet. Ask your college for its department link." /> : <Loading />
+  if (!where.dept)
     return (
       <section className="py-8">
-        <h1 className="font-display text-2xl font-semibold sm:text-3xl">{name}</h1>
+        <h1 className="font-display text-2xl font-semibold sm:text-3xl">{college.college.name}</h1>
         <p className="mt-1 text-[14px] text-muted">Pick your department.</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-          {depts.map((d) => (
-            <li key={d.key}>
-              <button type="button" onClick={() => go({ dept: d.key })} className="w-full rounded-xl border border-rule bg-card p-4 text-left transition hover:border-ink">
+          {college.departments.map((d) => (
+            <li key={d.id}>
+              <button type="button" onClick={() => go({ dept: deptKey(d) })} className="w-full rounded-xl border border-rule bg-card p-4 text-left transition hover:border-ink">
                 <span className="font-mono text-[12px] text-muted">{d.code}</span>
                 <span className="block font-display text-[16px] font-semibold">{d.name}</span>
               </button>
@@ -112,24 +84,10 @@ export function PublicTimetable({ colleges, snap, path, onPath }: Props) {
         </ul>
       </section>
     )
-  }
 
-  if (!college) {
-    if (!loaded) return <Loading />
-    if (snap === null) return <Missing title="This link is broken." text="It may have been cut short when it was copied. Ask for the link again." />
-    return <Missing title="No published timetable here." text="This college has not published a timetable yet, or the link is incomplete. Ask your college for its department link." />
-  }
   const pd = publicDept(college, where.dept)
   if (!pd) return <Missing title="Department not found." text={`${college.college.name} has no department “${where.dept.toUpperCase()}”.`} />
   return <DeptPage key={`${college.college.id}/${pd.dept.id}/${source}`} college={college} pd={pd} where={where} go={go} source={source} />
-}
-
-function Loading() {
-  return (
-    <p role="status" className="flex items-center gap-2 py-16 text-[14px] text-muted">
-      <Loader2 size={16} className="animate-spin" aria-hidden /> Opening the latest timetable…
-    </p>
-  )
 }
 
 function DeptPage({
@@ -169,13 +127,8 @@ function DeptPage({
 
   const copy = async () => {
     const base = `${window.location.origin}${window.location.pathname}`
-    // a live page copies its permanent address; a snapshot link copies itself; this browser's data makes a snapshot link
-    const url =
-      source === 'live'
-        ? `${base}${window.location.hash}`
-        : source === 'link'
-          ? window.location.href
-          : `${publicUrl(base, college, pd.dept)?.split('#')[0]}${window.location.hash}`
+    // a page opened from a link copies that link; on the admin's device a fresh one is built from the saved data
+    const url = source === 'link' ? window.location.href : `${publicUrl(base, college, pd.dept)?.split('#')[0]}${window.location.hash}`
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
@@ -273,11 +226,7 @@ function DeptPage({
       </p>
       <p className="no-print mt-2 text-[12px] text-muted">
         Same every week of the semester.{' '}
-        {source === 'live'
-          ? 'This link always shows the latest version the college has published.'
-          : source === 'link'
-            ? 'This link holds the version published when it was made — if the college publishes again, ask for a fresh link.'
-            : ''}
+        {source === 'link' ? 'This link holds the version published when it was made — if the college publishes again, ask for a fresh link.' : ''}
       </p>
     </section>
   )

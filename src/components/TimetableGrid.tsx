@@ -51,7 +51,8 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
           // columns share the width and text wraps; below this minimum the box scrolls (the page never does)
           minWidth: `calc(4.75rem + ${D} * 8.75rem)`,
           gridTemplateColumns: `4.75rem repeat(${D}, minmax(0, 1fr))`,
-          gridTemplateRows: `auto repeat(${P}, minmax(var(--grid-row-h, 4.4rem), auto))`,
+          // compact rows (user request, v0.9-n): a theory class fits ~3.4rem; a lab spans its periods
+          gridTemplateRows: `auto repeat(${P}, minmax(var(--grid-row-h, 3.4rem), auto))`,
         }}
       >
         {/* header row */}
@@ -60,7 +61,7 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
           <div
             key={d}
             role="columnheader"
-            className="border-b border-l border-rule px-3 py-2 font-mono text-[11px] tracking-[0.2em] text-muted uppercase"
+            className="border-b border-l border-rule px-3 py-1.5 font-mono text-[11px] tracking-[0.2em] text-muted uppercase"
             style={{ gridColumn: i + 2, gridRow: 1 }}
           >
             {d}
@@ -81,7 +82,7 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
           >
             <span className="text-ink">P{r.index + 1}</span>
             <span>{r.start}</span>
-            <span>{r.end}</span>
+            <span className="text-[10px] opacity-80">{r.end}</span>
           </div>
         ))}
 
@@ -124,7 +125,8 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
               data-dim={dim || undefined}
               aria-label={`${label(c)}${c.placement.locked ? ', locked' : ''}${dim ? ' (does not match the filters)' : ''}`}
               onClick={(e) => onSelect?.(c, e.currentTarget)}
-              className="relative m-1 flex flex-col items-start gap-0.5 overflow-hidden rounded-lg px-2.5 py-2 text-left shadow-[0_1px_0_rgba(28,27,25,0.12)] hover:shadow-md focus-visible:outline-2"
+              title={`${c.subject.code} · ${c.subject.name}${c.lab ? ' (lab)' : ''} — ${c.detail}`}
+              className="relative m-0.5 flex min-w-0 flex-col items-start justify-center overflow-hidden rounded-md px-2 py-1 text-left shadow-[0_1px_0_rgba(28,27,25,0.12)] hover:shadow-md focus-visible:outline-2"
               style={{
                 gridColumn: c.day + 2,
                 gridRow: `${c.start + 2} / span ${c.span}`,
@@ -133,13 +135,13 @@ export function TimetableGrid({ grid, onSelect, still = false, dimmed }: Props) 
                 color: CELL_INK,
               }}
             >
-              <span className="font-mono text-[10px] tracking-wider opacity-70">
-                {c.subject.code}
-                {c.lab ? ' · LAB' : ''}
+              {c.placement.locked && <Lock size={11} aria-hidden className="absolute top-1 right-1 opacity-70" />}
+              {/* name on one line, then who / where on up to two (the room must stay readable) — full text in the tooltip */}
+              <span className="w-full truncate text-[13px] leading-tight font-semibold">{c.subject.name}</span>
+              <span className="mt-0.5 line-clamp-2 w-full text-[11px] leading-tight opacity-80">
+                {c.lab && <span className="font-mono text-[10px] tracking-wider">LAB · </span>}
+                {c.detail}
               </span>
-              {c.placement.locked && <Lock size={11} aria-hidden className="absolute top-1.5 right-1.5 opacity-70" />}
-              <span className="text-[13px] leading-snug font-semibold">{c.subject.name}</span>
-              <span className="text-[11px] leading-snug opacity-80">{c.detail}</span>
             </button>
           )
         })}

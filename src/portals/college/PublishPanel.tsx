@@ -3,7 +3,6 @@ import { CircleAlert, Download, EyeOff, Send } from 'lucide-react'
 import { publish, publishCheck, unpublish } from '../../lib/publish'
 import { PublicLinks } from '../../components/PublicLinks'
 import { exportCollege, exportFileName } from '../../lib/transfer'
-import { removeLive } from '../../lib/liveLinks'
 import type { CollegeData } from '../../types'
 import type { Edit } from './setup/tabs'
 
@@ -44,8 +43,6 @@ export function PublishPanel({ college, canPublish, canExport, edit, onConflicts
     if (!window.confirm(`Take version ${pub.version} down? Teachers and students will see no timetable until you publish again.`)) return
     edit((c) => unpublish(c, new Date().toISOString()))
     setMessage({ ok: true, text: `Version ${pub.version} is no longer published.` })
-    // the department links stop showing it too (when the live storage is reachable)
-    void removeLive(college).then((r) => !r.ok && setMessage({ ok: true, text: `Version ${pub.version} is no longer published. The live links could not be updated: ${r.reason}` }))
   }
   const doExport = () => {
     const now = new Date().toISOString()
@@ -118,7 +115,7 @@ export function PublishPanel({ college, canPublish, canExport, edit, onConflicts
         </p>
       )}
 
-      <PublicLinks key={`${pub?.version}@${pub?.at}`} college={college} departments={college.departments} edit={edit} />
+      <PublicLinks key={`${pub?.version}@${pub?.at}`} college={college} departments={college.departments} />
 
       {log.length > 0 && (
         <details className="mt-4">
