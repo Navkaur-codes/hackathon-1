@@ -101,6 +101,8 @@ export type Programme = {
   shortName: string
   sectionsCount: number
   defaultStrength: number
+  /** Level label for the public timetable, e.g. "UG", "PG", "Diploma" (missing = "UG"). */
+  level?: string
   /** Overrides the department/college breaks for this year. */
   breaks?: BreakRule[]
 }

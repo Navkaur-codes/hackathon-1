@@ -231,6 +231,7 @@ export type ProgrammeSpec = {
   shortName: string
   sectionsCount: number
   defaultStrength: number
+  level?: string
   breaks?: BreakRule[]
   subjects: SubjectSpec[]
 }
@@ -302,6 +303,7 @@ export function buildCollege(spec: CollegeSpec): CollegeData {
         shortName: p.shortName,
         sectionsCount: p.sectionsCount,
         defaultStrength: p.defaultStrength,
+        ...(p.level ? { level: p.level } : {}),
         breaks: p.breaks,
       })
       for (const s of p.subjects) {

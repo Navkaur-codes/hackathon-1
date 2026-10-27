@@ -5,6 +5,8 @@ import { DEMO_PASSWORD } from './demoAccounts'
 import type { AccountActions } from './components/AccountsPanel'
 import { createSectionAccounts, createUser, resetPassword, setDisabled, type AuthOutcome } from './lib/auth'
 import { SharedWeek } from './components/SharedWeek'
+import { PublicTimetable } from './components/PublicTimetable'
+import { decodePublic } from './lib/publicView'
 import { ChatDrawer } from './components/ChatDrawer'
 import { roleMeta } from './components/roles'
 import { requestMeeting } from './lib/meetings'
@@ -46,6 +48,8 @@ const shared = (() => {
 
 // A shared section week (?s=…) carries the timetable itself (lib/share.ts); null = a broken link.
 const sharedWeekParam = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('s')
+// A public department link (?p=…#/t/<college>/<dept>) carries its published snapshot (lib/publicView.ts).
+const publicParam = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('p')
 
 export default function App() {
   const colleges = useKaal((s) => s.colleges)
@@ -63,6 +67,7 @@ export default function App() {
   const active = switchableColleges(colleges)
 
   const [sharedWeek, setSharedWeek] = useState(() => (sharedWeekParam === null ? undefined : decodeShare(sharedWeekParam)))
+  const [publicSnap, setPublicSnap] = useState(() => (publicParam === null ? undefined : decodePublic(publicParam)))
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash))
   useEffect(() => {
     const onHash = () => setRoute(parseRoute(window.location.hash))
@@ -288,6 +293,18 @@ export default function App() {
               setSharedWeek(undefined)
             }}
           />
+        ) : shown.page === 'public' ? (
+          <PublicTimetable
+            colleges={colleges}
+            snap={publicSnap}
+            path={shown.path}
+            onPath={(parts) => go({ page: 'public', path: parts })}
+            onHome={() => {
+              window.history.replaceState(null, '', window.location.pathname)
+              setPublicSnap(undefined)
+              go({ page: 'landing' })
+            }}
+          />
         ) : shown.page === 'login' ? (
           <LoginPage users={users} colleges={colleges} hint={shown.portal} demoPassword={DEMO_PASSWORD} onSignIn={doSignIn} />
         ) : openCollege && openResult ? (
@@ -478,7 +495,7 @@ export default function App() {
         ) : inPortal ? (
           <ComingSoon role={session.role} college={home} onRole={enter} />
         ) : (
-          <Landing colleges={active} results={results} onResult={(id, r) => keep(id)(r)} onView={view} onEnter={enter} />
+          <Landing colleges={active} results={results} onResult={(id, r) => keep(id)(r)} onView={view} onEnter={enter} onPublic={(parts) => go({ page: 'public', path: parts })} />
         )}
       </main>
 

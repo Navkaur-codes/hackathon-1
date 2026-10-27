@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { NumberField, TextField } from '../../../components/fields'
+import { levelOf } from '../../../lib/publicView'
 import {
   addDepartment,
   addProgramme,
@@ -101,6 +102,7 @@ function ProgrammeRow({ college, p, edit }: { college: CollegeData; p: Programme
           className="w-24"
           onCommit={(n) => edit((c) => updateProgramme(c, p.id, { defaultStrength: n ?? 1 }))}
         />
+        <TextField label="Level" value={levelOf(p)} onCommit={(v) => edit((c) => updateProgramme(c, p.id, { level: v }))} className="w-24" />
         <button
           type="button"
           aria-label={`Remove ${p.name}`}

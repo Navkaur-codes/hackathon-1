@@ -3,11 +3,11 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.9 complete — P0.9-c built (awaiting push); v1.0 Ship next** · v0.8 done · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.9 sign-up rework — P0.9-d public department link built; P0.9-e / f designed, on hold · then v1.0 Ship (design written, awaiting approval)** · v0.9 done · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
 > **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first. v0.7 complete: P0.7-a `f658fa7`, P0.7-b `e186e9c`, P0.7-c `2d14471` (375 tests).
 >
-> **Next:** the user commits & pushes P0.9-c (`feat(auth): account management`). Then write the **v1.0 Ship** design (`docs/PLAN.md`): README from `docs/PROGRESS.md` + `docs/TEST.md` (what it does per role, how to run, demo accounts + password `kaalchakra`, the auth honesty note, future work), code-split the desks (`import()`; bundle ~760 kB), full manual checklist on the live URL (M8 Ctrl+P, M10 reduced motion, dark mode), final `npm test` + build — show the 5-line summary before coding. v0.9: P0.9-a `89b7dd5`, P0.9-b `a7e9b41`. v0.8 complete: P0.8-a `6dc6f54`, P0.8-b `8129e81`.
+> **Next (user request 2026-10-27, before v1.0):** sign-in rework, modelled on GNDEC's open timetable site — design *Added design — public timetable link + invite-link accounts* at the end of v0.9 (P0.9-d public link per department · P0.9-e invite-link staff accounts + one-screen sign-in · P0.9-f public meeting requests, student accounts removed). **P0.9-d built (2026-10-27, not yet pushed); P0.9-e / f on hold** by the user's choice; root `CLAUDE.md` §2 not edited. Then update `docs/DEMO-SCRIPT.md`, then v1.0 Ship (design below, awaiting approval). Last pushed: P0.9-c `089d17a`; uncommitted: `docs/CLAUDE.md`, `docs/PROGRESS.md`, `docs/DEMO-SCRIPT.md`.
 >
 > **Working notes:** follow the phase cycle and push-checkpoint rules in root `CLAUDE.md` §9; tell the user when a request belongs to another version (memory: flag-other-version-requests). Restart the dev server after adding component files (Tailwind dev quirk). In the preview browser keep a single tab (tabs sync, but a tab opened before a restart runs old code); the preview may lose localStorage across server restarts. Bash heredocs choke on apostrophes — write long text with the Write tool. Open issues: see v0.4 *Open issues* below.
 
@@ -608,5 +608,94 @@ This reworks v0.5's room rules and pulls single-date loans forward from **v0.7**
 - An account whose linked teacher / section / department is removed can no longer sign in (its admin sees it in People).
 - Exports never contain accounts; a cloned college starts with none (the Super Admin adds its College Admin).
 - Bundle ~760 kB > 500 kB — code-split at v1.0; M8 / M10 hand checks still open.
+
+### Added design — public timetable link + invite-link accounts (user request 2026-10-27) · *P0.9-d approved and built; P0.9-e / P0.9-f on hold*
+**Request (user's words, combined):** *"a real sign up, not a typical predesigned sign in"* → after discussing options, modelled on GNDEC's own timetable site (Faculty · UG / PG students · Classroom timetables, open to everyone): *"there is super admin account, then a college admin profile created by super admin, then after departments are set, there will be link generation when time table is finalized — make changes if you feel so."* Refined: *"on publishing for each dept a link is generated; on opening that link anyone can see the timetable of faculty of that dept, UG / PG of that dept and rooms allocated for that dept."*
+
+**The model**
+| Who | How they get in | What they see / do |
+|---|---|---|
+| Super Admin | seeded account `super` | as today |
+| College Admin | the Super Admin creates the profile and gets an **invite link**; the admin opens it and sets their own password | as today; **publishing generates one public link per department** |
+| HOD | the College Admin creates the profile per department → invite link | as today (own department), plus the public link |
+| Teacher | *optional* — the HOD invites a teacher who wants the desk (leave, office hours, meeting inbox) | teacher desk as today |
+| Students and everyone else | **no account** — their department's public link | that department's published timetable: **Faculty** of the dept · **UG / PG** classes of the dept · **Rooms** of the dept; **request a meeting** with a teacher |
+Seeded: only `super` and one College Admin per demo college (`diet.admin`, `dcas.admin`, password `kaalchakra`).
+
+**Changes I made to the user's outline (and why)**
+- **Invite links instead of typed temporary passwords:** the creator never knows the password, nothing "flashes once", and the new person really *signs up* (chooses username and password). Links are one-use and can be cancelled.
+- **Teacher accounts stay, but optional:** without one, leave requests, office hours and the meeting inbox would have nobody to belong to. Teachers who only want to look use the public link like everyone else.
+- **Student accounts go away:** the published timetable is public (as on GNDEC's site); meeting requests carry a typed name + section, rate-limited by the existing max-open rule.
+- **One public link per department** (user's choice): `#/t/<college code>/<dept code>` (e.g. `#/t/diet/cse`), plus deep links such as `#/t/diet/cse/class/<section>` or `#/t/diet/cse/faculty/<teacher>` for a notice board or WhatsApp group.
+
+**Data & logic (pure, tested)**
+| File | Responsibility |
+|---|---|
+| `types.ts` | `Programme.level?: string` (free label from config — "UG", "PG", "Diploma"; default "UG"; rule G2). `Invite { token, userId, createdBy, createdAt, usedAt?, revoked? }`, `Platform.invites`. A `User` created by invite has no password until it is used (`pending: true`, cannot sign in). Role `student` no longer gets accounts. |
+| `lib/publicView.ts` | `publicCollege(colleges, code)` → the college only if **active and published** (else a "not published yet" state) · `publicDept(college, deptCode)` → the department's three tabs from the **published** timetable: **Faculty** = teachers of the dept (their whole week, incl. classes they teach for other departments), **UG / PG** = sections of the dept grouped **level → year**, **Rooms** = rooms the dept owns **plus** shared / allocated / borrowed rooms where the dept has classes (each room's full week, read-only) · `publicPath` / `parsePublicPath` for deep links. Never reads a draft. |
+| `lib/invites.ts` | `inviteUser(users, invites, colleges, by, profile, now)` → creates the pending profile (role + link as in `createUser`, same `mayManage` chain: Super Admin → College Admin; College Admin → HOD (and teacher, as backup); **HOD → teacher of own department**) and a random 22-character token · `lookupInvite(token)` → what it is for ("HOD of CSE · DIET") or one generic refusal (unknown / used / cancelled) · `acceptInvite(…, token, { username, password })` → sets username + hash, clears pending, marks used — **one use** · `cancelInvite` / `reinvite` (new token, old one dies). |
+| `lib/meetings.ts` | `requestMeeting` also accepts a public requester `{ studentName, sectionId }` (no session); same bookable slots, same max-open rule per name + section. |
+| `lib/access.ts` | `guard`: `#/t/…` and `#/join/<token>` are public like the landing page. `mayManage` gains HOD → teachers of own department. The `student` role leaves `Session` (students use the public page). |
+| `store.ts` | `invites` persisted; `acceptInvite`; **migrate v2 → v3:** keep `super`, College Admin, HOD and teacher accounts; drop student accounts; fresh seed = super + College Admins only. |
+
+**Screens**
+- **Public department timetable** `#/t/<college>/<dept>`: college + department name, semester, "Version n · published 27 Oct", three tabs **Faculty · UG / PG · Rooms** (UG / PG picker: level → year → section), the existing `TimetableGrid` + Clash Court read-only, **Now / Next** card for a class, Print, Copy link. On a Faculty timetable: **Request a meeting** (your name, your section, a free slot — office hours starred). Phone first. Unpublished college → "Timetable not published yet".
+- **Publish panel (College Admin):** after publishing, **Public links** — one row per department with Copy and Open; the HOD desk shows its own department's link. Unpublish → every link says "not published". `#/t/<college>` alone lists the college's departments.
+- **Landing:** **Find your timetable** (published college → department) next to **Staff sign in**.
+- **Sign-in page, one screen** (fixes the review: 2× screen height, 16 chips, no "how do I join"): sign-in card, a line "Staff accounts come from an invite link from your admin or HOD · Students: **View timetables**", and a small collapsible **Try the demo** box with `super`, `diet.admin`, `dcas.admin`.
+- **Join** `#/join/<token>`: "You've been invited as HOD of CSE · DIET" → username (suggested), password twice → signed in to that desk.
+- **Invite management:** Super Admin college card → College Admins; College Admin → Setup → People → HODs (one row per department) and teachers; HOD → new **People** tab → teachers of the department. Each row: *invited — link (copy / cancel / new link)* or *active (reset → new invite link, disable / enable)*.
+- **Student desk and section accounts removed** (their Now / Next, week, share and meetings live on the public page).
+
+**Checkpoints**
+| ID | Feature | Tests | Commit message |
+|---|---|---|---|
+| P0.9-d | **Public link per department**: `lib/publicView.ts`, `Programme.level` (Structure Builder field), `#/t/<college>/<dept>[/<view>/<id>]` page with Faculty · UG / PG · Rooms + Now / Next + print + copy link, publish panel links per department / HOD link, landing "Find your timetable" | T9.7 only active + published colleges resolve; the page reads the published version, never a draft · T9.8 each tab lists exactly the dept's teachers / sections (level → year) / owned + used rooms, from config (both demos) · T9.9 deep-link round trip; unknown college / dept / section, or a section of another dept → not found · manual M31 publish → copy CSE link → open signed out on a phone | `feat(public): public timetable link per department` |
+| P0.9-e | **Invite links + one-screen sign-in**: `lib/invites.ts`, `#/join/<token>`, People panels (super → College Admin, College Admin → HOD / teacher, HOD → teacher), migrate v3 + new seed, rebuilt sign-in page with the small demo box | T9.10 who may invite whom (chain, own college / department only) · T9.11 a link works once; used / cancelled / unknown → the same refusal; a pending profile cannot sign in · T9.12 migrate v2 → v3 keeps staff, drops student accounts · manual M32 super → College Admin → HOD → teacher by links | `feat(auth): staff accounts by invite link` |
+| P0.9-f | **Meet-a-Teacher from the public page** + student desk / role removed; assistant chips for the public page dropped (the assistant stays on staff desks) | T9.13 public request: bookable slots, max open per name + section, teacher inbox receives it · nothing on the public page reaches a draft or another college | `feat(public): request a meeting from the public timetable` |
+
+**Decisions**
+- The published timetable is **public by design**, like GNDEC's site; drafts, setup, people and requests stay behind staff sign-in.
+- Root `CLAUDE.md` §2 needs the user's OK: `student` becomes "anyone with the public link (no account)"; HOD may invite teachers; College Admin / HOD accounts come by invite link.
+- `docs/DEMO-SCRIPT.md` Part B is rewritten after P0.9-f (public link instead of student/teacher demo accounts).
+- **Drop order if time runs short:** deep links per class / teacher → HOD → teacher invites (College Admin invites teachers) → the Now / Next card on the public page.
+- **Built — P0.9-d** (user: *"for now just leave the rest of the features and build up this one"*): `lib/publicView.ts`, `components/PublicTimetable.tsx`, `components/PublicLinks.tsx`, `Programme.level` + Structure Builder field, route `#/t/…`, landing *Find your timetable*. Decided while building: the link carries the department's **published snapshot** (`?p=…`, like the section share link) because Kaalchakra has no server — opened on the admin's device without `?p` it reads the saved data instead; publishing again makes new links (the panel says so). Faculty grids show a teacher's whole week (incl. other departments' classes); rooms show their full week. Accounts, the student desk and root `CLAUDE.md` §2 are unchanged until P0.9-e / f are taken up.
+
+---
+
+## v1.0 Ship
+
+### Design
+**Goal:** Kaalchakra is ready to submit. It loads fast (no chunk over 500 kB), every desk has been walked through once more on the **live URL** in light and dark, the few things that walk-through finds are fixed, and the **README** lets a judge understand, run and try it in two minutes — with every claim backed by `docs/PROGRESS.md` and `docs/TEST.md`. No new features.
+
+**Work**
+| Area | What |
+|---|---|
+| **Load on demand** (`App.tsx`) | `React.lazy` + `Suspense` for each desk and heavy screen: Super Admin (+ Structure Builder, Insights), College Admin (+ Setup / paste-from-Excel with papaparse, Conflict Center), HOD, Teacher, Student, the timetable page, the shared week, the chat drawer. The landing and login pages stay in the first load. Fallback: the small turning wheel + "Opening your desk…" (no layout jump). Target: the first-load script < 500 kB (Vite's warning gone), each desk its own chunk; the solver worker stays separate. |
+| **Final walk-through** (live URL, after the user's push) | Every manual check in `docs/TEST.md` once more on https://kaalchakra-seven.vercel.app — the open ones closed or cross-referenced (M2 ≈ M13 / M17, M3 ≈ M19 / M20, M5 ≈ M27, M14 ≈ M26), each role's demo account, phone width, **dark mode on every desk** (contrast of role-accent text such as the marigold eyebrow checked and fixed if below 4.5 : 1), keyboard-only sign-in and one task per desk, print preview (M8) and reduced motion (M10: the code path is verified; the OS-setting check is listed for the user). Findings are fixed here, each with a line in PROGRESS. |
+| **README.md** (replaces the Vite template) | Name, pitch and live link · 30-second tour (screenshots of the login, a timetable with Clash Court, the HOD desk, a phone student desk, the assistant — captured from the app into `docs/screenshots/`) · **demo accounts** table (password `kaalchakra`) · what each of the five roles can do · how it meets the brief (Core: independent validator H1–H14, never a clash; Usability; Design; Advanced: staggered / flexible lunch, labs, cross-department rooms, leave cover, lock & regenerate, multi-college; Relevance) · how the solver works (most-constrained-first, seeded restarts, Web Worker, unplaced-with-reason) · run locally (`npm install`, `npm run dev`, `npm test`, `npm run build`) · tests (count, what they prove, link to `docs/TEST.md`) · architecture & folders · **honesty note** (client-only, demo-grade sign-in; production path: auth service + database with row-level security per college / department) · future work (LLM assistant via a Vercel function, individual student accounts, real backend, drag-and-drop editing, exam timetables, notifications) · how it was built (version by version, `docs/`). |
+| **Final record** | `npm test` + `npm run build` + lint green; `docs/TEST.md` last run; `docs/PROGRESS.md` all versions ticked with commits; `docs/CLAUDE.md` v1.0 *Built* / *Open issues*. |
+
+**Checkpoints**
+| ID | Feature | Tests / checks | Commit message |
+|---|---|---|---|
+| P1.0-a | Load each desk on demand (lazy + Suspense), fallback, chunk sizes recorded | full `npm test`, build without the 500 kB warning, every desk opens in the browser (dev + preview build) | `perf(app): load each desk on demand` |
+| P1.0-b | Final walk-through on the live URL (light, dark, phone, keyboard) + fixes; open manual checks closed / cross-referenced | updated M-rows in `docs/TEST.md`; any fix gets a test if it touches logic | `fix(ui): final walk-through fixes` |
+| P1.0-c | README for submission + screenshots + final docs | README links resolve; numbers match TEST / PROGRESS | `docs: readme for submission` |
+| (user) | Final push, check the Vercel deployment, submit the repo + live link | — | — |
+
+**Decisions**
+- **No new features in v1.0** — only speed, fixes found in the walk-through, and documentation.
+- The walk-through runs on the **deployed** site (what judges see), so P1.0-b starts after the user pushes P1.0-a.
+- README claims only what a test or a manual check in `docs/TEST.md` shows.
+- **Drop order if time runs short:** README screenshots → the dark-mode sweep beyond the main desks → code-splitting (keep the README and the full test run).
+
+**Done when:** the build has no chunk-size warning, every manual check is ✅ or cross-referenced with a reason, the live URL works for every demo account in light and dark and at phone width, and the README explains, demos and backs up Kaalchakra for a judge in two minutes.
+
+### Built
+_(fill after v1.0)_
+
+### Open issues
+_(fill after v1.0)_
 
 ---

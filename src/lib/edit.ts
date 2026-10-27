@@ -317,7 +317,7 @@ export function addProgramme(c: CollegeData, deptId: Id, input: ProgrammeInput):
  * Name, number of sections, students per section. Changing students per section updates every section
  * still at the old default; sections someone edited keep their own strength.
  */
-export function updateProgramme(c: CollegeData, id: Id, patch: Partial<Pick<Programme, 'name' | 'sectionsCount' | 'defaultStrength'>>): CollegeData {
+export function updateProgramme(c: CollegeData, id: Id, patch: Partial<Pick<Programme, 'name' | 'sectionsCount' | 'defaultStrength' | 'level'>>): CollegeData {
   const old = c.programmes.find((p) => p.id === id)
   if (!old) return c
   const next: Programme = {
@@ -325,6 +325,8 @@ export function updateProgramme(c: CollegeData, id: Id, patch: Partial<Pick<Prog
     ...(patch.name !== undefined && patch.name.trim() ? { name: patch.name.trim() } : {}),
     ...(patch.sectionsCount !== undefined ? { sectionsCount: clamp(patch.sectionsCount, 1, 60) } : {}),
     ...(patch.defaultStrength !== undefined ? { defaultStrength: clamp(patch.defaultStrength, 1, 1000) } : {}),
+    // a level label only groups classes on the public page; blank = the default ("UG")
+    ...(patch.level !== undefined ? { level: patch.level.trim().slice(0, 16) || undefined } : {}),
   }
   const sections =
     next.defaultStrength === old.defaultStrength

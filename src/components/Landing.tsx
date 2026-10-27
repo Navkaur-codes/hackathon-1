@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 import { useGSAP } from '@gsap/react'
 import { ArrowRight } from 'lucide-react'
+import { collegeKey, deptKey } from '../lib/publicView'
 import type { SolveResult } from '../solver/best'
 import type { CollegeData, Role } from '../types'
 import { CollegeCard } from './CollegeCard'
@@ -18,12 +19,15 @@ type Props = {
   onResult: (collegeId: string, r: SolveResult) => void
   onView: (collegeId: string) => void
   onEnter: (role: Role) => void
+  /** Open a public department timetable (`#/t/<college>/<dept>`). */
+  onPublic: (parts: string[]) => void
 }
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 
 /** Public landing: hero, the colleges on the platform (try-it demo) and "Sign in as …" for each role (v0.9: to the login page). */
-export function Landing({ colleges, results, onResult, onView, onEnter }: Props) {
+export function Landing({ colleges, results, onResult, onView, onEnter, onPublic }: Props) {
+  const published = colleges.filter((c) => c.published)
   const root = useRef<HTMLDivElement>(null)
 
   useGSAP(
@@ -73,6 +77,13 @@ export function Landing({ colleges, results, onResult, onView, onEnter }: Props)
             </button>
             <button
               type="button"
+              onClick={() => scrollTo('find')}
+              className="inline-flex items-center gap-2 rounded-full border border-ink px-5 py-2.5 text-sm font-medium transition hover:bg-ink hover:text-paper"
+            >
+              Find your timetable
+            </button>
+            <button
+              type="button"
               onClick={() => scrollTo('roles')}
               className="inline-flex items-center gap-2 rounded-full border border-ink px-5 py-2.5 text-sm font-medium transition hover:bg-ink hover:text-paper"
             >
@@ -85,6 +96,40 @@ export function Landing({ colleges, results, onResult, onView, onEnter }: Props)
             <Wheel size={320} className="h-auto w-full" />
           </div>
         </div>
+      </section>
+
+      <section id="find" className="scroll-mt-4 border-t border-rule py-12">
+        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Find your timetable.</h2>
+        <p className="mt-2 max-w-2xl text-[15px] text-muted">
+          Students and teachers need no account: once a college publishes, each department has a public page with its faculty, UG / PG classes and rooms.
+        </p>
+        {published.length ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {published.map((c) => (
+              <div key={c.college.id} className="rounded-xl border border-rule bg-card p-4">
+                <p className="font-display text-[16px] font-semibold">{c.college.name}</p>
+                <p className="font-mono text-[12px] text-muted">version {c.published!.version}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {c.departments.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => onPublic([collegeKey(c), deptKey(d)])}
+                      className="rounded-full border border-rule px-3 py-1.5 text-[13px] font-medium transition hover:border-ink"
+                      aria-label={`${d.name} timetable`}
+                    >
+                      {d.code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-[14px] text-muted">
+            No college has published in this browser yet. Your college shares a link per department — open it to see the timetable on any device.
+          </p>
+        )}
       </section>
 
       <section id="colleges" className="scroll-mt-4 border-t border-rule py-12">

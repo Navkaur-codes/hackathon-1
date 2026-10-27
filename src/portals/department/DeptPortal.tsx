@@ -10,6 +10,7 @@ import { SetupView } from '../college/setup/SetupView'
 import type { Edit, SetupTab } from '../college/setup/tabs'
 import { PortalTitle } from '../PortalTitle'
 import { DeptGenerate } from './DeptGenerate'
+import { PublicLinks } from '../../components/PublicLinks'
 import { ExchangeTab } from './ExchangeTab'
 import type { ExchangeOutcome } from '../../lib/exchange'
 
@@ -191,6 +192,11 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0 space-y-6">
           {onGenerate && <DeptGenerate college={college} deptId={deptId} onGenerate={onGenerate} />}
+          {college.published && (
+            <section aria-label="Public link" className="rounded-xl border border-rule bg-card px-5 pb-4 [&>div]:mt-0 [&>div]:border-t-0">
+              <PublicLinks college={college} departments={college.departments.filter((d) => d.id === deptId)} />
+            </section>
+          )}
           <section aria-labelledby="ready-h" className="rounded-xl border border-rule bg-card p-5">
             <h2 id="ready-h" className="font-display text-lg font-semibold">
               Ready to timetable?

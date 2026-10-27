@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { CircleAlert, Download, EyeOff, Send, Upload } from 'lucide-react'
 import { publish, publishCheck, unpublish } from '../../lib/publish'
+import { PublicLinks } from '../../components/PublicLinks'
 import { exportCollege, exportFileName, importCollege } from '../../lib/transfer'
 import type { CollegeData } from '../../types'
 import type { Edit } from './setup/tabs'
@@ -124,6 +125,8 @@ export function PublishPanel({ college, canPublish, canExport, edit, onConflicts
           {message.text}
         </p>
       )}
+
+      <PublicLinks college={college} departments={college.departments} />
 
       {log.length > 0 && (
         <details className="mt-4">

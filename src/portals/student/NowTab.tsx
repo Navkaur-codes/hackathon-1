@@ -24,7 +24,7 @@ function useNow() {
 const where = (x: DayClass) => [x.teacher?.name ?? 'no teacher', x.room?.name].filter(Boolean).join(' · ')
 
 /** The big card: what is on now and what comes next, in words. */
-function NowCard({ live }: { live: NowNext }) {
+export function NowCard({ live }: { live: NowNext }) {
   const { now, next, day } = live
   const headline =
     now.kind === 'class'

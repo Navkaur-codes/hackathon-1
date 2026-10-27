@@ -5,8 +5,15 @@
 import type { Role } from '../types'
 
 export type Portal = 'super' | 'college' | 'dept' | 'teacher' | 'student'
-/** `#/login` (optionally `#/login/<portal>` to point at one role's demo accounts). */
-export type Route = { page: 'landing' } | { page: 'login'; portal?: Portal } | { page: 'portal'; portal: Portal; path?: string[] }
+/**
+ * `#/login` (optionally `#/login/<portal>` to point at one role's demo accounts). `#/t/<college>[/<dept>[/<tab>/<id>]]`
+ * = a public department timetable (v0.9-d, no sign-in).
+ */
+export type Route =
+  | { page: 'landing' }
+  | { page: 'login'; portal?: Portal }
+  | { page: 'portal'; portal: Portal; path?: string[] }
+  | { page: 'public'; path: string[] }
 
 const PORTAL_OF: Record<Role, Portal> = {
   superAdmin: 'super',
@@ -25,6 +32,7 @@ export function parseRoute(hash: string): Route {
     const hint = m[2].split('/').filter(Boolean)[0] as Portal | undefined
     return hint && PORTALS.includes(hint) ? { page: 'login', portal: hint } : { page: 'login' }
   }
+  if (m?.[1] === 't') return { page: 'public', path: m[2].split('/').filter(Boolean) }
   const portal = m?.[1] as Portal | undefined
   if (!portal || !PORTALS.includes(portal)) return { page: 'landing' }
   const path = m![2].split('/').filter(Boolean)
@@ -33,5 +41,6 @@ export function parseRoute(hash: string): Route {
 
 export function formatRoute(r: Route): string {
   if (r.page === 'login') return r.portal ? `#/login/${r.portal}` : '#/login'
+  if (r.page === 'public') return `#/${['t', ...r.path].join('/')}`
   return r.page === 'portal' ? `#/${[r.portal, ...(r.path ?? [])].join('/')}` : '#/'
 }

@@ -146,12 +146,13 @@ export function assistantScope(session: Session | null, colleges: CollegeData[],
 }
 
 /**
- * Route protection (v0.9). The landing page and shared links (`?s=…`, handled before routing) are public. A portal
+ * Route protection (v0.9). The landing page, public department timetables (`#/t/…`) and shared links (`?s=…`,
+ * handled before routing) are public. A portal
  * needs a signed-in session and is always the session's own portal; the login page sends a signed-in user to
  * their desk.
  */
 export function guard(session: Session | null, route: Route): Route {
-  if (route.page === 'landing') return route
+  if (route.page === 'landing' || route.page === 'public') return route
   if (!session) return route.page === 'login' ? route : { page: 'login', portal: route.portal }
   if (route.page === 'login') return { page: 'portal', portal: portalOf(session.role) }
   return route.portal === portalOf(session.role) ? route : { page: 'portal', portal: portalOf(session.role) }
