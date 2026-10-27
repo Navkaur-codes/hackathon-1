@@ -9,7 +9,6 @@ export const SETUP_TABS = [
   { id: 'sections', label: 'Sections' },
   { id: 'blocked', label: 'Blocked slots', only: 'college' },
   { id: 'paste', label: 'Paste from Excel' },
-  { id: 'people', label: 'People', only: 'college' },
 ] as const
 
 export type SetupTab = (typeof SETUP_TABS)[number]['id']

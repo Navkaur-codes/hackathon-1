@@ -8,14 +8,11 @@ import { LoanLedger } from './LoanLedger'
 import { BookingsPanel } from './BookingsPanel'
 import type { BookingOutcome } from '../../lib/bookings'
 import { PublishPanel } from './PublishPanel'
-import { leaveWaiting } from '../../lib/leave'
-import { LeaveDesk } from '../leave/LeaveDesk'
 import { ConflictCenter } from './ConflictCenter'
 import { Insights } from './Insights'
 import { conflictCount, conflictReport } from '../../solver/conflicts'
 import { localIso } from '../../lib/myDay'
-import type { Id, Placement, User } from '../../types'
-import type { AccountActions } from '../../components/AccountsPanel'
+import type { Id, Placement } from '../../types'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
 import { StructureBuilder } from './structure/StructureBuilder'
@@ -43,10 +40,6 @@ type Props = {
   solveOptions?: BestOptions
   /** Present only when this session may decide shared-room day bookings. */
   actBookings?: (fn: (c: CollegeData) => BookingOutcome) => string | null
-  /** Present only when this session may decide leave for the whole college. */
-  actLeave?: (fn: (c: CollegeData) => { ok: true; college: CollegeData } | { ok: false; reason: string }) => string | null
-  /** People tab: the college's accounts and what this session may do with them (v0.9). */
-  people?: { users: User[]; actions: AccountActions }
   /** Conflict Center fixes (existing actions), present only when this session may use them. */
   fixes?: {
     generateDept: (deptId: Id) => Promise<void>
@@ -56,7 +49,8 @@ type Props = {
   }
 }
 
-export type CollegePage = 'overview' | 'structure' | 'setup' | 'leave' | 'conflicts' | 'insights'
+/** v0.9-j (user request): Structure · Setup · Timetable · Conflicts · Insights — no Leave, no People. */
+export type CollegePage = 'structure' | 'setup' | 'overview' | 'conflicts' | 'insights'
 
 /** College Admin of one college: shape and set it up, then generate one clash-free timetable for every department. */
 export function CollegePortal({
@@ -74,11 +68,8 @@ export function CollegePortal({
   canExport,
   solveOptions,
   actBookings,
-  actLeave,
   fixes,
-  people,
 }: Props) {
-  const leaveCount = leaveWaiting(college)
   const clashes = useMemo(() => conflictCount(conflictReport(college, localIso(new Date()))), [college])
   // the stored draft, described against the college as it is now
   const draft = college.draft
@@ -93,10 +84,9 @@ export function CollegePortal({
       <div role="tablist" aria-label="College desk" className="mt-5 flex gap-4 overflow-x-auto border-b border-rule [scrollbar-width:none] sm:gap-5">
         {(
           [
-            ['overview', 'Timetable'],
             ...(editStructure ? ([['structure', 'Structure']] as const) : []),
             ['setup', 'Setup'],
-            ['leave', 'Leave'],
+            ['overview', 'Timetable'],
             ...(fixes ? ([['conflicts', 'Conflicts']] as const) : []),
             ['insights', 'Insights'],
           ] as const
@@ -114,9 +104,6 @@ export function CollegePortal({
             {label}
             {id === 'conflicts' && clashes > 0 && (
               <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{clashes}</span>
-            )}
-            {id === 'leave' && leaveCount > 0 && (
-              <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{leaveCount} to decide</span>
             )}
             {id === 'setup' && open > 0 && (
               <span className="ml-2 rounded-full bg-vermilion px-1.5 py-0.5 align-middle font-mono text-[10px] text-paper">{open} to assign</span>
@@ -141,16 +128,11 @@ export function CollegePortal({
             onGenerateAll={fixes.generateAll}
             onMoveRoom={fixes.moveRoom}
             onUnlock={fixes.unlock}
-            onLeave={() => onPage('leave')}
           />
-        </div>
-      ) : page === 'leave' && actLeave ? (
-        <div className="mt-6">
-          <LeaveDesk college={college} act={actLeave} accent="vermilion" />
         </div>
       ) : page === 'setup' && edit ? (
         <div className="mt-6">
-          <SetupView college={college} tab={setupTab} onTab={(t) => onPage('setup', t)} edit={edit} people={people} />
+          <SetupView college={college} tab={setupTab} onTab={(t) => onPage('setup', t)} edit={edit} />
         </div>
       ) : (
         <div className="mt-6 max-w-2xl">

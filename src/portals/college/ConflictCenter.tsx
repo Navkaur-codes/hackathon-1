@@ -14,7 +14,8 @@ type Props = {
   onGenerateAll?: () => Promise<void>
   onMoveRoom?: (placement: Placement, roomId: Id) => string | null
   onUnlock?: (placement: Placement) => string | null
-  onLeave: () => void
+  /** Open the leave desk (absent when the desk has none). */
+  onLeave?: () => void
 }
 
 const btn = 'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition disabled:opacity-40'
@@ -163,9 +164,11 @@ export function ConflictCenter({ college, onGenerateDept, onGenerateAll, onMoveR
                   {d.uncovered.length > 0 && `${d.uncovered.length} ${d.uncovered.length === 1 ? 'class has' : 'classes have'} no substitute`}
                   {d.clashes.length > 0 && ` ${d.clashes.length} clash${d.clashes.length === 1 ? '' : 'es'}: ${d.clashes[0].message}`}
                 </span>
-                <button type="button" onClick={onLeave} className={`${btn} border-rule hover:border-ink`}>
-                  Open Leave
-                </button>
+                {onLeave && (
+                  <button type="button" onClick={onLeave} className={`${btn} border-rule hover:border-ink`}>
+                    Open Leave
+                  </button>
+                )}
               </li>
             ))}
           </ul>
