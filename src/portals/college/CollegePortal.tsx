@@ -18,8 +18,8 @@ import type { Id, Placement, User } from '../../types'
 import type { AccountActions } from '../../components/AccountsPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
-import { StructureBuilder } from '../super/structure/StructureBuilder'
-import type { BuilderTab } from '../super/structure/tabs'
+import { StructureBuilder } from './structure/StructureBuilder'
+import type { BuilderTab } from './structure/tabs'
 
 type Props = {
   college: CollegeData

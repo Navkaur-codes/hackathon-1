@@ -197,6 +197,10 @@ describe('T9.4 route guard', () => {
   })
   it("signed in → own desk; another role's portal → own portal; login → own desk", () => {
     expect(guard(hod, { page: 'portal', portal: 'dept', path: ['leave'] })).toEqual({ page: 'portal', portal: 'dept', path: ['leave'] })
+    // v0.9-i: the Super Admin desk is one page — old structure / insights addresses land on it
+    const sup: Session = { role: 'superAdmin' }
+    expect(guard(sup, { page: 'portal', portal: 'super', path: ['diet', 'structure', 'subjects'] })).toEqual({ page: 'portal', portal: 'super' })
+    expect(guard(sup, { page: 'portal', portal: 'college', path: ['structure'] })).toEqual({ page: 'portal', portal: 'super' })
     expect(guard(hod, { page: 'portal', portal: 'college' })).toEqual({ page: 'portal', portal: 'dept' })
     expect(guard(hod, { page: 'login' })).toEqual({ page: 'portal', portal: 'dept' })
   })

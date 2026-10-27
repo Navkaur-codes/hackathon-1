@@ -1,7 +1,7 @@
 import { AccountsPanel, type AccountActions } from '../../../components/AccountsPanel'
 import { PreflightPanel } from '../../../components/PreflightPanel'
 import type { CollegeData, Id, User } from '../../../types'
-import { SubjectsTab } from '../../super/structure/SubjectsTab'
+import { SubjectsTab } from '../structure/SubjectsTab'
 import { AssignmentsTab } from './AssignmentsTab'
 import { BlockedTab } from './BlockedTab'
 import { PasteTab } from './PasteTab'

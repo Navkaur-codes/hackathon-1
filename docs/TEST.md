@@ -3,7 +3,7 @@
 > Updated whenever a test is added or run. Status: ✅ pass · ❌ fail · ⏳ planned.
 > Unit tests: vitest (`npm test`), files `src/**/*.test.ts`. UI: manual checklist below.
 
-**Last run:** 2026-10-27 (P0.9-i) — `npm test` 423 passed / 0 failed (37 files) · build ✅ (warning: main chunk > 500 kB, code-split in v1.0) · lint ✅
+**Last run:** 2026-10-27 (P0.9-i2) — `npm test` 423 passed / 0 failed (37 files) · build ✅ (warning: main chunk > 500 kB, code-split in v1.0) · lint ✅
 
 ## Unit tests
 | ID | Version | Area | Case | Expected | Type | Status | Notes |

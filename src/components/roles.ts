@@ -12,7 +12,7 @@ export const ROLES: RoleMeta[] = [
     short: 'Super',
     accent: 'var(--gold)',
     icon: Landmark,
-    line: 'Creates colleges and shapes their structure — departments, sections, subjects, calendar.',
+    line: 'Creates colleges and gives each College Admin a username and password.',
   },
   {
     role: 'collegeAdmin',
@@ -20,7 +20,7 @@ export const ROLES: RoleMeta[] = [
     short: 'College',
     accent: 'var(--vermilion)',
     icon: Building2,
-    line: 'Generates one clash-free timetable for the whole college and publishes it.',
+    line: 'Shapes the college — calendar, departments, subjects — then generates and publishes one clash-free timetable.',
   },
   {
     role: 'deptAdmin',

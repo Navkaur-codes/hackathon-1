@@ -156,6 +156,8 @@ export function guard(session: Session | null, route: Route): Route {
   if (route.page === 'landing' || route.page === 'public') return route
   if (!session) return route.page === 'login' ? route : { page: 'login', portal: route.portal }
   if (route.page === 'login') return { page: 'portal', portal: portalOf(session.role) }
+  // the Super Admin's desk is one page (colleges + admin logins); old addresses such as #/super/<id>/structure land there
+  if (session.role === 'superAdmin') return { page: 'portal', portal: 'super' }
   return route.portal === portalOf(session.role) ? route : { page: 'portal', portal: portalOf(session.role) }
 }
 
