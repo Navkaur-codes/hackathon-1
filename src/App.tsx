@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AccountMenu, ChangePasswordDialog } from './components/AccountMenu'
 import { LoginPage } from './components/LoginPage'
-import { DEMO_PASSWORD } from './demoAccounts'
 import type { AccountActions } from './components/AccountsPanel'
 import { createSectionAccounts, createUser, resetPassword, setDisabled, type AuthOutcome } from './lib/auth'
 import { SharedWeek } from './components/SharedWeek'
@@ -144,8 +143,8 @@ export default function App() {
     setOpen(null)
     go(session && me ? { page: 'portal', portal: portalOf(session.role) } : { page: 'login', portal: portalOf(role) })
   }
-  const doSignIn = async (username: string, password: string) => {
-    const why = await signIn(username, password)
+  const doSignIn = async (username: string, password: string, role: Role) => {
+    const why = await signIn(username, password, role)
     if (!why) {
       const s = appStore.getState().session!
       setOpen(null)
@@ -306,7 +305,7 @@ export default function App() {
             }}
           />
         ) : shown.page === 'login' ? (
-          <LoginPage users={users} colleges={colleges} hint={shown.portal} demoPassword={DEMO_PASSWORD} onSignIn={doSignIn} />
+          <LoginPage hint={shown.portal} onSignIn={doSignIn} />
         ) : openCollege && openResult ? (
           <TimetableView
             key={`${openCollege.college.id}:${initial?.collegeId === openCollege.college.id ? `${initial.view}:${initial.entityId}` : ''}`}
@@ -531,15 +530,17 @@ export default function App() {
         />
       )}
 
-      <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
-        <span>Kaalchakra · v0.8 · saved in this browser</span>
-        <span className="flex items-center gap-3">
-          <button type="button" onClick={reset} className="underline-offset-2 hover:text-ink hover:underline">
-            Reset demo data
-          </button>
-          <span>Built at the Punjab Jobs AI Bootcamp</span>
-        </span>
-      </footer>
+      {shown.page !== 'login' && (
+        <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-rule py-5 font-mono text-[11px] text-muted">
+          <span>Kaalchakra · v0.8 · saved in this browser</span>
+          <span className="flex items-center gap-3">
+            <button type="button" onClick={reset} className="underline-offset-2 hover:text-ink hover:underline">
+              Reset demo data
+            </button>
+            <span>Built at the Punjab Jobs AI Bootcamp</span>
+          </span>
+        </footer>
+      )}
     </div>
   )
 }

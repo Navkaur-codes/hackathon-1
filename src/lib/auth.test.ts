@@ -67,6 +67,13 @@ describe('T9.3 each demo account opens exactly its own desk', () => {
       expect(can(s, 'viewPublished', dcas.college.id, colleges)).toBe(false)
     }
   })
+  it('a role picked on the sign-in page must match the account — refused like a wrong password', async () => {
+    expect((await verifyLogin(users, 'super', DEMO_PASSWORD, 'superAdmin')).ok).toBe(true)
+    expect((await verifyLogin(users, 'diet.admin', DEMO_PASSWORD, 'collegeAdmin')).ok).toBe(true)
+    expect(await verifyLogin(users, 'diet.admin', DEMO_PASSWORD, 'superAdmin')).toEqual({ ok: false, reason: LOGIN_ERROR })
+    expect(await verifyLogin(users, 'super', DEMO_PASSWORD, 'collegeAdmin')).toEqual({ ok: false, reason: LOGIN_ERROR })
+  })
+
 
   it('every demo account signs in; accounts of an archived college or a removed link cannot', () => {
     expect(users).toHaveLength(demoAccountInputs(colleges).length)

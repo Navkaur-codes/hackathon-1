@@ -19,7 +19,8 @@ export type KaalState = {
   /** Id of the signed-in account (null with a switcher session in tests, or signed out). */
   userId: Id | null
   /** Check the credentials and open that account's session; returns the refusal, or null when signed in. */
-  signIn: (username: string, password: string) => Promise<string | null>
+  /** `role` = the role picked on the sign-in page; an account of another role is refused like a wrong password. */
+  signIn: (username: string, password: string, role?: Role) => Promise<string | null>
   /** Replace the accounts (after a pure change from lib/auth.ts). */
   setUsers: (users: User[]) => void
   /** Seed the demo accounts for the colleges in the store when there are none (first load, after a migrate or a reset). */
@@ -83,9 +84,9 @@ export function createKaalStore(storage?: StateStorage) {
           ),
         setStudentName: (name) => set((s) => (s.session?.role === 'student' ? { session: { ...s.session, studentName: name.slice(0, 60) } } : s)),
         signOut: () => set({ session: null, userId: null }),
-        signIn: async (username, password) => {
+        signIn: async (username, password, role) => {
           const s = get()
-          const r = await verifyLogin(s.users, username, password)
+          const r = await verifyLogin(s.users, username, password, role)
           if (!r.ok) return r.reason
           const session = sessionOf(r.user, get().colleges)
           if (!session) return LOGIN_ERROR

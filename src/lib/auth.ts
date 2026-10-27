@@ -106,12 +106,15 @@ export async function createUser(users: User[], colleges: CollegeData[], input: 
   return { ok: true, users: [...users, user], user }
 }
 
-/** The account for these credentials, or the generic refusal (unknown user, wrong password, disabled — all the same). */
-export async function verifyLogin(users: User[], username: string, password: string): Promise<{ ok: true; user: User } | { ok: false; reason: string }> {
+/**
+ * The account for these credentials, or the generic refusal (unknown user, wrong password, disabled, or — when the
+ * sign-in page names a role — an account of another role: all the same).
+ */
+export async function verifyLogin(users: User[], username: string, password: string, role?: Role): Promise<{ ok: true; user: User } | { ok: false; reason: string }> {
   const user = users.find((u) => u.username === normalUsername(username))
   // hash even for an unknown user, so a miss takes as long as a wrong password
   const hash = await hashPassword(password, user?.salt ?? '00')
-  if (!user || user.disabled || !sameHex(hash, user.hash)) return fail(LOGIN_ERROR)
+  if (!user || user.disabled || !sameHex(hash, user.hash) || (role && user.role !== role)) return fail(LOGIN_ERROR)
   return { ok: true, user }
 }
 
