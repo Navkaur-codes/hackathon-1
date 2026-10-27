@@ -257,14 +257,11 @@ export default function App() {
     else go({ page: 'portal', portal: 'college', path: ['conflicts'] })
   }
 
-  // A public department timetable is a page of its own: no account menu, no sign-in, no way into the app (v0.9-k).
+  // A public department timetable is a page of its own: no app header, account menu, sign-in or way into the app
+  // (v0.9-k; the Kaalchakra wordmark went too in v0.9-m).
   if (shown.page === 'public' && sharedWeek === undefined)
     return (
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
-        <header className="no-print flex items-center gap-2.5 border-b border-rule py-4">
-          <Wheel size={28} spokes={8} />
-          <span className="font-display text-xl font-semibold tracking-tight">Kaalchakra</span>
-        </header>
         <main className="flex-1">
           <PublicTimetable colleges={colleges} snap={publicSnap} path={shown.path} onPath={(parts) => go({ page: 'public', path: parts })} />
         </main>

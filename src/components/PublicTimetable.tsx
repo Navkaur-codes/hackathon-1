@@ -40,7 +40,6 @@ const TABS: [PublicTab, string][] = [
 ]
 const stamp = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition'
-const eyebrow = 'font-mono text-[11px] tracking-[0.2em] text-muted uppercase'
 
 function Missing({ title, text }: { title: string; text: string }) {
   return (
@@ -99,8 +98,7 @@ export function PublicTimetable({ colleges, snap, path, onPath }: Props) {
       return loaded ? <Missing title="No published timetable here." text="This college has not published a timetable yet. Ask your college for its department link." /> : <Loading />
     return (
       <section className="py-8">
-        <p className={eyebrow}>Public timetables</p>
-        <h1 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">{name}</h1>
+        <h1 className="font-display text-2xl font-semibold sm:text-3xl">{name}</h1>
         <p className="mt-1 text-[14px] text-muted">Pick your department.</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           {depts.map((d) => (
@@ -154,6 +152,14 @@ function DeptPage({
   const unknown = !!where.id && !ids.includes(where.id)
   const grid = id ? buildGrid(college, pub.timetable, TAB_VIEW[tab], id) : undefined
   const [copied, setCopied] = useState(false)
+  // the browser tab names the department and college, not the app
+  useEffect(() => {
+    const before = document.title
+    document.title = `${pd.dept.name} · ${college.college.name} — timetable`
+    return () => {
+      document.title = before
+    }
+  }, [pd.dept.name, college.college.name])
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const t = window.setInterval(() => setNow(new Date()), 60_000)
@@ -181,16 +187,10 @@ function DeptPage({
 
   return (
     <section className="py-6 sm:py-8">
+      {/* department, then college, then the timetable, then its version (user request, v0.9-m) */}
       <header className="border-b border-rule pb-4">
-        <p className={eyebrow}>Public timetable · read-only</p>
-        <h1 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">{pd.dept.name}</h1>
+        <h1 className="font-display text-2xl font-semibold sm:text-3xl">{pd.dept.name}</h1>
         <p className="text-[14px] text-muted">{college.college.name}</p>
-        <p className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[12px] text-muted">
-          <VerifiedStamp conflicts={0} />
-          <span>
-            {college.semester.name} · {shortDate(college.semester.startDate)} – {shortDate(college.semester.endDate)} · version {pub.version} · updated {stamp(pub.at)}
-          </span>
-        </p>
       </header>
 
       <div role="tablist" aria-label="Timetables" className="no-print mt-4 flex gap-4 overflow-x-auto border-b border-rule [scrollbar-width:none] sm:gap-5">
@@ -265,7 +265,13 @@ function DeptPage({
       ) : (
         <p className="mt-6 text-[14px] text-muted">Nothing to show here yet.</p>
       )}
-      <p className="no-print mt-3 text-[12px] text-muted">
+      <p className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[12px] text-muted">
+        <VerifiedStamp conflicts={0} />
+        <span>
+          Version {pub.version} · updated {stamp(pub.at)} · {college.semester.name} · {shortDate(college.semester.startDate)} – {shortDate(college.semester.endDate)}
+        </span>
+      </p>
+      <p className="no-print mt-2 text-[12px] text-muted">
         Same every week of the semester.{' '}
         {source === 'live'
           ? 'This link always shows the latest version the college has published.'
