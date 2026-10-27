@@ -3,7 +3,7 @@
 > Written **before** each version starts (Design), completed after it (Built, Open issues).
 > Global rules: root `CLAUDE.md`. Roadmap: `docs/PLAN.md`.
 
-**Current version: v0.9 sign-up rework — P0.9-d public department link built; P0.9-e / f designed, on hold · then v1.0 Ship (design written, awaiting approval)** · v0.9 done · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
+**Current version: v0.9 sign-up rework — P0.9-d public department link pushed (`bbcdfbc`), P0.9-g landing rework built; user is giving page-by-page changes; P0.9-e / f designed, on hold · then v1.0 Ship (design written, awaiting approval)** · v0.9 done · v0.8 done · v0.7 done · v0.6 done · v0.5 done · v0.4 done · v0.35 done · v0.3 done · v0.2 done · v0.1 done
 
 > **▶ RESUME HERE (new chat):** **v0.5 incl. the room rework is complete and pushed** — P0.5-a `74d652a`, P0.5-b `6171526`, P0.5-c `3439fe5`, P0.5-d `d64f465`, P0.5-e `656dd3e`. **v0.6 design approved (2026-10-26)**; P0.6-a Teacher desk `92d4114`, P0.6-b Student desk `87cdc16`, P0.6-c Meet-a-Teacher `42c8b34` — **v0.6 complete** (350 tests green). v0.4 complete (`13cdba3`). Live at https://kaalchakra-seven.vercel.app (auto-deploys on push). Check `git log -1` first. v0.7 complete: P0.7-a `f658fa7`, P0.7-b `e186e9c`, P0.7-c `2d14471` (375 tests).
 >
@@ -660,6 +660,7 @@ Seeded: only `super` and one College Admin per demo college (`diet.admin`, `dcas
 - `docs/DEMO-SCRIPT.md` Part B is rewritten after P0.9-f (public link instead of student/teacher demo accounts).
 - **Drop order if time runs short:** deep links per class / teacher → HOD → teacher invites (College Admin invites teachers) → the Now / Next card on the public page.
 - **Built — P0.9-d** (user: *"for now just leave the rest of the features and build up this one"*): `lib/publicView.ts`, `components/PublicTimetable.tsx`, `components/PublicLinks.tsx`, `Programme.level` + Structure Builder field, route `#/t/…`, landing *Find your timetable*. Decided while building: the link carries the department's **published snapshot** (`?p=…`, like the section share link) because Kaalchakra has no server — opened on the admin's device without `?p` it reads the saved data instead; publishing again makes new links (the panel says so). Faculty grids show a teacher's whole week (incl. other departments' classes); rooms show their full week. Accounts, the student desk and root `CLAUDE.md` §2 are unchanged until P0.9-e / f are taken up.
+- **Built — P0.9-g Landing page rework** (user request, one of a series of page-by-page changes): hero = **Demo college** + **Sign in**; only the seeded demo colleges are listed (`DEMO_COLLEGE_IDS`), never colleges a Super Admin creates; the five role cards and the "Find your timetable" list were replaced by **How it works** (4 steps ending in department links) and **Checked before it is published** (the hard rules in plain words). Public department pages are now reached through the links the College Admin shares.
 
 ---
 

@@ -2,32 +2,47 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 import { useGSAP } from '@gsap/react'
-import { ArrowRight } from 'lucide-react'
-import { collegeKey, deptKey } from '../lib/publicView'
+import { ArrowRight, CalendarCheck, Layers, Share2, Wand2 } from 'lucide-react'
 import type { SolveResult } from '../solver/best'
-import type { CollegeData, Role } from '../types'
+import { DEMO_COLLEGE_IDS } from '../demoData'
+import type { CollegeData } from '../types'
 import { CollegeCard } from './CollegeCard'
-import { ROLES } from './roles'
 import { Wheel } from './Wheel'
 
 gsap.registerPlugin(useGSAP, SplitText)
 
 type Props = {
-  /** Active colleges on the platform (from the store). */
+  /** Active colleges; only the seeded demo ones are listed (colleges a Super Admin creates stay private). */
   colleges: CollegeData[]
   results: Record<string, SolveResult>
   onResult: (collegeId: string, r: SolveResult) => void
   onView: (collegeId: string) => void
-  onEnter: (role: Role) => void
-  /** Open a public department timetable (`#/t/<college>/<dept>`). */
-  onPublic: (parts: string[]) => void
+  onSignIn: () => void
 }
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 
-/** Public landing: hero, the colleges on the platform (try-it demo) and "Sign in as …" for each role (v0.9: to the login page). */
-export function Landing({ colleges, results, onResult, onView, onEnter, onPublic }: Props) {
-  const published = colleges.filter((c) => c.published)
+/** The steps from an empty college to a timetable everyone can open. */
+const STEPS = [
+  { icon: Layers, title: 'Shape the college', text: 'Working days, periods, lunch breaks, departments, years, sections and the subjects each year studies.' },
+  { icon: CalendarCheck, title: 'Add people and rooms', text: 'Teachers with their limits and unavailable hours, rooms and labs, who teaches what — typed or pasted from Excel.' },
+  { icon: Wand2, title: 'Generate and check', text: 'One click builds every department’s week; an independent checker proves there is not a single clash.' },
+  { icon: Share2, title: 'Publish and share', text: 'Each department gets a public link — faculty, UG / PG classes and rooms — that opens on any phone, no sign-in.' },
+]
+
+/** What every generated timetable is checked against before it can be published (root CLAUDE.md §3, in plain words). */
+const GUARANTEES = [
+  'No teacher in two places at once — across every department',
+  'No section with two classes in one period',
+  'No room booked twice, and always the right type and size',
+  'Labs in back-to-back periods, never across lunch',
+  'Every section and every teacher keeps a lunch break',
+  'Teachers’ daily and weekly limits and unavailable hours respected',
+]
+
+/** Public landing: hero (try a demo · sign in), the demo colleges, and how Kaalchakra works. */
+export function Landing({ colleges: active, results, onResult, onView, onSignIn }: Props) {
+  const colleges = active.filter((c) => DEMO_COLLEGE_IDS.includes(c.college.id))
   const root = useRef<HTMLDivElement>(null)
 
   useGSAP(
@@ -43,7 +58,7 @@ export function Landing({ colleges, results, onResult, onView, onEnter, onPublic
         gsap.from('[data-hero-fade]', { autoAlpha: 0, y: 16, duration: 0.8, ease: 'power3.out', stagger: 0.1, delay: 0.35 })
         gsap.from('[data-wheel]', { autoAlpha: 0, scale: 0.85, rotate: -90, duration: 1.4, ease: 'expo.out' })
         gsap.to('[data-wheel] [data-wheel-spokes]', { rotate: 360, transformOrigin: '50% 50%', duration: 60, ease: 'none', repeat: -1 })
-        gsap.from('[data-role-card]', { autoAlpha: 0, y: 24, duration: 0.7, ease: 'power3.out', stagger: 0.08, delay: 0.6 })
+        gsap.from('[data-step-card]', { autoAlpha: 0, y: 24, duration: 0.7, ease: 'power3.out', stagger: 0.08, delay: 0.6 })
         gsap.from('[data-college-card]', { autoAlpha: 0, y: 24, duration: 0.7, ease: 'power3.out', stagger: 0.12, delay: 0.8 })
       })
     },
@@ -73,21 +88,14 @@ export function Landing({ colleges, results, onResult, onView, onEnter, onPublic
               onClick={() => scrollTo('colleges')}
               className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:opacity-90"
             >
-              Try a demo college <ArrowRight size={16} aria-hidden />
+              Demo college <ArrowRight size={16} aria-hidden />
             </button>
             <button
               type="button"
-              onClick={() => scrollTo('find')}
+              onClick={onSignIn}
               className="inline-flex items-center gap-2 rounded-full border border-ink px-5 py-2.5 text-sm font-medium transition hover:bg-ink hover:text-paper"
             >
-              Find your timetable
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollTo('roles')}
-              className="inline-flex items-center gap-2 rounded-full border border-ink px-5 py-2.5 text-sm font-medium transition hover:bg-ink hover:text-paper"
-            >
-              Sign in as…
+              Sign in
             </button>
           </div>
         </div>
@@ -96,40 +104,6 @@ export function Landing({ colleges, results, onResult, onView, onEnter, onPublic
             <Wheel size={320} className="h-auto w-full" />
           </div>
         </div>
-      </section>
-
-      <section id="find" className="scroll-mt-4 border-t border-rule py-12">
-        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Find your timetable.</h2>
-        <p className="mt-2 max-w-2xl text-[15px] text-muted">
-          Students and teachers need no account: once a college publishes, each department has a public page with its faculty, UG / PG classes and rooms.
-        </p>
-        {published.length ? (
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {published.map((c) => (
-              <div key={c.college.id} className="rounded-xl border border-rule bg-card p-4">
-                <p className="font-display text-[16px] font-semibold">{c.college.name}</p>
-                <p className="font-mono text-[12px] text-muted">version {c.published!.version}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {c.departments.map((d) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => onPublic([collegeKey(c), deptKey(d)])}
-                      className="rounded-full border border-rule px-3 py-1.5 text-[13px] font-medium transition hover:border-ink"
-                      aria-label={`${d.name} timetable`}
-                    >
-                      {d.code}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-[14px] text-muted">
-            No college has published in this browser yet. Your college shares a link per department — open it to see the timetable on any device.
-          </p>
-        )}
       </section>
 
       <section id="colleges" className="scroll-mt-4 border-t border-rule py-12">
@@ -142,7 +116,7 @@ export function Landing({ colleges, results, onResult, onView, onEnter, onPublic
             </p>
           </div>
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted uppercase">
-            {colleges.length} {colleges.length === 1 ? 'college' : 'colleges'} on this platform
+            {colleges.length} demo {colleges.length === 1 ? 'college' : 'colleges'} · try without signing in
           </span>
         </div>
         <div className="mt-7 grid gap-4 md:grid-cols-2">
@@ -158,32 +132,38 @@ export function Landing({ colleges, results, onResult, onView, onEnter, onPublic
         </div>
       </section>
 
-      <section id="roles" className="scroll-mt-4 border-t border-rule py-12">
-        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">One timetable, five desks.</h2>
+      <section id="how" className="scroll-mt-4 border-t border-rule py-12">
+        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">From an empty college to a shared timetable.</h2>
         <p className="mt-2 max-w-2xl text-[15px] text-muted">
-          Everyone who depends on the timetable gets a view made for their job — and only the data they should see. Pick a
-          desk to step in; you can switch role and college any time from the top bar.
+          The Super Admin creates the college and its College Admin; the College Admin and HODs do the rest. Four steps, any college shape.
         </p>
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {ROLES.map(({ role, icon: Icon, name, accent, line }) => (
-            <article
-              key={role}
-              data-role-card
-              className="flex flex-col rounded-xl border border-rule bg-card p-5"
-              style={{ borderTop: `4px solid ${accent}` }}
-            >
-              <Icon size={20} style={{ color: accent }} aria-hidden />
-              <h3 className="mt-3 font-display text-base font-semibold">{name}</h3>
-              <p className="mt-1 flex-1 text-[13px] leading-relaxed text-muted">{line}</p>
-              <button
-                type="button"
-                onClick={() => onEnter(role)}
-                className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full border border-ink px-3 py-1.5 text-[13px] font-medium transition hover:bg-ink hover:text-paper"
-              >
-                Sign in<span className="sr-only"> as {name}</span> <ArrowRight size={14} aria-hidden />
-              </button>
-            </article>
+        <ol className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map(({ icon: Icon, title, text }, i) => (
+            <li key={title} data-step-card className="flex flex-col rounded-xl border border-rule bg-card p-5">
+              <span className="flex items-center justify-between">
+                <Icon size={20} className="text-vermilion" aria-hidden />
+                <span className="font-mono text-[11px] tracking-[0.2em] text-muted">0{i + 1}</span>
+              </span>
+              <h3 className="mt-3 font-display text-base font-semibold">{title}</h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">{text}</p>
+            </li>
           ))}
+        </ol>
+
+        <div className="mt-10 rounded-xl border border-rule bg-card p-5 sm:p-6">
+          <h3 className="font-display text-lg font-semibold">Checked before it is published — every time.</h3>
+          <ul className="mt-3 grid gap-x-6 gap-y-2 text-[14px] sm:grid-cols-2">
+            {GUARANTEES.map((g) => (
+              <li key={g} className="flex gap-2">
+                <span aria-hidden className="font-mono text-vermilion">✓</span>
+                {g}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-[13px] text-muted">
+            A class that cannot be placed legally is listed with the reason and a fix — never squeezed in. When a teacher is on leave, a free substitute is
+            suggested for that day only.
+          </p>
         </div>
       </section>
     </div>

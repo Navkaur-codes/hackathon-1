@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDemoColleges } from './demoData'
+import { buildDemoColleges, DEMO_COLLEGE_IDS } from './demoData'
 import { sectionBreakSlots, summarizeCollege } from './lib/structure'
 import type { CollegeData } from './types'
 
@@ -18,6 +18,11 @@ const recordsOf = (c: CollegeData) => [
 ]
 
 describe('T0.2 demo data sanity', () => {
+  it('DEMO_COLLEGE_IDS names exactly the seeded colleges (the landing lists only these)', () => {
+    expect([...DEMO_COLLEGE_IDS]).toEqual(buildDemoColleges().map((c) => c.college.id))
+    expect(DEMO_COLLEGE_IDS).not.toContain('pec')
+  })
+
   it('has two colleges of different shapes', () => {
     expect(colleges).toHaveLength(2)
     const [a, b] = colleges

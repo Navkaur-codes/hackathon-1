@@ -2,7 +2,7 @@
 // `buildCollege` — the same path a Super Admin's Structure Builder uses (rule G3). Nothing in the app
 // may depend on these names or counts.
 
-import { buildCollege, type CollegeSpec } from './lib/structure'
+import { buildCollege, slug, type CollegeSpec } from './lib/structure'
 import type { CollegeData } from './types'
 
 /** Engineering: 6 days × 7 slots, three departments, staggered lunch, shared labs and seminar hall. */
@@ -297,6 +297,9 @@ export const artsScienceSpec: CollegeSpec = {
 }
 
 export const demoSpecs: CollegeSpec[] = [engineeringSpec, artsScienceSpec]
+
+/** Ids of the seeded demo colleges — the only ones the public landing page shows (colleges a Super Admin creates stay private). */
+export const DEMO_COLLEGE_IDS: readonly string[] = demoSpecs.map((s) => slug(s.code))
 
 export function buildDemoColleges(): CollegeData[] {
   return demoSpecs.map(buildCollege)

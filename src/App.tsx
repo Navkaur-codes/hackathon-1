@@ -495,7 +495,7 @@ export default function App() {
         ) : inPortal ? (
           <ComingSoon role={session.role} college={home} onRole={enter} />
         ) : (
-          <Landing colleges={active} results={results} onResult={(id, r) => keep(id)(r)} onView={view} onEnter={enter} onPublic={(parts) => go({ page: 'public', path: parts })} />
+          <Landing colleges={active} results={results} onResult={(id, r) => keep(id)(r)} onView={view} onSignIn={() => go({ page: 'login' })} />
         )}
       </main>
 
