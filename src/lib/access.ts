@@ -25,8 +25,9 @@ export type Action =
   /** The college dashboard (loads, room use, shared-resource ledger); Super Admin reads it too. */
   | 'insights'
 
-const COLLEGE_ADMIN: Action[] = ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights']
-const SUPER_ADMIN: Action[] = ['editStructure', 'viewDraft', 'viewPublished', 'insights']
+const COLLEGE_ADMIN: Action[] = ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights']
+/** v0.9-i (user request): the Super Admin only creates colleges and gives each its College Admin login. */
+const SUPER_ADMIN: Action[] = []
 /** An HOD works on the college draft (their own department's part of it) — never publishes. */
 const DEPT_ADMIN: Action[] = ['viewDraft', 'viewPublished']
 

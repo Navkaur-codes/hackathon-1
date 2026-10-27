@@ -18,6 +18,8 @@ import type { Id, Placement, User } from '../../types'
 import type { AccountActions } from '../../components/AccountsPanel'
 import { SetupView } from './setup/SetupView'
 import type { Edit, SetupTab } from './setup/tabs'
+import { StructureBuilder } from '../super/structure/StructureBuilder'
+import type { BuilderTab } from '../super/structure/tabs'
 
 type Props = {
   college: CollegeData
@@ -25,9 +27,14 @@ type Props = {
   onResult: (r: SolveResult) => void
   onView: () => void
   /** `overview` = generate & view; `setup` = rooms, teachers, assignments… */
-  page: 'overview' | 'setup' | 'leave' | 'conflicts' | 'insights'
+  page: CollegePage
   setupTab: SetupTab
-  onPage: (page: 'overview' | 'setup' | 'leave' | 'conflicts' | 'insights', tab?: SetupTab) => void
+  onPage: (page: CollegePage, tab?: SetupTab) => void
+  /** Structure tab (v0.9-i: the College Admin shapes their own college). */
+  structureTab: BuilderTab
+  onStructureTab: (t: BuilderTab) => void
+  /** Present only when this session may edit the structure (lib/access.ts). */
+  editStructure?: Edit
   /** Present only when this session may edit the setup (lib/access.ts). */
   edit?: Edit
   canPublish: boolean
@@ -49,8 +56,28 @@ type Props = {
   }
 }
 
-/** College Admin of one college: set it up, then generate one clash-free timetable for every department. */
-export function CollegePortal({ college, onResult, onView, page, setupTab, onPage, edit, canPublish, canExport, solveOptions, actBookings, actLeave, fixes, people }: Props) {
+export type CollegePage = 'overview' | 'structure' | 'setup' | 'leave' | 'conflicts' | 'insights'
+
+/** College Admin of one college: shape and set it up, then generate one clash-free timetable for every department. */
+export function CollegePortal({
+  college,
+  onResult,
+  onView,
+  page,
+  setupTab,
+  onPage,
+  structureTab,
+  onStructureTab,
+  editStructure,
+  edit,
+  canPublish,
+  canExport,
+  solveOptions,
+  actBookings,
+  actLeave,
+  fixes,
+  people,
+}: Props) {
   const leaveCount = leaveWaiting(college)
   const clashes = useMemo(() => conflictCount(conflictReport(college, localIso(new Date()))), [college])
   // the stored draft, described against the college as it is now
@@ -60,13 +87,14 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
   return (
     <section className="py-8">
       <PortalTitle role="collegeAdmin" title={college.college.name}>
-        Your college only — set it up, generate one clash-free timetable for every department, then publish it.
+        Your college only — shape its structure, set it up, generate one clash-free timetable for every department, then publish it.
       </PortalTitle>
 
       <div role="tablist" aria-label="College desk" className="mt-5 flex gap-4 overflow-x-auto border-b border-rule [scrollbar-width:none] sm:gap-5">
         {(
           [
             ['overview', 'Timetable'],
+            ...(editStructure ? ([['structure', 'Structure']] as const) : []),
             ['setup', 'Setup'],
             ['leave', 'Leave'],
             ...(fixes ? ([['conflicts', 'Conflicts']] as const) : []),
@@ -97,7 +125,11 @@ export function CollegePortal({ college, onResult, onView, page, setupTab, onPag
         ))}
       </div>
 
-      {page === 'insights' ? (
+      {page === 'structure' && editStructure ? (
+        <div className="mt-6">
+          <StructureBuilder college={college} tab={structureTab} onTab={onStructureTab} edit={editStructure} />
+        </div>
+      ) : page === 'insights' ? (
         <div className="mt-6">
           <Insights college={college} />
         </div>

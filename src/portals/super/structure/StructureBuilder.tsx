@@ -12,22 +12,32 @@ type Props = {
   college: CollegeData
   tab: BuilderTab
   onTab: (t: BuilderTab) => void
-  onBack: () => void
+  /** A page of its own (with a back link and title); without it the builder sits inside a desk tab. */
+  onBack?: () => void
   edit: (fn: (c: CollegeData) => CollegeData) => void
 }
 
-/** Super Admin shapes one college: calendar, semester, departments, programmes (sections), subjects. */
+/** Shape one college: calendar, semester, departments, programmes (sections), subjects. The College Admin's own (v0.9-i). */
 export function StructureBuilder({ college, tab, onTab, onBack, edit }: Props) {
   return (
-    <section className="py-8">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-ink">
-        <ArrowLeft size={15} aria-hidden /> All colleges
-      </button>
-      <div className="mt-4">
-        <PortalTitle role="superAdmin" title={`${college.college.name} — structure`}>
-          Every change is saved at once. Sections, subjects and teacher choices stay consistent; the College Admin generates once it looks right.
-        </PortalTitle>
-      </div>
+    <section className={onBack ? 'py-8' : ''}>
+      {onBack && (
+        <>
+          <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-ink">
+            <ArrowLeft size={15} aria-hidden /> Back
+          </button>
+          <div className="mt-4">
+            <PortalTitle role="collegeAdmin" title={`${college.college.name} — structure`}>
+              Every change is saved at once. Sections, subjects and teacher choices stay consistent; generate once it looks right.
+            </PortalTitle>
+          </div>
+        </>
+      )}
+      {!onBack && (
+        <p className="text-[14px] text-muted">
+          Your college's shape — days, periods, lunch, departments, years, sections and subjects. Every change is saved at once; generate again afterwards.
+        </p>
+      )}
 
       <div role="tablist" aria-label="Structure" className="mt-5 flex flex-wrap gap-x-5 gap-y-1 border-b border-rule">
         {BUILDER_TABS.map((t) => (
@@ -40,7 +50,7 @@ export function StructureBuilder({ college, tab, onTab, onBack, edit }: Props) {
             aria-controls="structure-panel"
             onClick={() => onTab(t.id)}
             className={`-mb-px border-b-2 pb-2 font-display text-base font-semibold transition ${
-              tab === t.id ? 'border-gold text-ink' : 'border-transparent text-muted hover:text-ink'
+              tab === t.id ? 'border-vermilion text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {t.label}

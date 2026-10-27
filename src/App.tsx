@@ -3,6 +3,8 @@ import { AccountMenu, ChangePasswordDialog } from './components/AccountMenu'
 import { LoginPage } from './components/LoginPage'
 import type { AccountActions } from './components/AccountsPanel'
 import { createSectionAccounts, createUser, resetPassword, setDisabled, type AuthOutcome } from './lib/auth'
+import { codeProblem, newCollege } from './lib/edit'
+import type { AdminLogin } from './portals/super/SuperPortal'
 import { SharedWeek } from './components/SharedWeek'
 import { PublicTimetable } from './components/PublicTimetable'
 import { decodePublic } from './lib/publicView'
@@ -25,9 +27,7 @@ import { asTeacherPage } from './portals/teacher/pages'
 import { StudentPortal } from './portals/student/StudentPortal'
 import { asStudentPage } from './portals/student/pages'
 import { CollegePortal } from './portals/college/CollegePortal'
-import { Insights } from './portals/college/Insights'
 import { SuperPortal } from './portals/super/SuperPortal'
-import { StructureBuilder } from './portals/super/structure/StructureBuilder'
 import { asBuilderTab } from './portals/super/structure/tabs'
 import { asSetupTab } from './portals/college/setup/tabs'
 import { describeTimetable, type SolveResult } from './solver/best'
@@ -63,6 +63,7 @@ export default function App() {
   const signOut = useKaal((s) => s.signOut)
   const resetDemo = useKaal((s) => s.resetDemo)
   const updateCollege = useKaal((s) => s.updateCollege)
+  const addCollege = useKaal((s) => s.addCollege)
   const active = switchableColleges(colleges)
 
   const [sharedWeek, setSharedWeek] = useState(() => (sharedWeekParam === null ? undefined : decodeShare(sharedWeekParam)))
@@ -172,13 +173,34 @@ export default function App() {
   // the teacher a Teacher session is (access.ts decides)
   const self = teacherScope(session, colleges)
   const mySection = studentScope(session, colleges)
-  // #/super/<collegeId>/structure[/<tab>] — only for a session allowed to shape that college
   const subPath = shown.page === 'portal' ? (shown.path ?? []) : []
-  const target = inPortal && subPath[1] === 'structure' ? collegeFor(session, colleges, subPath[0]) : undefined
-  const building = target && can(session, 'editStructure', target.college.id, colleges) ? target : undefined
-  // #/super/<collegeId>/insights — the read-only dashboard
-  const insightsTarget = inPortal && session.role === 'superAdmin' && subPath[1] === 'insights' ? collegeFor(session, colleges, subPath[0]) : undefined
-  const superInsights = insightsTarget && can(session, 'insights', insightsTarget.college.id, colleges) ? insightsTarget : undefined
+  /** Super Admin (v0.9-i): a new college with its College Admin login, more admins, new passwords — nothing else. */
+  const superDesk = {
+    onCreate: async (input: { name: string; code: string }, admin: AdminLogin) => {
+      if (!session) return 'Sign in first.'
+      const all = appStore.getState().colleges
+      const problem = codeProblem(input.code, all)
+      if (problem) return problem
+      const c = newCollege(input.code, input.name, localIso(new Date()))
+      const r = await createUser(appStore.getState().users, [...all, c], { ...admin, role: 'collegeAdmin', collegeId: c.college.id }, session, new Date().toISOString())
+      if (!r.ok) return r.reason
+      addCollege(c)
+      setUsers(r.users)
+      return null
+    },
+    onAddAdmin: async (collegeId: string, admin: AdminLogin) => {
+      if (!session) return 'Sign in first.'
+      const r = await createUser(appStore.getState().users, appStore.getState().colleges, { ...admin, role: 'collegeAdmin', collegeId }, session, new Date().toISOString())
+      if (r.ok) setUsers(r.users)
+      return r.ok ? null : r.reason
+    },
+    onSetPassword: async (userId: string, password: string) => {
+      if (!session) return 'Sign in first.'
+      const r = await resetPassword(appStore.getState().users, session, userId, password, false)
+      if (r.ok) setUsers(r.users)
+      return r.ok ? null : r.reason
+    },
+  }
   /** Account changes (v0.9): applied to the accounts as they are now; `lib/auth.ts` checks who may do what. */
   const accountActions = (collegeId: string): AccountActions | undefined => {
     if (!session || !me) return undefined
@@ -224,9 +246,9 @@ export default function App() {
   }
 
   // Kaal Assistant: the college this desk is about (Super Admin: the one being looked at, else the last one)
-  const askCollegeId =
-    session?.role === 'superAdmin' ? (superInsights?.college.id ?? openCollege?.college.id ?? building?.college.id ?? session.collegeId ?? colleges[0]?.college.id) : session?.collegeId
-  const askScope = inPortal && sharedWeek === undefined ? assistantScope(session, colleges, askCollegeId) : undefined
+  const askCollegeId = session?.collegeId
+  // the Super Admin's desk has no timetable to ask about (v0.9-i)
+  const askScope = inPortal && sharedWeek === undefined && session.role !== 'superAdmin' ? assistantScope(session, colleges, askCollegeId) : undefined
   const askCollege = askScope ? colleges.find((c) => c.college.id === askScope.collegeId) : undefined
   const askJump = (j: Jump) => {
     if (!askScope || !askCollege) return
@@ -305,7 +327,7 @@ export default function App() {
             }}
           />
         ) : shown.page === 'login' ? (
-          <LoginPage hint={shown.portal} onSignIn={doSignIn} />
+          <LoginPage key={shown.portal ?? ''} hint={shown.portal} onSignIn={doSignIn} />
         ) : openCollege && openResult ? (
           <TimetableView
             key={`${openCollege.college.id}:${initial?.collegeId === openCollege.college.id ? `${initial.view}:${initial.entityId}` : ''}`}
@@ -340,45 +362,34 @@ export default function App() {
           <div className="flex items-center gap-3 py-24 text-muted" role="status">
             <Wheel size={22} spokes={8} /> Opening the shared timetable…
           </div>
-        ) : building ? (
-          <StructureBuilder
-            college={building}
-            tab={asBuilderTab(subPath[2])}
-            onTab={(t) => go({ page: 'portal', portal: 'super', path: [building.college.id, 'structure', t] })}
-            onBack={() => go({ page: 'portal', portal: 'super' })}
-            edit={editOf(building.college.id)}
-          />
-        ) : superInsights ? (
-          <section className="py-8">
-            <button type="button" onClick={() => go({ page: 'portal', portal: 'super' })} className="text-[13px] text-muted underline-offset-2 hover:text-ink hover:underline">
-              ← All colleges
-            </button>
-            <h1 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">{superInsights.college.name}</h1>
-            <p className="mb-6 text-[14px] text-muted">Insights · read-only for the Super Admin</p>
-            <Insights college={superInsights} onExchangeHint={false} />
-          </section>
         ) : inPortal && session.role === 'superAdmin' ? (
-          <SuperPortal
-            colleges={colleges}
-            onView={view}
-            onInsights={(id) => go({ page: 'portal', portal: 'super', path: [id, 'insights'] })}
-            users={users}
-            accountActions={accountActions}
-            onOpenStructure={(id) => go({ page: 'portal', portal: 'super', path: [id, 'structure'] })}
-          />
+          <SuperPortal colleges={colleges} users={users} {...superDesk} />
         ) : inPortal && session.role === 'collegeAdmin' && home ? (
           <CollegePortal
             key={home.college.id}
             college={home}
             onResult={saveDraft(home.college.id)}
             onView={() => view(home.college.id)}
-            page={subPath[0] === 'setup' ? 'setup' : subPath[0] === 'leave' || subPath[0] === 'conflicts' || subPath[0] === 'insights' ? subPath[0] : 'overview'}
+            page={
+              subPath[0] === 'setup' || subPath[0] === 'structure' || subPath[0] === 'leave' || subPath[0] === 'conflicts' || subPath[0] === 'insights'
+                ? subPath[0]
+                : 'overview'
+            }
             setupTab={asSetupTab(subPath[1])}
+            structureTab={asBuilderTab(subPath[1])}
+            onStructureTab={(t) => go({ page: 'portal', portal: 'college', path: ['structure', t] })}
+            editStructure={can(session, 'editStructure', home.college.id, colleges) ? editOf(home.college.id) : undefined}
             onPage={(page, tab) =>
               go({
                 page: 'portal',
                 portal: 'college',
-                ...(page === 'setup' ? { path: ['setup', tab ?? asSetupTab(subPath[1])] } : page === 'leave' || page === 'conflicts' || page === 'insights' ? { path: [page] } : {}),
+                ...(page === 'setup'
+                  ? { path: ['setup', tab ?? asSetupTab(subPath[1])] }
+                  : page === 'structure'
+                    ? { path: ['structure', asBuilderTab(undefined)] }
+                    : page === 'leave' || page === 'conflicts' || page === 'insights'
+                      ? { path: [page] }
+                      : {}),
               })
             }
             actLeave={can(session, 'leave', home.college.id, colleges) ? applyTo(home.college.id) : undefined}

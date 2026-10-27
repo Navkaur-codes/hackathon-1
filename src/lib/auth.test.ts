@@ -134,6 +134,17 @@ describe('T9.5 who may create whom', () => {
     expect(r.user.mustChange).toBe(true)
     expect((await resetPassword(c.users, { role: 'collegeAdmin', collegeId: dcas.college.id }, kaur.id, 'temporary-1')).ok).toBe(false)
   })
+
+  it('the Super Admin hands a College Admin a ready password (no forced change); only College Admins (v0.9-i)', async () => {
+    const sup: Session = { role: 'superAdmin' }
+    const r = await resetPassword(users, sup, byName('diet.admin').id, 'given-by-super')
+    expect(r.ok).toBe(true)
+    const ready = await resetPassword(users, sup, byName('diet.admin').id, 'given-by-super', false)
+    if (!ready.ok) throw new Error(ready.reason)
+    expect(ready.user.mustChange).toBeUndefined()
+    expect((await verifyLogin(ready.users, 'diet.admin', 'given-by-super', 'collegeAdmin')).ok).toBe(true)
+    expect((await resetPassword(users, sup, byName('diet.kaur').id, 'given-by-super', false)).ok).toBe(false)
+  })
 })
 
 describe('T9.6 store accounts', () => {

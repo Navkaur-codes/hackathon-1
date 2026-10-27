@@ -150,14 +150,17 @@ export async function changePassword(users: User[], userId: Id, oldPassword: str
   return { ok: true, users: users.map((x) => (x.id === userId ? next : x)), user: next }
 }
 
-/** The creator role sets a temporary password; the account must change it at the next sign-in. */
-export async function resetPassword(users: User[], by: Session, userId: Id, temporary: string): Promise<AuthOutcome> {
+/**
+ * The creator role sets a new password. By default it is temporary (changed at the next sign-in); the Super Admin
+ * hands a College Admin a ready password (`mustChange = false`, v0.9-i).
+ */
+export async function resetPassword(users: User[], by: Session, userId: Id, temporary: string, mustChange = true): Promise<AuthOutcome> {
   const u = users.find((x) => x.id === userId)
   if (!u || !mayManage(by, u.role, u.collegeId)) return fail('You cannot reset that account.')
   const problem = passwordProblem(temporary)
   if (problem) return fail(problem)
   const salt = newSalt()
-  const next: User = { ...u, salt, hash: await hashPassword(temporary, salt), mustChange: true }
+  const next: User = { ...u, salt, hash: await hashPassword(temporary, salt), mustChange: mustChange || undefined }
   return { ok: true, users: users.map((x) => (x.id === userId ? next : x)), user: next }
 }
 

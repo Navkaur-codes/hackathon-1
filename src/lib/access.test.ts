@@ -18,10 +18,9 @@ describe('T4.4 college admin scope', () => {
     expect(collegeFor(admin, colleges, dcas.college.id)?.college.id).toBe(dcas.college.id)
   })
 
-  it('may set up, generate, publish and export its own college — not structure, not another college', () => {
-    for (const a of ['editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights'] as Action[])
+  it('may shape, set up, generate, publish and export its own college — not another college', () => {
+    for (const a of ['editStructure', 'editSetup', 'generate', 'publish', 'export', 'viewDraft', 'viewPublished', 'roomBookings', 'leave', 'conflicts', 'insights'] as Action[])
       expect(can(admin, a, dcas.college.id, colleges)).toBe(true)
-    expect(can(admin, 'editStructure', dcas.college.id, colleges)).toBe(false)
     for (const a of ACTIONS) expect(can(admin, a, diet.college.id, colleges)).toBe(false)
   })
 
@@ -40,13 +39,8 @@ describe('T4.6 super admin scope and college isolation', () => {
     expect(ids(visibleColleges(sup, withArchived))).toEqual([diet.college.id, dcas.college.id])
   })
 
-  it('super admin shapes structure and reads timetables, but never sets up, generates or publishes', () => {
-    for (const c of colleges) {
-      expect(can(sup, 'editStructure', c.college.id, colleges)).toBe(true)
-      expect(can(sup, 'viewDraft', c.college.id, colleges)).toBe(true)
-      expect(can(sup, 'insights', c.college.id, colleges)).toBe(true)
-      for (const a of ['editSetup', 'generate', 'publish', 'export'] as Action[]) expect(can(sup, a, c.college.id, colleges)).toBe(false)
-    }
+  it('super admin only creates colleges and their admin logins — no structure, setup, timetables or dashboards (v0.9-i)', () => {
+    for (const c of colleges) for (const a of ACTIONS) expect(can(sup, a, c.college.id, colleges)).toBe(false)
   })
 
   it('no role of college A sees anything of college B', () => {
