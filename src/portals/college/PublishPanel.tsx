@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
-import { CircleAlert, Download, EyeOff, Send, Upload } from 'lucide-react'
+import { useState } from 'react'
+import { CircleAlert, Download, EyeOff, Send } from 'lucide-react'
 import { publish, publishCheck, unpublish } from '../../lib/publish'
 import { PublicLinks } from '../../components/PublicLinks'
-import { exportCollege, exportFileName, importCollege } from '../../lib/transfer'
+import { exportCollege, exportFileName } from '../../lib/transfer'
 import type { CollegeData } from '../../types'
 import type { Edit } from './setup/tabs'
 
@@ -27,7 +27,6 @@ export function PublishPanel({ college, canPublish, canExport, edit, onConflicts
   const log = college.publishLog ?? []
   const draftIsLive = !!pub && !!college.draft && JSON.stringify(pub.timetable) === JSON.stringify(college.draft)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
-  const file = useRef<HTMLInputElement>(null)
 
   const doPublish = () => {
     if (!edit) return
@@ -53,16 +52,6 @@ export function PublishPanel({ college, canPublish, canExport, edit, onConflicts
     a.download = exportFileName(college, now)
     a.click()
     URL.revokeObjectURL(a.href)
-  }
-  const doImport = async (f: File | undefined) => {
-    if (!f || !edit) return
-    const r = importCollege(await f.text(), college.college.id)
-    if (file.current) file.current.value = ''
-    if (!r.ok) return setMessage({ ok: false, text: `Not imported: ${r.errors.join(' ')}` })
-    if (!window.confirm(`Replace everything in ${college.college.name} with the file "${f.name}"? This cannot be undone.`)) return
-    // the platform decides status and admins, never the file
-    edit((c) => ({ ...r.college, college: { ...r.college.college, status: c.college.status, collegeAdminIds: c.college.collegeAdminIds } }))
-    setMessage({ ok: true, text: `Imported ${f.name}.` })
   }
 
   return (
@@ -151,13 +140,7 @@ export function PublishPanel({ college, canPublish, canExport, edit, onConflicts
           <button type="button" onClick={doExport} className={`${btn} border-rule hover:border-ink`}>
             <Download size={14} aria-hidden /> Export college (JSON)
           </button>
-          {edit && (
-            <label className={`${btn} cursor-pointer border-rule hover:border-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-vermilion`}>
-              <Upload size={14} aria-hidden /> Import from file
-              <input ref={file} type="file" accept="application/json,.json" className="sr-only" onChange={(e) => void doImport(e.target.files?.[0])} />
-            </label>
-          )}
-          <span className="text-[12px] text-muted">A backup of the whole college — structure, setup, draft and versions.</span>
+          <span className="text-[12px] text-muted">A backup copy of the whole college — structure, setup, draft and versions.</span>
         </div>
       )}
     </section>

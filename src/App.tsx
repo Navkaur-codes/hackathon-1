@@ -66,7 +66,7 @@ export default function App() {
   const active = switchableColleges(colleges)
 
   const [sharedWeek, setSharedWeek] = useState(() => (sharedWeekParam === null ? undefined : decodeShare(sharedWeekParam)))
-  const [publicSnap, setPublicSnap] = useState(() => (publicParam === null ? undefined : decodePublic(publicParam)))
+  const [publicSnap] = useState(() => (publicParam === null ? undefined : decodePublic(publicParam)))
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash))
   useEffect(() => {
     const onHash = () => setRoute(parseRoute(window.location.hash))
@@ -257,6 +257,20 @@ export default function App() {
     else go({ page: 'portal', portal: 'college', path: ['conflicts'] })
   }
 
+  // A public department timetable is a page of its own: no account menu, no sign-in, no way into the app (v0.9-k).
+  if (shown.page === 'public' && sharedWeek === undefined)
+    return (
+      <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
+        <header className="no-print flex items-center gap-2.5 border-b border-rule py-4">
+          <Wheel size={28} spokes={8} />
+          <span className="font-display text-xl font-semibold tracking-tight">Kaalchakra</span>
+        </header>
+        <main className="flex-1">
+          <PublicTimetable colleges={colleges} snap={publicSnap} path={shown.path} onPath={(parts) => go({ page: 'public', path: parts })} />
+        </main>
+      </div>
+    )
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-8">
       <header className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-rule py-4">
@@ -297,18 +311,6 @@ export default function App() {
             onLeave={() => {
               window.history.replaceState(null, '', window.location.pathname)
               setSharedWeek(undefined)
-            }}
-          />
-        ) : shown.page === 'public' ? (
-          <PublicTimetable
-            colleges={colleges}
-            snap={publicSnap}
-            path={shown.path}
-            onPath={(parts) => go({ page: 'public', path: parts })}
-            onHome={() => {
-              window.history.replaceState(null, '', window.location.pathname)
-              setPublicSnap(undefined)
-              go({ page: 'landing' })
             }}
           />
         ) : shown.page === 'login' ? (

@@ -30,7 +30,6 @@ type Props = {
   snap: PublicSnapshot | null | undefined
   path: string[]
   onPath: (parts: string[]) => void
-  onHome: () => void
 }
 
 const TABS: [PublicTab, string][] = [
@@ -42,14 +41,11 @@ const stamp = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 
 const btn = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition'
 const eyebrow = 'font-mono text-[11px] tracking-[0.2em] text-muted uppercase'
 
-function Missing({ title, text, onHome }: { title: string; text: string; onHome: () => void }) {
+function Missing({ title, text }: { title: string; text: string }) {
   return (
     <section className="max-w-xl py-16">
       <h1 className="font-display text-2xl font-semibold">{title}</h1>
       <p className="mt-2 text-[14px] text-muted">{text}</p>
-      <button type="button" onClick={onHome} className={`${btn} mt-4 border-ink`}>
-        Open Kaalchakra
-      </button>
     </section>
   )
 }
@@ -58,18 +54,18 @@ function Missing({ title, text, onHome }: { title: string; text: string; onHome:
  * A department's public timetable (v0.9-d): anyone with the link sees its Faculty, UG / PG classes and rooms from
  * the published version — no sign-in. `#/t/<college>` alone lists the college's departments.
  */
-export function PublicTimetable({ colleges, snap, path, onPath, onHome }: Props) {
+export function PublicTimetable({ colleges, snap, path, onPath }: Props) {
   const where = parsePublicPath(path)
   const fromLink = useMemo(() => (snap ? snapshotCollege(snap) : undefined), [snap])
   const college = fromLink && where && collegeKey(fromLink) === where.college ? fromLink : where ? publicCollege(colleges, where.college) : undefined
 
-  if (snap === null) return <Missing title="This link is broken." text="It may have been cut short when it was copied. Ask for the link again." onHome={onHome} />
+  if (snap === null) return <Missing title="This link is broken." text="It may have been cut short when it was copied. Ask for the link again." />
   if (!where || !college)
-    return <Missing title="No published timetable here." text="This college has not published a timetable yet, or the link is incomplete. Ask your college for its department link." onHome={onHome} />
+    return <Missing title="No published timetable here." text="This college has not published a timetable yet, or the link is incomplete. Ask your college for its department link." />
 
   const go = (p: Omit<PublicPath, 'college'>) => onPath(publicParts({ college: where.college, ...p }))
   const pd = where.dept ? publicDept(college, where.dept) : undefined
-  if (where.dept && !pd) return <Missing title="Department not found." text={`${college.college.name} has no department “${where.dept.toUpperCase()}”.`} onHome={onHome} />
+  if (where.dept && !pd) return <Missing title="Department not found." text={`${college.college.name} has no department “${where.dept.toUpperCase()}”.`} />
 
   if (!pd)
     return (
