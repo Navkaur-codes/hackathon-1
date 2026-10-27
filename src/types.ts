@@ -19,6 +19,8 @@ export type College = {
   name: string
   status: 'active' | 'archived'
   collegeAdminIds: Id[]
+  /** Secret that lets this college's browser update its live public links (v0.9-l; created at the first publish). */
+  publishKey?: string
 }
 
 /**

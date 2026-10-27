@@ -194,7 +194,7 @@ export function DeptPortal({ college, deptId, page, setupTab, onPage, edit, onRe
           {onGenerate && <DeptGenerate college={college} deptId={deptId} onGenerate={onGenerate} />}
           {college.published && (
             <section aria-label="Public link" className="rounded-xl border border-rule bg-card px-5 pb-4 [&>div]:mt-0 [&>div]:border-t-0">
-              <PublicLinks college={college} departments={college.departments.filter((d) => d.id === deptId)} />
+              <PublicLinks key={`${college.published.version}@${college.published.at}`} college={college} departments={college.departments.filter((d) => d.id === deptId)} />
             </section>
           )}
           <section aria-labelledby="ready-h" className="rounded-xl border border-rule bg-card p-5">
